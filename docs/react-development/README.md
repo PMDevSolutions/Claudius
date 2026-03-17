@@ -1,6 +1,6 @@
 # React Development Standards
 
-This document covers the development standards, tooling, and conventions used in this framework.
+Development standards, tooling, and conventions used in this framework.
 
 ## TypeScript
 
@@ -48,6 +48,12 @@ import { cn } from "@/lib/utils";
 >
 ```
 
+### Design Token Enforcement
+
+All colors, font sizes, and spacing values must come from the Tailwind config (which is generated from the Figma lockfile). No hardcoded hex values, pixel sizes, or arbitrary Tailwind values in components.
+
+Enforced by: `./scripts/verify-tokens.sh`
+
 ## Component Patterns
 
 **File structure:**
@@ -69,27 +75,47 @@ src/components/
 
 ## Testing Strategy
 
-Four layers of testing, each with a specific purpose:
+### TDD Workflow (Mandatory for Pipeline)
 
-### Vitest (Unit Tests)
+When using the `/build-from-figma` pipeline, TDD is enforced:
+
+1. **RED** -- Tests are written first from the Figma design (Phase 3)
+2. **GREEN** -- Components are built to pass the tests (Phase 4)
+3. **REFACTOR** -- Components are refined during visual QA (Phase 5)
+
+Tests must exist before components. Enforced by `./scripts/verify-test-coverage.sh`.
+
+### Four Testing Layers
+
+#### Vitest (Unit Tests)
 - Pure logic, hooks, utilities
 - Fast, runs in Node
 - **Run:** `./scripts/run-tests.sh` or `pnpm vitest`
 
-### React Testing Library (Component Tests)
+#### React Testing Library (Component Tests)
 - Component behavior from the user's perspective
 - Query by role, label, text -- never by class or test ID unless necessary
 - **Run:** `pnpm vitest` (same runner, jsdom environment)
 
-### Storybook (Visual Development)
+#### Storybook (Visual Development)
 - Component isolation and documentation
 - Visual states, variants, edge cases
 - **Run:** `pnpm storybook`
 
-### Playwright (E2E Tests)
+#### Playwright (E2E Tests)
 - Critical user flows across browsers (Chromium, Firefox, WebKit)
+- App-type-aware: web apps, Chrome extensions, and PWAs each get tailored tests
 - **Setup:** `./scripts/setup-playwright.sh`
-- **Run:** `./scripts/cross-browser-test.sh` or `pnpm playwright test`
+- **Run:** `pnpm exec playwright test`
+- **Chrome extensions:** `pnpm exec playwright test --config=playwright.chrome-ext.config.ts`
+
+### Visual QA (Pixel Diff)
+
+Automated pixel-level comparison using `scripts/visual-diff.js`:
+- Compares app screenshots against Figma reference screenshots
+- Iterates up to 5 times to achieve < 2% mismatch
+- Region-based analysis identifies which areas need fixes
+- **Run:** `node scripts/visual-diff.js --batch actual/ expected/ --json`
 
 ## Code Quality Tools
 
@@ -106,7 +132,7 @@ Four layers of testing, each with a specific purpose:
 - **Run:** `./scripts/check-bundle-size.sh`
 
 ### Accessibility Checks
-- Automated a11y scanning
+- Automated a11y scanning with eslint-plugin-jsx-a11y
 - **Run:** `./scripts/check-accessibility.sh`
 
 ## Available Scripts
@@ -123,26 +149,35 @@ All scripts are in the `scripts/` directory:
 | `lint-and-format.sh` | ESLint + Prettier |
 | `check-bundle-size.sh` | Bundle size analysis |
 | `check-accessibility.sh` | Automated accessibility scan |
+| `verify-tokens.sh` | Design token enforcement |
+| `verify-test-coverage.sh` | Component test file verification |
+| `visual-diff.js` | Pixel-level screenshot comparison |
+
+Full reference: `scripts/README.md`
 
 ## Project Structure
 
 ```
 project-root/
-├── src/
-│   ├── components/       # React components
-│   ├── hooks/            # Custom React hooks
-│   ├── lib/              # Utility functions
-│   ├── types/            # Shared TypeScript types
-│   ├── styles/           # Global styles, Tailwind base
-│   └── assets/           # Images, fonts, static files
+├── app/                  # Application code
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Utility functions
+│   │   ├── types/        # Shared TypeScript types
+│   │   ├── styles/       # Global styles, design tokens
+│   │   └── assets/       # Images, fonts, static files
+│   ├── e2e/              # Playwright E2E tests
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 ├── scripts/              # Development automation
+├── templates/            # Starter configs (shared, Next.js, Vite, Chrome ext)
 ├── docs/                 # Documentation
-├── .claude/              # Claude Code configuration
-│   ├── agents/           # 44 custom agents
-│   └── skills/           # 6 development skills
-├── tailwind.config.ts
-├── tsconfig.json
-└── vitest.config.ts
+└── .claude/              # Claude Code configuration
+    ├── agents/           # 44 custom agents
+    ├── skills/           # 10 development skills
+    └── pipeline.config.json
 ```
 
 ## Development Workflow
@@ -167,6 +202,8 @@ pnpm build
 ## Related Documentation
 
 - `docs/figma-to-react/README.md` -- Figma-to-React conversion pipeline
-- `.claude/skills/README.md` -- Skills catalog
-- `.claude/CUSTOM-AGENTS-GUIDE.md` -- Agent catalog
+- `.claude/skills/README.md` -- Skills catalog (10 skills)
+- `.claude/CUSTOM-AGENTS-GUIDE.md` -- Agent catalog (44 agents)
 - `.claude/PLUGINS-REFERENCE.md` -- Plugin reference
+- `scripts/README.md` -- Scripts reference
+- `templates/README.md` -- Template configs reference
