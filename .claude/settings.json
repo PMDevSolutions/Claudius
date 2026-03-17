@@ -1,6 +1,6 @@
 {
   "hooks": {
-    "postToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Bash",
         "hooks": [

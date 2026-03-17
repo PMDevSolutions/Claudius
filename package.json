@@ -1,0 +1,31 @@
+{
+  "name": "claude-code-react-framework",
+  "version": "0.5.0",
+  "description": "Claude Code-integrated React app development framework with specialized agents, skills, and Figma-to-React pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch",
+    "release:dry": "standard-version --dry-run",
+    "new-app": "node scripts/create-app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PAMulligan/Coding-Framework.git"
+  },
+  "keywords": [
+    "claude-code",
+    "react",
+    "figma",
+    "chrome-extension",
+    "template"
+  ],
+  "author": "PAMulligan",
+  "license": "MIT",
+  "devDependencies": {
+    "standard-version": "^9.5.0"
+  }
+}

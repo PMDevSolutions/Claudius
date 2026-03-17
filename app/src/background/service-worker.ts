@@ -1,30 +1,121 @@
-// Let Chrome handle opening the panel on icon click — only reliable way to avoid gesture errors
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+console.log("[AI SEO Copilot] Service worker initializing...");
+
+// Disable automatic panel opening - we'll handle it manually for per-tab scoping
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+
+// Handle action click to open panel only on the specific tab
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab.id) return;
+
+  // Open the panel on this specific tab (must be synchronous for user gesture)
+  chrome.sidePanel.setOptions({
+    tabId: tab.id,
+    path: "src/sidepanel/index.html",
+    enabled: true,
+  });
+  chrome.sidePanel.open({ tabId: tab.id });
+});
 
 // Track which tabs have the panel open for per-tab scoping
+// Persisted to session storage to survive MV3 service worker restarts
 const panelTabs = new Set<number>();
+const PANEL_TABS_KEY = "panel_tabs";
+
+// Load persisted panel tabs on startup
+chrome.storage.session.get(PANEL_TABS_KEY).then((result) => {
+  const saved = result[PANEL_TABS_KEY] as number[] | undefined;
+  if (saved?.length) {
+    saved.forEach((id) => panelTabs.add(id));
+    console.log("[AI SEO Copilot] Restored panel tabs:", saved);
+  }
+}).catch(() => {
+  // Ignore errors
+});
+
+async function persistPanelTabs(): Promise<void> {
+  try {
+    await chrome.storage.session.set({ [PANEL_TABS_KEY]: Array.from(panelTabs) });
+  } catch {
+    // Ignore errors
+  }
+}
+
+async function addPanelTab(tabId: number): Promise<void> {
+  panelTabs.add(tabId);
+  await persistPanelTabs();
+
+  // Immediately disable the panel on ALL other tabs
+  // This ensures the panel only shows on the tab where it was opened
+  try {
+    const allTabs = await chrome.tabs.query({});
+    for (const tab of allTabs) {
+      if (tab.id && tab.id !== tabId) {
+        chrome.sidePanel.setOptions({ tabId: tab.id, enabled: false });
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
+async function removePanelTab(tabId: number): Promise<void> {
+  panelTabs.delete(tabId);
+  await persistPanelTabs();
+}
+
+console.log("[AI SEO Copilot] Service worker initialized successfully");
 
 // When the user switches tabs, hide the panel unless it was opened on that tab.
 // Only start scoping after the panel has been opened at least once — otherwise
 // the first click after install/reload would be blocked (chicken-and-egg bug).
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  if (panelTabs.size === 0) return;
+  console.log("[AI SEO Copilot] Tab activated:", tabId, "panelTabs:", Array.from(panelTabs));
+  if (panelTabs.size === 0) {
+    console.log("[AI SEO Copilot] panelTabs empty, skipping");
+    return;
+  }
   if (panelTabs.has(tabId)) {
-    chrome.sidePanel.setOptions({ tabId, enabled: true });
+    console.log("[AI SEO Copilot] Enabling panel for tab:", tabId);
+    chrome.sidePanel.setOptions({
+      tabId,
+      path: "src/sidepanel/index.html",
+      enabled: true,
+    });
   } else {
+    console.log("[AI SEO Copilot] Disabling panel for tab:", tabId);
     chrome.sidePanel.setOptions({ tabId, enabled: false });
   }
 });
 
 // Clean up when tabs close
 chrome.tabs.onRemoved.addListener((tabId) => {
-  panelTabs.delete(tabId);
+  removePanelTab(tabId);
+  // Clean up per-tab analysis from session storage
+  chrome.storage.session.remove(`tab_analysis_${tabId}`).catch(() => {
+    // Ignore errors (e.g., if session storage is unavailable)
+  });
 });
 
+console.log("[AI SEO Copilot] Registering message listener...");
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  console.log("[AI SEO Copilot] Received message:", message.type);
+
+  // Ping handler for verifying service worker is responsive
+  if (message.type === "PING") {
+    console.log("[AI SEO Copilot] Responding to PING");
+    sendResponse({ pong: true, timestamp: Date.now() });
+    return true;
+  }
+
   // Side panel reports which tab it opened on
   if (message.type === "PANEL_OPENED") {
-    if (message.tabId) panelTabs.add(message.tabId);
+    if (message.tabId) {
+      addPanelTab(message.tabId as number).then(() => {
+        sendResponse({ ok: true });
+      });
+      return true;
+    }
     sendResponse({ ok: true });
     return true;
   }
@@ -59,30 +150,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
-  // Inject content script if not already present, then extract SEO data
+  // Extract SEO data by injecting analyzer script directly
+  // (Side panel already tried content script and it failed, so skip that step here)
   if (message.type === "EXTRACT_PAGE_DATA") {
     const tabId = message.tabId as number;
+    console.log("[AI SEO Copilot] EXTRACT_PAGE_DATA for tab:", tabId);
     (async () => {
       try {
-        // First try to reach the existing content script
-        const existing = await new Promise<{ data?: unknown; error?: string }>((resolve) => {
-          const timer = setTimeout(() => resolve({ error: "timeout" }), 2000);
-          chrome.tabs.sendMessage(tabId, { type: "EXTRACT_SEO_DATA" }, (resp) => {
-            clearTimeout(timer);
-            if (chrome.runtime.lastError) {
-              resolve({ error: chrome.runtime.lastError.message });
-            } else {
-              resolve(resp ?? { error: "no response" });
-            }
-          });
-        });
-
-        if (existing.data) {
-          sendResponse(existing);
-          return;
-        }
-
-        // Content script not available — inject the analyzer directly
+        // Inject the analyzer directly via executeScript
+        console.log("[AI SEO Copilot] Executing analyzer script...");
         const results = await chrome.scripting.executeScript({
           target: { tabId },
           func: () => {
@@ -139,16 +215,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             };
           },
         });
+        console.log("[AI SEO Copilot] executeScript completed, results:", results?.length ?? 0);
         const data = results?.[0]?.result;
         if (data) {
+          console.log("[AI SEO Copilot] Sending extracted data back");
           sendResponse({ data });
         } else {
+          console.log("[AI SEO Copilot] No data from executeScript");
           sendResponse({ error: "Failed to extract page data" });
         }
       } catch (error) {
+        console.error("[AI SEO Copilot] EXTRACT_PAGE_DATA error:", error);
         sendResponse({ error: String(error) });
       }
-    })();
+    })().catch((err) => {
+      // Catch any unhandled promise rejections from the async IIFE
+      console.error("[AI SEO Copilot] Unhandled error in EXTRACT_PAGE_DATA:", err);
+      try {
+        sendResponse({ error: String(err) });
+      } catch {
+        // sendResponse may have already been called
+      }
+    });
     return true;
   }
 

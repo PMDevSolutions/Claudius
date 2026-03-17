@@ -1,3 +1,5 @@
+import type { SEOAnalysis, AnalysisSettings } from "@/types/seo";
+
 const isChromeExtension =
   typeof chrome !== "undefined" && chrome.storage !== undefined;
 
@@ -63,4 +65,46 @@ export async function getAdvancedOptions(
   const map = await getStorageItem<Record<string, SavedAdvancedOptions>>("site_options");
   if (!map) return null;
   return map[siteHost] ?? null;
+}
+
+// Per-tab analysis persistence using chrome.storage.session
+
+export interface TabAnalysisState {
+  analysis: SEOAnalysis;
+  settings: Partial<AnalysisSettings>;
+  url: string;
+  savedAt: number;
+}
+
+const isSessionAvailable =
+  typeof chrome !== "undefined" &&
+  chrome.storage !== undefined &&
+  chrome.storage.session !== undefined;
+
+function getTabKey(tabId: number): string {
+  return `tab_analysis_${tabId}`;
+}
+
+export async function saveTabAnalysis(
+  tabId: number,
+  state: TabAnalysisState,
+): Promise<void> {
+  if (!isSessionAvailable) return;
+  const key = getTabKey(tabId);
+  await chrome.storage.session.set({ [key]: state });
+}
+
+export async function getTabAnalysis(
+  tabId: number,
+): Promise<TabAnalysisState | null> {
+  if (!isSessionAvailable) return null;
+  const key = getTabKey(tabId);
+  const result = await chrome.storage.session.get(key);
+  return (result[key] as TabAnalysisState) ?? null;
+}
+
+export async function clearTabAnalysis(tabId: number): Promise<void> {
+  if (!isSessionAvailable) return;
+  const key = getTabKey(tabId);
+  await chrome.storage.session.remove(key);
 }

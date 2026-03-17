@@ -2,31 +2,37 @@ import "@testing-library/jest-dom/vitest";
 
 // Mock chrome.storage API for tests
 const storage: Record<string, unknown> = {};
+const sessionStorage: Record<string, unknown> = {};
 
-const chromeStorageMock = {
-  local: {
+function createStorageMock(store: Record<string, unknown>) {
+  return {
     get: vi.fn((keys: string | string[]) => {
       if (typeof keys === "string") {
-        return Promise.resolve({ [keys]: storage[keys] ?? undefined });
+        return Promise.resolve({ [keys]: store[keys] ?? undefined });
       }
       const result: Record<string, unknown> = {};
       for (const key of keys) {
-        result[key] = storage[key] ?? undefined;
+        result[key] = store[key] ?? undefined;
       }
       return Promise.resolve(result);
     }),
     set: vi.fn((items: Record<string, unknown>) => {
-      Object.assign(storage, items);
+      Object.assign(store, items);
       return Promise.resolve();
     }),
     remove: vi.fn((keys: string | string[]) => {
       const toRemove = typeof keys === "string" ? [keys] : keys;
       for (const key of toRemove) {
-        delete storage[key];
+        delete store[key];
       }
       return Promise.resolve();
     }),
-  },
+  };
+}
+
+const chromeStorageMock = {
+  local: createStorageMock(storage),
+  session: createStorageMock(sessionStorage),
 };
 
 Object.defineProperty(globalThis, "chrome", {
@@ -43,5 +49,6 @@ Object.defineProperty(globalThis, "chrome", {
 // Reset storage between tests
 beforeEach(() => {
   Object.keys(storage).forEach((key) => delete storage[key]);
+  Object.keys(sessionStorage).forEach((key) => delete sessionStorage[key]);
   vi.clearAllMocks();
 });

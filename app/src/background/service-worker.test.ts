@@ -9,8 +9,9 @@ let onMessageCallback: (
   sendResponse: (response: unknown) => void,
 ) => boolean | void;
 
-const setOptionsMock = vi.fn();
+const setOptionsMock = vi.fn().mockResolvedValue(undefined);
 const setPanelBehaviorMock = vi.fn();
+const openPanelMock = vi.fn().mockResolvedValue(undefined);
 
 beforeEach(() => {
   vi.resetModules();
@@ -18,9 +19,15 @@ beforeEach(() => {
 
   // Build fresh chrome mock with listener capture
   const chromeMock = {
+    action: {
+      onClicked: {
+        addListener: vi.fn(),
+      },
+    },
     sidePanel: {
       setPanelBehavior: setPanelBehaviorMock,
       setOptions: setOptionsMock,
+      open: openPanelMock,
     },
     tabs: {
       onActivated: {
@@ -33,7 +40,7 @@ beforeEach(() => {
           onRemovedCallback = cb;
         }),
       },
-      query: vi.fn(),
+      query: vi.fn().mockResolvedValue([]),
       sendMessage: vi.fn(),
     },
     runtime: {
@@ -62,6 +69,11 @@ beforeEach(() => {
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
       },
+      session: {
+        get: vi.fn().mockResolvedValue({}),
+        set: vi.fn().mockResolvedValue(undefined),
+        remove: vi.fn().mockResolvedValue(undefined),
+      },
     },
   };
 
@@ -76,11 +88,16 @@ async function loadServiceWorker() {
 
 describe("service-worker", () => {
   describe("initialization", () => {
-    it("sets openPanelOnActionClick to true on startup", async () => {
+    it("sets openPanelOnActionClick to false for manual handling", async () => {
       await loadServiceWorker();
       expect(setPanelBehaviorMock).toHaveBeenCalledWith({
-        openPanelOnActionClick: true,
+        openPanelOnActionClick: false,
       });
+    });
+
+    it("registers action.onClicked listener", async () => {
+      await loadServiceWorker();
+      expect(chrome.action.onClicked.addListener).toHaveBeenCalledOnce();
     });
 
     it("registers onActivated listener", async () => {
@@ -191,7 +208,11 @@ describe("service-worker", () => {
 
       const sendResponse = vi.fn();
       onMessageCallback({ type: "PANEL_OPENED", tabId: 5 }, {}, sendResponse);
-      expect(sendResponse).toHaveBeenCalledWith({ ok: true });
+
+      // Wait for async persistence to complete
+      await vi.waitFor(() => {
+        expect(sendResponse).toHaveBeenCalledWith({ ok: true });
+      });
 
       // Now switching to tab 5 should enable (not disable)
       onActivatedCallback({ tabId: 5 });
@@ -206,6 +227,7 @@ describe("service-worker", () => {
 
       const sendResponse = vi.fn();
       onMessageCallback({ type: "PANEL_OPENED" }, {}, sendResponse);
+      // Synchronous path - no tabId means immediate response
       expect(sendResponse).toHaveBeenCalledWith({ ok: true });
 
       // panelTabs should still be empty — no disable on activate

@@ -10,6 +10,9 @@ import {
   getKeywordForUrl,
   saveAdvancedOptions,
   getAdvancedOptions,
+  saveTabAnalysis,
+  getTabAnalysis,
+  clearTabAnalysis,
 } from "@/lib/storage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Onboarding } from "@/components/Onboarding";
@@ -101,51 +104,150 @@ function getCheckContext(check: SEOCheck, analysis: SEOAnalysis): string {
   }
 }
 
-/** Extract SEO data from the active tab.
- *  Tries the content script first; if unavailable, fetches the page HTML
- *  directly and parses it (works even when content script isn't injected). */
-async function extractPageData(tabId: number): Promise<PageSEOData> {
-  // Try content script message first (fastest, reads live DOM)
-  const response = await new Promise<{ data?: PageSEOData; error?: string }>((resolve) => {
-    const timer = setTimeout(() => resolve({ error: "timeout" }), 3000);
-    chrome.tabs.sendMessage(tabId, { type: "EXTRACT_SEO_DATA" }, (resp) => {
-      clearTimeout(timer);
-      if (chrome.runtime.lastError) {
-        resolve({ error: chrome.runtime.lastError.message });
-      } else {
-        resolve(resp ?? { error: "No response" });
+/** Send a message to the service worker, handling MV3 error edge cases. */
+async function sendToServiceWorker<T>(
+  message: unknown,
+  timeout = 15000,
+  retries = 2,
+): Promise<{ data?: T; error?: string }> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      // Wait before retry to give service worker time to wake up
+      console.log(`[AI SEO Copilot] Retrying service worker message (attempt ${attempt + 1})`);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    const result = await new Promise<{ data?: T; error?: string }>((resolve) => {
+      const timer = setTimeout(
+        () => resolve({ error: "Service worker timed out. Please refresh the page and try again." }),
+        timeout,
+      );
+
+      try {
+        chrome.runtime.sendMessage(message, (resp) => {
+          clearTimeout(timer);
+          // Check lastError first (MV3 sets this for various failures)
+          if (chrome.runtime.lastError) {
+            resolve({ error: chrome.runtime.lastError.message });
+            return;
+          }
+          if (resp?.error) {
+            resolve({ error: resp.error });
+          } else if (resp?.data !== undefined) {
+            resolve({ data: resp.data as T });
+          } else if (resp) {
+            resolve({ data: resp as T });
+          } else {
+            resolve({ error: "No response from service worker" });
+          }
+        });
+      } catch (err) {
+        // MV3 can throw synchronously if service worker doesn't exist
+        clearTimeout(timer);
+        resolve({ error: err instanceof Error ? err.message : "Service worker unavailable" });
       }
     });
-  });
 
-  if (response.data) return response.data;
+    // If we got data, return immediately
+    if (result.data) return result;
 
-  // Fallback: ask the service worker to extract the data. It will try the
-  // content script first, then fall back to executeScript (which works
-  // reliably from the service worker context, unlike from the side panel).
-  console.warn("[AI SEO Copilot] Content script not available, using service worker extraction");
-  const swResponse = await new Promise<{ data?: PageSEOData; error?: string }>((resolve) => {
-    const timer = setTimeout(() => resolve({ error: "Page extraction timed out. Please refresh the page and try again." }), 15000);
-    chrome.runtime.sendMessage(
-      { type: "EXTRACT_PAGE_DATA", tabId },
-      (resp) => {
-        clearTimeout(timer);
-        if (chrome.runtime.lastError) {
-          resolve({ error: chrome.runtime.lastError.message });
-        } else if (resp?.error) {
-          resolve({ error: resp.error });
-        } else if (resp?.data) {
-          resolve({ data: resp.data as PageSEOData });
-        } else {
-          resolve({ error: "No data returned" });
-        }
-      },
-    );
+    // If this is the last attempt, return the error
+    if (attempt === retries) return result;
+
+    // Otherwise, retry if it's a connection error
+    if (!result.error?.includes("Could not establish connection")) {
+      return result; // Non-recoverable error, don't retry
+    }
+  }
+
+  return { error: "Service worker unavailable after retries" };
+}
+
+/** Direct executeScript fallback — used when service worker is unavailable. */
+async function directExecuteScript(tabId: number): Promise<PageSEOData> {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const getMetaContent = (name: string): string => {
+        const el =
+          document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`) ||
+          document.querySelector<HTMLMetaElement>(`meta[property="${name}"]`);
+        return el?.content ?? "";
+      };
+      const getHeadings = (tag: string): string[] =>
+        Array.from(document.querySelectorAll(tag)).map(
+          (el) => el.textContent?.trim() ?? "",
+        );
+      const images = Array.from(document.querySelectorAll<HTMLImageElement>("img")).map((img) => ({
+        src: img.src, alt: img.alt ?? "", width: img.naturalWidth || null, height: img.naturalHeight || null,
+      }));
+      const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"));
+      const host = window.location.hostname;
+      let internal = 0, external = 0;
+      for (const link of links) {
+        try { new URL(link.href).hostname === host ? internal++ : external++; }
+        catch { internal++; }
+      }
+      const bodyText = document.body?.innerText ?? "";
+      const ogTags: Record<string, string> = {};
+      document.querySelectorAll<HTMLMetaElement>('meta[property^="og:"]').forEach((el) => {
+        ogTags[el.getAttribute("property")!] = el.content;
+      });
+      const twitterTags: Record<string, string> = {};
+      document.querySelectorAll<HTMLMetaElement>('meta[name^="twitter:"]').forEach((el) => {
+        twitterTags[el.getAttribute("name")!] = el.content;
+      });
+      const paragraphs = Array.from(document.querySelectorAll("p"))
+        .map((el) => el.textContent?.trim() ?? "").filter(Boolean);
+      const jsRes = Array.from(document.querySelectorAll<HTMLScriptElement>("script[src]"))
+        .map((el) => el.src).filter(Boolean);
+      const cssRes = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))
+        .map((el) => el.href).filter(Boolean);
+      const schemas = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]'));
+      const schemaTypes: string[] = [];
+      for (const s of schemas) { try { const d = JSON.parse(s.textContent ?? ""); if (d["@type"]) schemaTypes.push(d["@type"]); } catch { /* ignore */ } }
+      return {
+        url: window.location.href, title: document.title ?? "",
+        metaDescription: getMetaContent("description"), metaKeywords: getMetaContent("keywords"),
+        canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? "",
+        h1: getHeadings("h1"), h2: getHeadings("h2"), h3: getHeadings("h3"),
+        h4: getHeadings("h4"), h5: getHeadings("h5"), h6: getHeadings("h6"),
+        images, ogTags, twitterTags, wordCount: bodyText.split(/\s+/).filter(Boolean).length,
+        internalLinks: internal, externalLinks: external,
+        lang: document.documentElement.lang ?? "", paragraphs,
+        resources: { js: jsRes, css: cssRes },
+        schemaMarkup: { types: schemaTypes, count: schemas.length },
+        ogImage: getMetaContent("og:image"), imageFileSizes: [],
+      };
+    },
   });
+  const data = results?.[0]?.result;
+  if (!data) throw new Error("Failed to extract page data via executeScript");
+  return data as PageSEOData;
+}
+
+/** Extract SEO data from the active tab.
+ *  Uses service worker's executeScript (most reliable in dev mode). */
+async function extractPageData(tabId: number): Promise<PageSEOData> {
+  // Go directly to service worker — it uses executeScript which is most reliable
+  // (Content script check causes uncaught promise rejections in Chrome MV3)
+  const swResponse = await sendToServiceWorker<PageSEOData>(
+    { type: "EXTRACT_PAGE_DATA", tabId },
+    15000,
+  );
 
   if (swResponse.data) return swResponse.data;
 
-  throw new Error(swResponse.error ?? "Failed to extract page data");
+  // Fallback: direct executeScript from side panel (may hang in CRXJS dev mode)
+  console.warn("[AI SEO Copilot] Service worker failed, trying direct executeScript:", swResponse.error);
+  try {
+    return await directExecuteScript(tabId);
+  } catch (directErr) {
+    // All methods failed — throw the most informative error
+    throw new Error(
+      `Page extraction failed. Service worker: ${swResponse.error}. Direct: ${directErr instanceof Error ? directErr.message : String(directErr)}`,
+    );
+  }
 }
 
 export default function App() {
@@ -233,6 +335,8 @@ export default function App() {
       chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
         if (tabs[0]?.id === tabId && tabs[0].url && tabs[0].url !== currentUrl) {
           currentUrl = tabs[0].url;
+          // Clear saved analysis since URL changed
+          await clearTabAnalysis(tabId);
           reset();
           await loadSettingsForUrl(currentUrl);
         }
@@ -245,8 +349,21 @@ export default function App() {
         if (chrome.runtime.lastError) return;
         if (tab.url && tab.url !== currentUrl) {
           currentUrl = tab.url;
-          reset();
-          await loadSettingsForUrl(currentUrl);
+
+          // Try to restore saved analysis for this tab
+          const savedState = await getTabAnalysis(activeInfo.tabId);
+          if (savedState && savedState.url === tab.url) {
+            // Restore the analysis
+            setAnalysis(savedState.analysis);
+            if (savedState.settings) {
+              setSettings(savedState.settings);
+            }
+            setView("score");
+          } else {
+            // No saved analysis for this tab/URL, reset to setup
+            reset();
+            await loadSettingsForUrl(currentUrl);
+          }
         }
       });
     };
@@ -258,7 +375,7 @@ export default function App() {
       chrome.tabs.onUpdated.removeListener(handleTabUpdated);
       chrome.tabs.onActivated.removeListener(handleTabActivated);
     };
-  }, [reset, loadSettingsForUrl]);
+  }, [reset, loadSettingsForUrl, setView, setAnalysis, setSettings]);
 
   const handleAnalyze = useCallback(async () => {
     setView("loading");
@@ -340,14 +457,44 @@ export default function App() {
         // Storage save failure is non-critical
       }
 
-      // Highlight issues on page (extension only)
+      // Save analysis to session storage for per-tab persistence
       if (!isDevMode) {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (tab?.id) {
-          chrome.tabs.sendMessage(tab.id, { type: "HIGHLIGHT_ISSUES" });
+        try {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tab?.id) {
+            await saveTabAnalysis(tab.id, {
+              analysis,
+              settings: {
+                keyword: settings.keyword,
+                secondaryKeywords: settings.secondaryKeywords,
+                pageType: settings.pageType,
+                language: settings.language,
+                advancedMode: settings.advancedMode,
+              },
+              url: pageData.url,
+              savedAt: Date.now(),
+            });
+          }
+        } catch {
+          // Session storage save failure is non-critical
+        }
+      }
+
+      // Highlight issues on page (extension only, ignore errors if content script unavailable)
+      if (!isDevMode) {
+        try {
+          const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          if (tab?.id) {
+            chrome.tabs.sendMessage(tab.id, { type: "HIGHLIGHT_ISSUES" }, () => {
+              // Suppress "Could not establish connection" error
+              void chrome.runtime.lastError;
+            });
+          }
+        } catch {
+          // Content script not available, ignore
         }
       }
 
