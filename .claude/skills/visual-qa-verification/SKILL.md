@@ -1,6 +1,6 @@
 ---
 name: visual-qa-verification
-description: Use after Figma-to-React conversion to verify generated components and pages match the source design. Covers screenshot comparison, responsive checks, Lighthouse audits, asset rendering, and accessibility validation. Keywords: verify app, visual QA, compare to Figma, check screenshots, responsive test, pixel-perfect check, cross-browser testing
+description: "Automated visual QA with pixel-level diff comparison, iterative fix loop, and cross-browser verification. Uses pixelmatch for programmatic screenshot comparison with region-based analysis. Covers responsive checks, Lighthouse audits, and accessibility validation. Keywords: verify app, visual QA, compare to Figma, check screenshots, responsive test, pixel-perfect check, cross-browser testing, visual diff, pixelmatch"
 ---
 
 # Visual QA Verification
@@ -55,9 +55,16 @@ pnpm build
 
 Open the browser console and verify no errors or warnings appear on page load.
 
-### Step 2: Screenshot Comparison
+### Step 2: Automated Visual Diff Loop
 
-Take screenshots at standard breakpoints and compare against the Figma source.
+This is the core pixel-perfect iteration loop. It compares app screenshots against Figma source screenshots using `pixelmatch` via `scripts/visual-diff.js`.
+
+**Configuration:** Read `.claude/pipeline.config.json` for thresholds and iteration limits:
+- `iterationLoop.maxVisualIterations` — max fix attempts (default: 5)
+- `iterationLoop.diffPassThreshold` — max mismatch ratio to pass (default: 0.02 = 2%)
+- `iterationLoop.diffWarnThreshold` — mismatch ratio that triggers warning (default: 0.05 = 5%)
+- `iterationLoop.regionAnalysis` — enable per-region diff reporting (default: true)
+- `visualDiff.breakpoints` — breakpoints to test
 
 **Breakpoints to test:**
 
@@ -65,39 +72,112 @@ Take screenshots at standard breakpoints and compare against the Figma source.
 |------------|-------|-------------|
 | Mobile | 375px | iPhone SE / small phones |
 | Tablet | 768px | iPad portrait |
-| Desktop | 1280px | Standard laptop |
-| Wide | 1440px | Design canvas (Figma default) |
-| Extra-large | 1920px | Full HD monitors / large displays |
+| Desktop | 1440px | Design canvas (Figma default) |
+| Wide | 1920px | Full HD monitors (optional) |
 
-**Using Chrome DevTools MCP (Chromium -- primary):**
-
-```
-1. Navigate to the local dev server URL (e.g., http://localhost:3000)
-2. Resize page to each breakpoint width
-3. Take screenshot at each breakpoint
-4. Get Figma source screenshot using Figma MCP (get_screenshot)
-5. Compare side-by-side
-```
-
-**Using Playwright MCP (Firefox and WebKit -- cross-browser):**
+**Automated Diff Loop:**
 
 ```
-1. Navigate to the dev server URL in Firefox
-2. Resize to each breakpoint and take screenshots
-3. Repeat in WebKit
-4. Compare Firefox/WebKit screenshots against Chromium baseline
-5. Flag any browser-specific rendering differences
+FOR iteration IN 1..maxVisualIterations:
+
+  1. CAPTURE — For each page in build-spec, at each required breakpoint:
+     a. Chrome DevTools MCP: navigate_page → page URL
+     b. Chrome DevTools MCP: resize_page → breakpoint width
+     c. Chrome DevTools MCP: take_screenshot → save to .claude/visual-qa/screenshots/chromium/
+     d. Figma MCP: get_screenshot → save to .claude/visual-qa/screenshots/figma/
+
+  2. DIFF — Run pixel comparison:
+     ```bash
+     node scripts/visual-diff.js --batch \
+       .claude/visual-qa/screenshots/chromium \
+       .claude/visual-qa/screenshots/figma \
+       --output-dir .claude/visual-qa/diffs \
+       --json
+     ```
+
+  3. ANALYZE — Parse JSON output:
+     - For each file comparison:
+       - IF mismatchPct <= diffPassThreshold → PASS
+       - IF mismatchPct <= diffWarnThreshold → WARN (log but continue)
+       - IF mismatchPct > diffWarnThreshold → FAIL
+     - Check region analysis: identify specific problem areas
+
+  4. DECIDE:
+     a. IF all comparisons PASS:
+        → Mark all pages as verified
+        → Break loop
+        → Log: "Visual QA passed on iteration {N}"
+
+     b. IF any FAIL and iteration < maxVisualIterations:
+        → For each failing comparison:
+          - Read the diff image to identify problem areas
+          - Read region analysis to pinpoint: "top-right has 12% mismatch"
+          - Fix the specific component code causing the mismatch
+          - Run: pnpm vitest run (ensure unit tests still pass)
+        → Continue to next iteration
+
+     c. IF any FAIL and iteration === maxVisualIterations:
+        → Log remaining failures in build report
+        → Save diff images for manual review
+        → Mark page as "needs manual review"
+        → Continue to next page
 ```
 
-Or use the Playwright MCP tools directly (`browser_navigate`, `browser_resize`, `browser_take_screenshot`) for interactive testing.
+**Region-Based Fix Strategy:**
 
-**What to compare:**
-- Layout structure (columns, rows, spacing, alignment)
-- Typography (font sizes, weights, line heights, letter spacing)
-- Color accuracy (background, text, borders, shadows)
-- Component alignment (centered, left, right)
-- Whitespace and padding
-- Cross-browser rendering consistency (Chromium vs Firefox vs WebKit)
+When the diff reports failing regions, use this mapping to prioritize fixes:
+
+| Region | Common Cause | Fix Strategy |
+|--------|-------------|--------------|
+| top-left / top-right | Header/nav issues | Check Header component layout, logo positioning |
+| upper-* | Hero section | Check hero spacing, typography, image sizing |
+| center-* | Main content | Check section spacing, grid layout, card sizing |
+| lower-* / bottom-* | Footer / CTA | Check footer layout, padding, background colors |
+| Full-width bands | Section backgrounds | Check section background colors, full-bleed containers |
+| Scattered pixels | Anti-aliasing / fonts | Likely a pass — increase antialiasing tolerance |
+
+**After the diff loop completes, save all artifacts:**
+- Screenshots: `.claude/visual-qa/screenshots/{browser}/`
+- Diff images: `.claude/visual-qa/diffs/`
+- JSON report: `.claude/visual-qa/diff-results.json`
+
+### Step 2.5: Cross-Browser Verification
+
+After Chromium passes the visual diff loop, verify in Firefox and WebKit.
+
+**Using Playwright MCP or cross-browser-test.sh:**
+
+```bash
+# Capture Firefox screenshots
+./scripts/cross-browser-test.sh firefox http://localhost:3000
+
+# Capture WebKit screenshots
+./scripts/cross-browser-test.sh webkit http://localhost:3000
+
+# Compare Firefox against Chromium baseline (not Figma)
+node scripts/visual-diff.js --batch \
+  .claude/visual-qa/screenshots/firefox \
+  .claude/visual-qa/screenshots/chromium \
+  --output-dir .claude/visual-qa/diffs/firefox-vs-chromium \
+  --threshold 0.03
+
+# Compare WebKit against Chromium baseline
+node scripts/visual-diff.js --batch \
+  .claude/visual-qa/screenshots/webkit \
+  .claude/visual-qa/screenshots/chromium \
+  --output-dir .claude/visual-qa/diffs/webkit-vs-chromium \
+  --threshold 0.03
+```
+
+**Cross-browser threshold:** Use a slightly higher threshold (3% vs 2%) since browser rendering engines have legitimate differences in anti-aliasing, font rendering, and sub-pixel positioning.
+
+**Cross-browser failures are NOT blocking** by default (configurable in `pipeline.config.json` → `qualityGate.crossBrowserScreenshotsRequired`). They are reported in the build report for manual review.
+
+**Common cross-browser differences to ignore:**
+- Font rendering (especially on macOS WebKit vs Windows Chromium)
+- Sub-pixel anti-aliasing
+- Scrollbar width differences
+- Focus ring styling
 
 ### Step 3: Asset and Image Rendering
 
@@ -268,6 +348,9 @@ This skill works with:
 - **Chrome DevTools MCP** -- Screenshots, Lighthouse, responsive testing, network inspection
 - **Playwright MCP** -- Cross-browser screenshots (Firefox, WebKit) and automated interaction testing
 - **Figma MCP** -- Source design screenshots for comparison (`get_screenshot`, `get_design_context`)
+- **scripts/visual-diff.js** -- Pixel-level screenshot comparison with region analysis
+- **scripts/cross-browser-test.sh** -- Multi-browser screenshot capture
+- **.claude/pipeline.config.json** -- Thresholds, iteration limits, breakpoint configuration
 
 ## Verification Report Template
 
@@ -307,5 +390,5 @@ After completing all steps, summarize results:
 
 ---
 
-**Skill Version:** 2.0.0
-**Last Updated:** 2026-03-11
+**Skill Version:** 3.0.0
+**Last Updated:** 2026-03-17

@@ -1,6 +1,6 @@
 ---
 name: figma-to-react-workflow
-description: Orchestrates end-to-end Figma-to-React conversion pipeline. Extracts design tokens, generates TypeScript React components with Tailwind CSS, and maps Figma components to your project library. Supports Next.js, Vite, and Remix output targets. Keywords: Figma to React, design tokens, autonomous component generation, Figma conversion, Tailwind config, component library
+description: Orchestrates end-to-end Figma-to-React conversion pipeline with enforced TDD, automated pixel-diff visual QA, E2E testing, and app-type awareness (web apps, Chrome extensions, PWAs). Keywords: Figma to React, design tokens, autonomous component generation, Figma conversion, Tailwind config, component library, TDD, E2E, pixel-perfect
 ---
 
 # Figma-to-React Autonomous Workflow
@@ -9,14 +9,17 @@ description: Orchestrates end-to-end Figma-to-React conversion pipeline. Extract
 
 This skill orchestrates the complete pipeline for converting Figma designs into production-ready React applications. It extracts design systems (colors, typography, spacing, effects) from Figma, transforms them into Tailwind CSS configuration and CSS custom properties, then generates functional TypeScript React components that faithfully reproduce the source design.
 
-The workflow operates in three phases: interactive discovery, autonomous execution, and visual verification. The result is a set of React components, pages, and a design token system ready for integration into Next.js, Vite, or Remix projects.
+The workflow operates in four phases: interactive discovery, TDD scaffold, autonomous execution, and verified delivery. The result is a set of React components, pages, and a design token system ready for integration into Next.js, Vite, or Remix projects — verified to pixel-level accuracy against the Figma source.
 
 **Core Principles:**
+- **TDD is mandatory** — tests are written before components, never after
 - Every component is a functional TypeScript component with explicit prop interfaces
 - All styling uses Tailwind utility classes backed by design tokens from Figma
 - No hardcoded color values, font sizes, or spacing -- everything references the token system
 - Images use proper imports or public directory references, never broken paths
 - Output is framework-aware (Next.js App Router, Vite SPA, Remix routes)
+- **Pixel-perfect verification** — automated diff loop with pixelmatch, not manual comparison
+- **App-type aware** — Chrome extensions, PWAs, and web apps each get appropriate test strategies
 
 ## When to Use
 
@@ -132,21 +135,37 @@ Once the user approves the discovery plan, proceed autonomously through all step
 
 **Never approximate or guess values when a lockfile exists.** If a value isn't in the lockfile, add it to the lockfile first, then reference it.
 
-### Test-First Constraint
+### Test-First Gate (MANDATORY)
 
-**Check for existing test files** before writing component implementations:
+**TDD is enforced.** Component implementation MUST NOT begin until test files exist. This is a hard gate, not a suggestion.
 
 ```
-For each component to generate:
-  1. Check: src/components/**/{ComponentName}.test.tsx
-  2. If test exists:
-     → Read test file to understand expected behavior
-     → Implementation MUST make all tests pass
-     → Run: pnpm vitest run {test-file} after writing component
-  3. If no test exists:
-     → Generate component normally
-     → Consider invoking tdd-from-figma skill to write tests
+BEFORE writing any component implementation:
+
+  1. Run: ./scripts/verify-test-coverage.sh
+     → If exit code 1: STOP. Invoke tdd-from-figma skill first.
+     → If exit code 0: Proceed to implementation.
+
+  2. For each component to generate:
+     a. REQUIRE: src/components/**/{ComponentName}.test.tsx exists
+        → If missing: STOP. Write test first (invoke tdd-from-figma).
+        → This is not optional. No component ships without pre-existing tests.
+     b. Read test file to understand expected behavior
+     c. Implementation MUST make all tests pass
+     d. Run: pnpm vitest run {test-file} after writing component
+     e. If test fails: fix component, NOT the test
+
+  3. After all components in a batch are written:
+     → Run: pnpm vitest run --reporter=verbose
+     → ALL tests must pass (Green phase) before proceeding
+     → If any fail: fix components until green. Do not proceed to Phase 3.
+
+  4. Verify test coverage meets threshold:
+     → Run: pnpm vitest run --coverage
+     → Must meet: pipeline.config.json → tdd.coverageThreshold (default: 80%)
 ```
+
+**Why this gate exists:** Tests encode exact values from the lockfile (text content, ARIA roles, component structure). Without pre-written tests, there is no mechanism to verify the implementation matches the design. Tests are the contract between the Figma design and the React code.
 
 ### Step 2.1: Generate Tailwind Configuration
 
@@ -377,44 +396,106 @@ pnpm tsc --noEmit
 pnpm lint
 ```
 
-### Step 3.2: Visual QA (Automated Loop)
+### Step 3.2: Visual QA (Automated Pixel-Diff Loop)
 
-Perform automated visual comparison between generated app and Figma source:
+Perform automated visual comparison using `pixelmatch` via `scripts/visual-diff.js`. This replaces manual "eyeball" comparison with programmatic diff analysis.
+
+**Configuration:** Read `.claude/pipeline.config.json` for thresholds:
+- `iterationLoop.maxVisualIterations` (default: 5)
+- `iterationLoop.diffPassThreshold` (default: 0.02 = 2% mismatch)
 
 ```
 For each page in build-spec:
-  1. Start dev server: pnpm dev (background)
+  1. Start dev server (if appType requires it): pnpm dev (background)
   2. Wait for server ready
+  3. Capture Figma screenshots once:
+     → Figma MCP: get_screenshot for the page/frame at each breakpoint
+     → Save to: .claude/visual-qa/screenshots/figma/
 
-  3. FOR iteration IN 1..3:
-     a. Chrome DevTools MCP: take_screenshot at 1440px width
-     b. Chrome DevTools MCP: take_screenshot at 768px width
-     c. Chrome DevTools MCP: take_screenshot at 375px width
-     d. Figma MCP: get_screenshot for the same page/frame
+  4. FOR iteration IN 1..maxVisualIterations:
 
-     e. Compare screenshots (Claude vision):
-        - Layout alignment (grid, spacing, positioning)
-        - Color accuracy (reference lockfile values)
-        - Typography (size, weight, family match)
-        - Component completeness (nothing missing)
-        - Responsive behavior across breakpoints
+     a. CAPTURE app screenshots:
+        → Chrome DevTools MCP: navigate_page, resize_page, take_screenshot
+        → At breakpoints: 1440px, 768px, 375px
+        → Save to: .claude/visual-qa/screenshots/chromium/
 
-     f. IF differences found AND iteration < 3:
-        → Fix identified issues in component code
-        → Re-run: pnpm vitest run (ensure tests still pass)
-        → Continue to next iteration
-     g. ELSE IF no significant differences:
-        → Mark page as verified
-        → Break loop
-     h. ELSE (iteration 3, still differences):
-        → Log remaining differences in build report
-        → Mark page as "needs manual review"
-        → Continue to next page
+     b. DIFF against Figma:
+        → node scripts/visual-diff.js --batch \
+            .claude/visual-qa/screenshots/chromium \
+            .claude/visual-qa/screenshots/figma \
+            --output-dir .claude/visual-qa/diffs --json
 
-  4. Stop dev server
+     c. ANALYZE results:
+        → Parse JSON: check mismatchPct per file
+        → Check region analysis: identify problem areas
+        → Log: "Iteration {N}: {page} at {breakpoint} — {pct}% diff"
+
+     d. DECIDE:
+        IF all files mismatchPct <= diffPassThreshold:
+          → Mark page as verified
+          → Break loop
+          → Log: "Visual QA PASSED on iteration {N}"
+
+        ELSE IF iteration < maxVisualIterations:
+          → For each failing comparison:
+            - Read diff image to see where mismatches are
+            - Use region analysis: "top-right: 8% diff → likely header issue"
+            - Fix the specific component code
+            - Run: pnpm vitest run (ensure tests still pass after fix)
+          → Continue to next iteration
+
+        ELSE (final iteration, still failing):
+          → Save diff images for manual review
+          → Log remaining mismatch percentages
+          → Mark page as "needs manual review"
+
+  5. Stop dev server
 ```
 
-### Step 3.3: Token Integrity Check
+### Step 3.2.5: Cross-Browser Verification
+
+After Chromium passes the visual diff loop, verify in other browsers:
+
+```bash
+# Capture screenshots in Firefox and WebKit
+./scripts/cross-browser-test.sh firefox http://localhost:3000
+./scripts/cross-browser-test.sh webkit http://localhost:3000
+
+# Compare against Chromium baseline (higher threshold for browser differences)
+node scripts/visual-diff.js --batch \
+  .claude/visual-qa/screenshots/firefox \
+  .claude/visual-qa/screenshots/chromium \
+  --output-dir .claude/visual-qa/diffs/firefox-vs-chromium \
+  --threshold 0.03
+```
+
+Cross-browser results are logged in the build report but are **not blocking** by default.
+
+### Step 3.3: E2E Tests
+
+Generate and run E2E tests appropriate to the app type.
+
+```
+1. Invoke the e2e-test-generator skill:
+   → Reads build-spec.json (appType, pages, e2e.flows)
+   → Generates Playwright E2E test files in e2e/
+   → Generates appropriate config (web app vs Chrome extension vs PWA)
+
+2. Run E2E tests:
+   → Web app: pnpm exec playwright test
+   → Chrome ext: pnpm build && pnpm exec playwright test --config=playwright.chrome-ext.config.ts
+   → PWA: pnpm exec playwright test (includes offline tests)
+
+3. If E2E tests fail:
+   → Read failure output
+   → Fix component/page code
+   → Re-run pnpm vitest run (ensure unit tests still pass)
+   → Re-run E2E tests (max 2 retry attempts)
+
+4. Save results to .claude/visual-qa/e2e-report.md
+```
+
+### Step 3.4: Token Integrity Check
 
 Run the token verification script:
 
@@ -428,29 +509,38 @@ This checks for:
 - Inline `style={{}}` attributes
 - Text content diverging from lockfile entries
 
-### Step 3.4: Quality Gate
+### Step 3.5: Quality Gate
 
-Run the full quality gate:
+Run the full quality gate. All checks must pass for the pipeline to succeed.
 
 ```bash
-# Test coverage (80%+ threshold)
+# 1. Unit test coverage (threshold from pipeline.config.json, default: 80%)
 pnpm vitest run --coverage
 
-# TypeScript
+# 2. Test existence verification
+./scripts/verify-test-coverage.sh
+
+# 3. TypeScript
 pnpm tsc --noEmit
 
-# Production build
+# 4. Production build
 pnpm build
 
-# Token verification
+# 5. Token verification
 ./scripts/verify-tokens.sh
 
-# Lighthouse audit (via Chrome DevTools MCP)
+# 6. E2E tests (if not already run in Step 3.3)
+# Web app: pnpm exec playwright test
+# Chrome ext: pnpm exec playwright test --config=playwright.chrome-ext.config.ts
+
+# 7. Lighthouse audit (via Chrome DevTools MCP)
 # → lighthouse_audit for each page URL
-# → Performance, accessibility, best practices, SEO scores
+# → Thresholds from pipeline.config.json → qualityGate.lighthouseThresholds
 ```
 
-### Step 3.5: Generate Build Report
+If any check fails, attempt to fix automatically (max 2 attempts per check). If still failing, report the failure and continue to the report phase.
+
+### Step 3.6: Generate Build Report
 
 Write a build report to `.claude/visual-qa/build-report.md`:
 
@@ -556,18 +646,23 @@ project/
 ## Integration
 
 This skill works with:
-- **figma-intake skill** — Produces `build-spec.json` consumed by Phase 1
+- **figma-intake skill** — Produces `build-spec.json` consumed by Phase 1 (includes appType, e2e flows)
 - **design-token-lock skill** — Produces `design-tokens.lock.json` consumed by Phase 2
-- **tdd-from-figma skill** — Produces test files that Phase 2 must satisfy
+- **tdd-from-figma skill** — Produces test files that Phase 2 MUST satisfy (hard gate)
+- **e2e-test-generator skill** — Generates Playwright E2E tests in Phase 3.3
 - **figma-react-converter agent** — Generates React components during Phase 2
 - **visual-qa-agent** — Performs screenshot comparison in Phase 3
 - **accessibility-auditor agent** — Validates ARIA and keyboard navigation
 - **Figma MCP** — Source design extraction (`get_metadata`, `get_variable_defs`, `get_design_context`, `get_screenshot`)
 - **Chrome DevTools MCP** — Browser-based visual verification and Lighthouse audits
-- **Playwright MCP** — Cross-browser screenshot comparison
-- **verify-tokens.sh** — Token integrity enforcement in quality gate
+- **Playwright MCP** — Cross-browser screenshot comparison and E2E testing
+- **scripts/visual-diff.js** — Pixel-level screenshot comparison with region analysis
+- **scripts/verify-tokens.sh** — Token integrity enforcement in quality gate
+- **scripts/verify-test-coverage.sh** — Test existence verification (TDD gate)
+- **scripts/cross-browser-test.sh** — Multi-browser screenshot capture
+- **.claude/pipeline.config.json** — Thresholds, iteration limits, app type config
 
 ---
 
-**Skill Version:** 2.0.0
-**Last Updated:** 2026-03-16
+**Skill Version:** 3.0.0
+**Last Updated:** 2026-03-17

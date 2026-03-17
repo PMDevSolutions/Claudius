@@ -18,11 +18,12 @@ The framework is designed for:
 project-root/
 ├── .claude/              # Claude Code configuration
 │   ├── agents/           # 44 specialized agents
-│   ├── skills/           # 9 React-specific skills
+│   ├── skills/           # 10 React-specific skills
 │   ├── commands/         # Custom slash commands
-│   └── hooks/            # Git and tool hooks
+│   ├── hooks/            # Git and tool hooks
+│   └── pipeline.config.json  # Pipeline thresholds, iteration limits, app types
 ├── scripts/              # Development automation scripts
-├── templates/            # Starter configs (ESLint, Tailwind, Vitest, etc.)
+├── templates/            # Starter configs (ESLint, Tailwind, Vitest, Chrome ext, etc.)
 ├── docs/                 # Documentation
 │   ├── figma-to-react/   # Figma conversion pipeline docs
 │   └── react-development/# React development standards
@@ -49,6 +50,13 @@ project-root/
 
 # Verify design token usage (no hardcoded values)
 ./scripts/verify-tokens.sh
+
+# Verify every component has a test file
+./scripts/verify-test-coverage.sh
+
+# Pixel-level visual diff between screenshots
+node scripts/visual-diff.js <actual.png> <expected.png> [--threshold 0.02] [--json]
+node scripts/visual-diff.js --batch <actual-dir> <expected-dir> [--output-dir diffs/]
 
 # Initialize a new React project
 ./scripts/setup-project.sh my-app --next  # or --vite
@@ -144,19 +152,20 @@ Agents are invoked automatically based on task context.
 
 ---
 
-### React Skills (9 Total)
+### React Skills (10 Total)
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
-| figma-to-react-workflow | Figma-to-React conversion pipeline (v2 with lockfile + TDD) | "convert Figma", "Figma to React" |
-| figma-intake | Structured interview → build-spec.json | Phase 1 of /build-from-figma |
+| figma-to-react-workflow | Figma-to-React pipeline (v3: enforced TDD, pixel-diff, E2E) | "convert Figma", "Figma to React" |
+| figma-intake | Structured interview → build-spec.json (with appType) | Phase 1 of /build-from-figma |
 | design-token-lock | Extract + lock Figma values → lockfile | Phase 2 of /build-from-figma |
-| tdd-from-figma | Write tests FIRST from Figma + lockfile | Phase 3 of /build-from-figma |
+| tdd-from-figma | Write tests FIRST, app-type-aware (Chrome ext, PWA) | Phase 3 of /build-from-figma |
+| e2e-test-generator | Generate Playwright E2E from build-spec (new) | Phase 6 of /build-from-figma |
 | react-component-development | Component patterns and best practices | "create component", "custom hook" |
 | react-testing-workflows | Vitest, RTL, Playwright, Storybook | "write tests", "test coverage" |
 | react-performance-optimization | Profiling, bundle analysis, Web Vitals | "performance", "bundle size" |
 | react-accessibility | WCAG patterns for React | "accessibility", "a11y", "ARIA" |
-| visual-qa-verification | Post-conversion visual QA | "verify", "visual QA", "compare to Figma" |
+| visual-qa-verification | Automated pixel-diff visual QA (v3: pixelmatch loop) | "verify", "visual QA", "compare to Figma" |
 
 **Full catalog:** `.claude/skills/README.md`
 
@@ -166,29 +175,37 @@ Agents are invoked automatically based on task context.
 
 **Single command:** `/build-from-figma <Figma URL>`
 
-Autonomous 7-phase pipeline that converts a Figma design into a working, tested React app:
+Autonomous 9-phase pipeline that converts a Figma design into a working, tested React app:
 
 ```
 /build-from-figma https://figma.com/file/abc123
 
-  [1] INTAKE      → figma-intake skill → build-spec.json
-  [2] TOKEN LOCK  → design-token-lock skill → design-tokens.lock.json
-  [3] TDD         → tdd-from-figma skill → failing tests (Red)
-  [4] BUILD       → figma-to-react-workflow → components pass tests (Green)
-  [5] VISUAL QA   → Chrome DevTools + Figma screenshots → max 3 fix iterations
-  [6] QUALITY     → vitest + tsc + build + verify-tokens + Lighthouse
-  [7] REPORT      → .claude/visual-qa/build-report.md
+  [1] INTAKE        → figma-intake skill → build-spec.json (with appType)
+  [2] TOKEN LOCK    → design-token-lock skill → design-tokens.lock.json
+  [3] TDD (HARD GATE) → tdd-from-figma skill → failing tests (Red)
+  [4] BUILD         → figma-to-react-workflow → components pass tests (Green)
+  [5] VISUAL DIFF   → pixelmatch loop → max 5 iterations, 2% threshold
+  [6] E2E TESTS     → e2e-test-generator skill → Playwright tests (app-type-aware)
+  [7] CROSS-BROWSER → Firefox/WebKit screenshots (non-blocking)
+  [8] QUALITY GATE  → coverage + types + build + tokens + Lighthouse
+  [9] REPORT        → .claude/visual-qa/build-report.md (with diff images)
 ```
 
 **Key artifacts:**
 - `design-tokens.lock.json` — Single source of truth for all design values
-- `build-spec.json` — Machine-readable build plan (no re-asking questions)
+- `build-spec.json` — Machine-readable build plan with appType and E2E flows
+- `pipeline.config.json` — Thresholds, iteration limits, app-type definitions
 - `verify-tokens.sh` — Catches hardcoded values and token drift
+- `verify-test-coverage.sh` — Ensures every component has tests
+- `visual-diff.js` — Pixel-level screenshot comparison with region analysis
 
 **Features:**
+- **Enforced TDD** — tests must exist before components, hard gate blocks build phase
+- **Pixel-perfect visual diff** — `pixelmatch`-based comparison (not manual), up to 5 iterations
+- **App-type awareness** — Chrome extensions, PWAs, and web apps get tailored E2E strategies
+- **Chrome extension E2E** — Playwright persistent context with `--load-extension`
 - Design token extraction with lockfile enforcement
-- TDD: tests written before components, using exact Figma values
-- Automated visual comparison loop (3 iterations max)
+- Cross-browser verification (Firefox, WebKit) with configurable thresholds
 - Quality gate: 80%+ coverage, TypeScript, Lighthouse audit
 - Resumable: TodoWrite tracks progress across interrupted sessions
 
@@ -328,5 +345,5 @@ gh issue create               # Create issue
 
 ---
 
-**Last Updated:** 2026-03-16
-**Architecture:** 44 agents, 9 skills, 4 plugins + gh CLI, Figma + Playwright MCP
+**Last Updated:** 2026-03-17
+**Architecture:** 44 agents, 10 skills, 4 plugins + gh CLI, Figma + Playwright MCP

@@ -1,6 +1,6 @@
 ---
 name: tdd-from-figma
-description: Writes failing tests FIRST from Figma structure and the design token lockfile, then implementation makes them pass. Per-component TDD cycle using exact values from design-tokens.lock.json. Keywords: TDD, test-driven development, Figma tests, component testing, red-green-refactor, lockfile assertions
+description: Writes failing tests FIRST from Figma structure and the design token lockfile, then implementation makes them pass. Per-component TDD cycle using exact values from design-tokens.lock.json. App-type-aware: generates Chrome extension, PWA, and web app test templates. Keywords: TDD, test-driven development, Figma tests, component testing, red-green-refactor, lockfile assertions, chrome extension tests, PWA tests
 ---
 
 # TDD from Figma — Tests Before Components
@@ -218,6 +218,223 @@ Process components in dependency order:
 
 Write and verify tests for each batch before moving to the next.
 
+## App-Type-Aware Test Generation
+
+Read `build-spec.json` field `appType` to determine which additional test templates to generate.
+
+### Chrome Extension Tests (appType: "chrome-extension")
+
+When the app is a Chrome extension, generate these additional test categories:
+
+#### Manifest Validation Tests
+```typescript
+import { readFileSync } from "fs";
+import { describe, it, expect } from "vitest";
+
+describe("Chrome Extension Manifest", () => {
+  const manifest = JSON.parse(readFileSync("public/manifest.json", "utf-8"));
+
+  it("has required manifest fields", () => {
+    expect(manifest.manifest_version).toBe(3);
+    expect(manifest.name).toBeTruthy();
+    expect(manifest.version).toBeTruthy();
+  });
+
+  it("declares required permissions", () => {
+    // Adapt to build-spec.json e2e.extensionManifest.permissions
+    expect(manifest.permissions).toContain("storage");
+  });
+
+  it("has popup defined", () => {
+    expect(manifest.action?.default_popup).toBeTruthy();
+  });
+
+  it("has service worker defined", () => {
+    expect(manifest.background?.service_worker).toBeTruthy();
+  });
+
+  it("has content scripts for correct URL patterns", () => {
+    // Adapt matches from build-spec.json e2e.extensionManifest.contentScriptMatches
+    const matches = manifest.content_scripts?.[0]?.matches;
+    expect(matches).toBeDefined();
+    expect(matches.length).toBeGreaterThan(0);
+  });
+});
+```
+
+#### Popup Component Tests
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock Chrome APIs for Vitest (jsdom doesn't have them)
+const chromeMock = {
+  storage: {
+    local: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+    },
+    sync: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue(undefined),
+    },
+  },
+  runtime: {
+    sendMessage: vi.fn(),
+    onMessage: { addListener: vi.fn() },
+    lastError: null,
+  },
+  tabs: {
+    query: vi.fn().mockResolvedValue([]),
+    sendMessage: vi.fn(),
+  },
+};
+
+beforeEach(() => {
+  vi.stubGlobal("chrome", chromeMock);
+  vi.clearAllMocks();
+});
+
+// Then write standard component tests for popup components
+// using the same patterns as web app components.
+```
+
+#### Background Service Worker Tests
+```typescript
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Test message handling
+describe("Background Service Worker", () => {
+  it("responds to known message types", async () => {
+    // Import the handler function (not the full service worker registration)
+    const { handleMessage } = await import("../background/handler");
+    const response = await handleMessage({ type: "PING" });
+    expect(response).toBeDefined();
+  });
+
+  it("stores data to chrome.storage on relevant events", async () => {
+    // Test storage interactions via the handler
+  });
+});
+```
+
+#### Chrome API Mock Setup
+For Chrome extension TDD, generate a shared mock file:
+
+**File: `src/test/chrome-mock.ts`**
+```typescript
+import { vi } from "vitest";
+
+export const createChromeMock = () => ({
+  storage: {
+    local: {
+      get: vi.fn().mockImplementation((keys) => Promise.resolve({})),
+      set: vi.fn().mockImplementation(() => Promise.resolve()),
+      remove: vi.fn().mockImplementation(() => Promise.resolve()),
+      clear: vi.fn().mockImplementation(() => Promise.resolve()),
+    },
+    sync: {
+      get: vi.fn().mockImplementation((keys) => Promise.resolve({})),
+      set: vi.fn().mockImplementation(() => Promise.resolve()),
+    },
+    onChanged: { addListener: vi.fn(), removeListener: vi.fn() },
+  },
+  runtime: {
+    sendMessage: vi.fn(),
+    onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+    onInstalled: { addListener: vi.fn() },
+    getURL: vi.fn((path) => `chrome-extension://test-id/${path}`),
+    lastError: null,
+  },
+  tabs: {
+    query: vi.fn().mockResolvedValue([{ id: 1, url: "https://example.com" }]),
+    sendMessage: vi.fn(),
+    onUpdated: { addListener: vi.fn() },
+    onActivated: { addListener: vi.fn() },
+  },
+  scripting: {
+    executeScript: vi.fn().mockResolvedValue([{ result: null }]),
+  },
+  action: {
+    setBadgeText: vi.fn(),
+    setBadgeBackgroundColor: vi.fn(),
+  },
+});
+
+export const installChromeMock = () => {
+  const mock = createChromeMock();
+  vi.stubGlobal("chrome", mock);
+  return mock;
+};
+```
+
+### PWA Tests (appType: "pwa")
+
+When the app is a PWA, generate these additional test categories:
+
+#### Web App Manifest Tests
+```typescript
+import { readFileSync } from "fs";
+import { describe, it, expect } from "vitest";
+
+describe("PWA Manifest", () => {
+  const manifest = JSON.parse(readFileSync("public/manifest.json", "utf-8"));
+
+  it("has required PWA fields", () => {
+    expect(manifest.name).toBeTruthy();
+    expect(manifest.short_name).toBeTruthy();
+    expect(manifest.start_url).toBeTruthy();
+    expect(manifest.display).toBe("standalone");
+  });
+
+  it("has icons at required sizes", () => {
+    const sizes = manifest.icons.map((i: { sizes: string }) => i.sizes);
+    expect(sizes).toContain("192x192");
+    expect(sizes).toContain("512x512");
+  });
+
+  it("has theme and background colors", () => {
+    expect(manifest.theme_color).toBeTruthy();
+    expect(manifest.background_color).toBeTruthy();
+  });
+});
+```
+
+#### Service Worker Registration Tests
+```typescript
+describe("Service Worker", () => {
+  it("registers on page load", () => {
+    // Test that navigator.serviceWorker.register is called
+  });
+
+  it("caches critical assets on install", () => {
+    // Test the install event handler
+  });
+
+  it("serves cached content when offline", () => {
+    // Test the fetch event handler with network failure
+  });
+});
+```
+
+### Conditional Test Generation Logic
+
+```
+1. Read build-spec.json → appType
+2. IF appType === "chrome-extension":
+   a. Generate chrome-mock.ts in src/test/
+   b. Generate manifest.test.ts
+   c. For each popup component: generate tests with Chrome API mocks
+   d. If build-spec has background script: generate background handler tests
+   e. If build-spec has content scripts: generate content script tests
+3. IF appType === "pwa":
+   a. Generate manifest.test.ts (PWA version)
+   b. Generate service worker registration tests
+   c. Generate offline fallback tests
+4. ALWAYS: Generate standard component tests (existing behavior)
+```
+
 ## Output
 
 | File | Purpose |
@@ -231,3 +448,7 @@ Write and verify tests for each batch before moving to the next.
 - **Feeds into:** `figma-to-react-workflow` Phase 2 (implementation must pass these tests)
 - **References:** `react-testing-workflows` skill for testing patterns and Vitest configuration
 - **Verified by:** `pnpm vitest run --coverage` in the quality gate
+
+---
+
+*Version: 2.0.0*

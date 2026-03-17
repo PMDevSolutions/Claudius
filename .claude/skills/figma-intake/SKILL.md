@@ -41,19 +41,28 @@ Simultaneously scan the local project:
    - remix.config.* → Remix
    - None → New project needed
 
-2. Scan existing components:
+2. Detect app type:
+   - manifest.json with "manifest_version" → Chrome Extension
+   - manifest.json with "start_url" or "display" → PWA
+   - Otherwise → Web App
+
+3. Scan existing components:
    - Glob: src/components/**/*.tsx, app/components/**/*.tsx
    - Build inventory: name, props interface, file path
 
-3. Check package.json for UI libraries:
+4. Check package.json for UI libraries:
    - @shadcn/ui, @radix-ui/*, @headlessui/react
    - tailwindcss, @emotion/*, styled-components
    - State: zustand, jotai, @tanstack/react-query
 
-4. Check for existing design tokens:
+5. Check for existing design tokens:
    - tailwind.config.ts theme.extend
    - src/styles/tokens.css or similar
    - design-tokens.lock.json (from prior runs)
+
+6. Load pipeline config:
+   - Read .claude/pipeline.config.json for thresholds and app type definitions
+   - Use appTypes[detected] for E2E strategy defaults
 ```
 
 ### Step 2: Compile Discovery Summary
@@ -112,6 +121,10 @@ Only ask questions whose answers cannot be derived from the Figma file or local 
 > b) Integrated into the existing project at [detected path]
 > (Only ask if existing project detected)
 
+**Question 6 — App Type (only if ambiguous):**
+> I detected this as a [chrome-extension / web-app / pwa]. Is that correct?
+> (Skip if detection is unambiguous. Skip if manifest.json clearly identifies type.)
+
 ### Step 4: Generate build-spec.json
 
 Write the spec file that all downstream phases consume:
@@ -126,6 +139,7 @@ Write the spec file that all downstream phases consume:
     "fileName": "My App Design",
     "url": "https://figma.com/file/abc123/My-App-Design"
   },
+  "appType": "web-app",          // "web-app" | "chrome-extension" | "pwa"
   "framework": {
     "type": "vite",           // "nextjs-app" | "nextjs-pages" | "vite" | "remix"
     "version": "6.0.0",
@@ -169,6 +183,33 @@ Write the spec file that all downstream phases consume:
     "apiCalls": [],
     "auth": null,
     "stateManagement": null
+  },
+  "e2e": {
+    "strategy": "navigate-interact-verify",  // From pipeline.config.json appTypes
+    "flows": [
+      {
+        "name": "page-navigation",
+        "description": "Navigate between all pages and verify rendering",
+        "steps": ["navigate to /", "verify hero section visible", "click nav link"]
+      }
+    ],
+    // Chrome extension specific (when appType === "chrome-extension"):
+    "extensionManifest": {
+      "hasPopup": true,
+      "hasBackground": true,
+      "hasContentScript": true,
+      "contentScriptMatches": ["*://*.example.com/*"],
+      "permissions": ["storage", "activeTab"],
+      "buildCommand": "pnpm build",
+      "extensionPath": "dist"
+    }
+  },
+  "testStrategy": {
+    "unit": true,                 // Vitest + RTL for components
+    "e2e": true,                  // Playwright E2E
+    "visual": true,               // Screenshot comparison
+    "crossBrowser": false,        // Firefox + WebKit (web apps only)
+    "coverageThreshold": 80
   },
   "options": {
     "componentReuse": "reuse",    // "reuse" | "regenerate" | "alongside"

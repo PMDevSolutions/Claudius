@@ -4,7 +4,13 @@ allowed-tools: Skill, Agent, Bash, Read, Write, Edit, Glob, Grep, TodoWrite, mcp
 
 # /build-from-figma — Autonomous Figma-to-Working-App Pipeline
 
-You are the master orchestrator for converting a Figma design into a fully working, tested React application. You receive a Figma URL and guide the entire process through 7 phases, using specialized skills and agents.
+You are the master orchestrator for converting a Figma design into a fully working, tested React application. You receive a Figma URL and guide the entire process through 9 phases, using specialized skills and agents.
+
+**Key enforcement rules:**
+- **TDD is mandatory** — Phase 3 (TDD) MUST complete before Phase 4 (Build). No exceptions.
+- **Visual QA uses pixel diff** — Phase 5 uses `scripts/visual-diff.js` for programmatic comparison, not manual eyeballing.
+- **E2E tests are generated** — Phase 6 generates and runs Playwright E2E tests appropriate to the app type.
+- **App-type aware** — Chrome extensions, PWAs, and web apps each get tailored test strategies.
 
 ## Input
 
@@ -15,18 +21,29 @@ Parse the Figma URL to extract:
 - `nodeId` from the `?node-id=` parameter (convert `-` to `:`)
 - For branch URLs: use `branchKey` as `fileKey`
 
+## Configuration
+
+Load `.claude/pipeline.config.json` at the start. This provides:
+- Visual diff thresholds and iteration limits
+- TDD enforcement settings
+- E2E strategy per app type
+- Quality gate thresholds
+- Lighthouse score minimums
+
 ## Progress Tracking
 
 Use `TodoWrite` to create a master checklist. Update each item as phases complete. This enables interrupted sessions to resume.
 
 ```
-[ ] Phase 1: Intake — figma-intake skill
-[ ] Phase 2: Token Lock — design-token-lock skill
-[ ] Phase 3: TDD Scaffold — tdd-from-figma skill
-[ ] Phase 4: Component Build — figma-to-react-workflow skill
-[ ] Phase 5: Visual Verification — automated screenshot loop
-[ ] Phase 6: Quality Gate — tests, types, build, tokens, Lighthouse
-[ ] Phase 7: Report — build-report.md
+[ ] Phase 1: Intake — figma-intake skill → build-spec.json
+[ ] Phase 2: Token Lock — design-token-lock skill → lockfile + tailwind config
+[ ] Phase 3: TDD Scaffold — tdd-from-figma skill → failing tests (RED)
+[ ] Phase 4: Component Build — figma-to-react-workflow → tests pass (GREEN)
+[ ] Phase 5: Visual Verification — pixel-diff loop (max N iterations)
+[ ] Phase 6: E2E Tests — e2e-test-generator skill → Playwright tests
+[ ] Phase 7: Cross-Browser — screenshots in Firefox/WebKit (non-blocking)
+[ ] Phase 8: Quality Gate — coverage, types, build, tokens, Lighthouse
+[ ] Phase 9: Report — build-report.md
 ```
 
 For each component, track: `[ ] ComponentName: test-written → implemented → visual-verified`
@@ -91,79 +108,131 @@ This phase:
 
 **Critical rule:** If tests fail, fix the component — never modify the test files.
 
-## Phase 5: Visual Verification
+## Phase 5: Visual Verification (Automated Pixel Diff)
 
-Automated screenshot comparison loop.
+Automated pixel-level screenshot comparison using `scripts/visual-diff.js`.
 
-**Prerequisites:** All tests passing from Phase 4.
+**Prerequisites:** All unit tests passing from Phase 4.
+
+**Configuration:** Read `.claude/pipeline.config.json`:
+- `iterationLoop.maxVisualIterations` (default: 5)
+- `iterationLoop.diffPassThreshold` (default: 0.02 = 2% pixel diff)
 
 For each page in build-spec.json:
 
 ```
-1. Start: pnpm dev (background)
-2. Wait for dev server ready
+1. Start: pnpm dev (background) — skip if appType is chrome-extension
+   For chrome-extension: pnpm build first, then test against built output
+2. Wait for server/build ready
 
-3. FOR iteration IN 1..3:
-   a. Chrome DevTools MCP: navigate to page URL
-   b. Chrome DevTools MCP: resize to 1440px → take_screenshot
-   c. Chrome DevTools MCP: resize to 768px → take_screenshot
-   d. Chrome DevTools MCP: resize to 375px → take_screenshot
-   e. Figma MCP: get_screenshot for matching frame
+3. Capture Figma reference screenshots ONCE:
+   → Figma MCP: get_screenshot for each page/frame
+   → Save to .claude/visual-qa/screenshots/figma/
 
-   f. Compare all screenshots using vision:
-      - Layout alignment
-      - Color accuracy (cross-reference lockfile)
-      - Typography match
-      - Component completeness
-      - Responsive behavior
+4. FOR iteration IN 1..maxVisualIterations:
+   a. Chrome DevTools MCP: navigate → resize → take_screenshot at each breakpoint
+      → Save to .claude/visual-qa/screenshots/chromium/
 
-   g. IF differences AND iteration < 3:
-      → Fix issues in component code
-      → Run: pnpm vitest run (ensure tests still pass)
-      → Next iteration
-   h. ELSE IF acceptable match:
-      → Mark page as verified
-      → Break
-   i. ELSE:
-      → Log remaining differences
-      → Mark as "needs manual review"
+   b. Run pixel diff:
+      → node scripts/visual-diff.js --batch \
+          .claude/visual-qa/screenshots/chromium \
+          .claude/visual-qa/screenshots/figma \
+          --output-dir .claude/visual-qa/diffs --json
 
-4. Stop dev server
+   c. Parse JSON results:
+      → IF all mismatchPct <= threshold: PASS → break loop
+      → IF any FAIL and iteration < max:
+        - Read diff images + region analysis to identify problem areas
+        - Fix component code targeting specific regions
+        - Run: pnpm vitest run (ensure tests still pass)
+        - Continue to next iteration
+      → IF final iteration and still failing:
+        - Save diff images for manual review
+        - Mark as "needs manual review"
+
+5. Stop dev server
 ```
 
-## Phase 6: Quality Gate
+## Phase 6: E2E Tests
 
-Run all quality checks:
+Generate and run end-to-end tests appropriate to the app type.
+
+```
+1. Invoke the e2e-test-generator skill:
+   → Reads build-spec.json (appType, pages, e2e.flows, extensionManifest)
+   → Generates Playwright config + test files in e2e/
+
+2. Run E2E tests:
+   → web-app: pnpm exec playwright test
+   → chrome-extension: pnpm build && pnpm exec playwright test --config=playwright.chrome-ext.config.ts
+   → pwa: pnpm exec playwright test (includes offline tests)
+
+3. If E2E tests fail:
+   → Read failure output
+   → Fix component/page code
+   → Re-run unit tests (ensure still passing)
+   → Re-run E2E (max 2 retries)
+
+4. Save results to .claude/visual-qa/e2e-report.md
+```
+
+## Phase 7: Cross-Browser Verification (Non-Blocking)
+
+Capture screenshots in Firefox and WebKit, compare against Chromium baseline.
 
 ```bash
-# 1. Test coverage (target: 80%+)
+# Only for web apps and PWAs (Chrome extensions are Chromium-only)
+./scripts/cross-browser-test.sh firefox http://localhost:3000
+./scripts/cross-browser-test.sh webkit http://localhost:3000
+
+node scripts/visual-diff.js --batch \
+  .claude/visual-qa/screenshots/firefox \
+  .claude/visual-qa/screenshots/chromium \
+  --output-dir .claude/visual-qa/diffs/firefox-vs-chromium \
+  --threshold 0.03
+```
+
+Cross-browser differences are logged in the build report but do NOT block the pipeline.
+
+## Phase 8: Quality Gate
+
+Run all quality checks. All must pass for pipeline success.
+
+```bash
+# 1. Unit test coverage (threshold from pipeline.config.json, default: 80%)
 pnpm vitest run --coverage
 
-# 2. TypeScript
+# 2. Test existence verification
+./scripts/verify-test-coverage.sh
+
+# 3. TypeScript
 pnpm tsc --noEmit
 
-# 3. Production build
+# 4. Production build
 pnpm build
 
-# 4. Token verification
+# 5. Token verification
 ./scripts/verify-tokens.sh
 
-# 5. Lighthouse audit (via Chrome DevTools MCP)
+# 6. Lighthouse audit (via Chrome DevTools MCP)
 #    → Start dev server, run lighthouse_audit per page
-#    → Record: Performance, Accessibility, Best Practices, SEO
+#    → Thresholds from pipeline.config.json → qualityGate.lighthouseThresholds
 ```
 
 If any check fails, attempt to fix automatically (max 2 attempts per check). If still failing after fixes, report the failure and continue to the report phase.
 
-## Phase 7: Report
+## Phase 9: Report
 
 Write `.claude/visual-qa/build-report.md` with:
 
-- Build summary (pages, components, framework, timestamps)
-- Visual QA results table (pass/fail per page per breakpoint)
+- Build summary (pages, components, framework, app type, timestamps)
+- Visual QA results table (pass/fail per page per breakpoint, mismatch %, iterations needed)
+- E2E test results table (pass/fail per test file, app-type-specific tests)
+- Cross-browser results (if applicable, non-blocking)
 - Quality gate results table (each check with status and details)
-- Test coverage percentage
+- Unit test coverage percentage
 - Lighthouse scores
+- Diff images saved to `.claude/visual-qa/diffs/`
 - Remaining issues requiring manual attention
 
 Create the `.claude/visual-qa/` directory if it doesn't exist.
