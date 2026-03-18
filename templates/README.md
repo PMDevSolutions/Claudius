@@ -24,7 +24,7 @@ These configs apply to any React project regardless of framework:
 | `prettier.config.js` | Prettier formatting rules (2-space indent, trailing commas) |
 | `tailwind.config.ts` | Base Tailwind config with design token structure |
 | `tsconfig.json` | TypeScript strict mode with path aliases |
-| `vitest.config.ts` | Vitest config with jsdom, RTL setup, and coverage thresholds |
+| `vitest.config.template.ts` | Vitest config with jsdom, RTL setup, and coverage thresholds |
 
 ### Usage
 
@@ -35,7 +35,7 @@ cp templates/shared/eslint.config.js .
 cp templates/shared/prettier.config.js .
 cp templates/shared/tailwind.config.ts .
 cp templates/shared/tsconfig.json .
-cp templates/shared/vitest.config.ts .
+cp templates/shared/vitest.config.template.ts vitest.config.ts
 ```
 
 Or use the setup script: `./scripts/setup-project.sh my-app --vite`
