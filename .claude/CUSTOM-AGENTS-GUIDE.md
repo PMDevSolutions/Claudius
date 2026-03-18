@@ -1,7 +1,7 @@
 # Custom Agents Guide
 
 **Last Updated:** 2026-03-18
-**Total Agents:** 47
+**Total Agents:** 48
 **Location:** `.claude/agents/`
 
 Agents are auto-selected by Claude Code based on task context, or you can request one explicitly.
@@ -38,6 +38,7 @@ Agents are auto-selected by Claude Code based on task context, or you can reques
 | Agent | Purpose | When to Use |
 |-------|---------|-------------|
 | figma-react-converter | Figma-to-React conversion pipeline orchestration | Converting Figma designs into React components with Tailwind CSS |
+| canva-react-converter | Canva-to-React conversion from screenshots | Converting Canva designs into React components with Tailwind CSS |
 | asset-cataloger | Image/asset semantic mapping and validation | Mapping hash-named exports to meaningful names, validating asset usage |
 
 ## Testing & QA
@@ -136,7 +137,7 @@ User: "Use the accessibility-auditor agent to check this page"
 
 ## Agent + Skill Integration
 
-Agents work alongside the 15 custom skills in `.claude/skills/`:
+Agents work alongside the 17 custom skills in `.claude/skills/`:
 
 | Agent | Complementary Skill |
 |-------|-------------------|
@@ -149,6 +150,7 @@ Agents work alongside the 15 custom skills in `.claude/skills/`:
 | error-boundary-architect | (works with Sentry integration in pipeline.config.json) |
 | migration-specialist | (uses WebSearch for changelog/codemod lookup) |
 | i18n-engineer | (works with frontend-developer for component i18n) |
+| canva-react-converter | canva-token-inference |
 
 **Skills Documentation:** `.claude/skills/README.md`
 
@@ -172,4 +174,5 @@ Agents work alongside the 15 custom skills in `.claude/skills/`:
 | Add error boundaries | error-boundary-architect |
 | Upgrade React/Next.js | migration-specialist |
 | Add internationalization | i18n-engineer |
+| Convert Canva to React | canva-react-converter |
 | Ship a release | project-shipper |

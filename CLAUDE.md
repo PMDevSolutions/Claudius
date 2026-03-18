@@ -8,7 +8,7 @@ This is a **Claude Code-integrated React app development framework** providing s
 
 The framework is designed for:
 - Framework-agnostic React app development (Next.js, Vite, Remix)
-- Figma-to-React component conversion with Tailwind CSS
+- Figma-to-React and Canva-to-React component conversion with Tailwind CSS
 - Comprehensive testing (Vitest, React Testing Library, Playwright, Storybook)
 - Full product lifecycle support (engineering, design, testing, marketing, operations)
 
@@ -17,8 +17,8 @@ The framework is designed for:
 ```
 project-root/
 ├── .claude/              # Claude Code configuration
-│   ├── agents/           # 47 specialized agents
-│   ├── skills/           # 15 React-specific skills
+│   ├── agents/           # 48 specialized agents
+│   ├── skills/           # 17 React-specific skills
 │   ├── commands/         # Custom slash commands
 │   ├── hooks/            # Hook scripts (automated hooks configured in settings.json)
 │   └── pipeline.config.json  # Pipeline thresholds, iteration limits, app types
@@ -26,6 +26,7 @@ project-root/
 ├── templates/            # Starter configs (ESLint, Tailwind, Vitest, Chrome ext, etc.)
 ├── docs/                 # Documentation
 │   ├── figma-to-react/   # Figma conversion pipeline docs
+│   ├── canva-to-react/   # Canva conversion pipeline docs
 │   └── react-development/# React development standards
 └── CLAUDE.md             # This file
 ```
@@ -152,15 +153,15 @@ pnpm tsc --noEmit         # Type check without emitting
 
 ---
 
-### Custom Agents (47 Total)
+### Custom Agents (48 Total)
 
-47 specialized agents covering the full product lifecycle:
+48 specialized agents covering the full product lifecycle:
 
 | Category | Count | Key Agents |
 |----------|-------|------------|
 | Engineering | 10 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer, error-boundary-architect, migration-specialist, i18n-engineer |
 | Design | 5 | ui-designer, ux-researcher, brand-guardian |
-| Design-to-Code | 2 | figma-react-converter, asset-cataloger |
+| Design-to-Code | 3 | figma-react-converter, canva-react-converter, asset-cataloger |
 | Testing & QA | 7 | visual-qa-agent, accessibility-auditor, api-tester, performance-benchmarker |
 | Product | 3 | sprint-prioritizer, feedback-synthesizer, trend-researcher |
 | Marketing | 7 | content-creator, growth-hacker, app-store-optimizer |
@@ -176,7 +177,7 @@ Agents are invoked automatically based on task context.
 
 ---
 
-### React Skills (15 Total)
+### React Skills (17 Total)
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
@@ -190,6 +191,8 @@ Agents are invoked automatically based on task context.
 | react-performance-optimization | Profiling, bundle analysis, Web Vitals | "performance", "bundle size" |
 | react-accessibility | WCAG patterns for React | "accessibility", "a11y", "ARIA" |
 | visual-qa-verification | Automated pixel-diff visual QA (v3: pixelmatch loop) | "verify", "visual QA", "compare to Figma" |
+| canva-intake | Canva design discovery → build-spec.json (with appType) | Phase 1 of /build-from-canva |
+| canva-token-inference | AI-powered token extraction from Canva screenshots | Phase 2 of /build-from-canva |
 | state-management | State architecture: Zustand, TanStack Query, URL state | "state management", "zustand", "data fetching" |
 | form-handling | React Hook Form + Zod: typed forms, field arrays, wizards | "form", "validation", "react hook form" |
 | auth-flows | Auth.js, Clerk, Supabase Auth, RBAC, protected routes | "auth", "login", "session", "OAuth" |
@@ -258,12 +261,28 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 
 ---
 
+### Canva-to-React Pipeline
+
+**Single command:** `/build-from-canva <Canva URL>`
+
+Same 12-phase pipeline as Figma with Canva-specific phases 1, 2, and 4:
+
+- **Phase 1:** canva-intake (vision-based discovery via Canva AI Connector MCP)
+- **Phase 2:** canva-token-inference (AI extraction with confidence scoring + user confirmation)
+- **Phase 4:** canva-react-converter agent (builds components from screenshots)
+- **Phases 3, 5-9:** shared (identical to Figma pipeline)
+
+**Documentation:** `docs/canva-to-react/README.md`
+
+---
+
 ### MCP Server Integration
 
 - **Figma Desktop MCP** - Local Figma integration (port 3845)
 - **Figma Remote MCP** - Fallback remote access
 - **Playwright MCP** - Cross-browser testing (Chromium, Firefox, WebKit)
 - **Chrome DevTools MCP** - Screenshots, Lighthouse audits, DOM inspection
+- **Canva AI Connector** - Search, export, and interact with Canva designs
 - **Sentry** - Error monitoring (configured via pipeline.config.json, setup by error-boundary-architect agent)
 
 ---
@@ -376,9 +395,10 @@ Claude: [Uses test-writer-fixer agent]
 
 ### Quick Command Reference
 
-**Figma Pipeline:**
+**Design-to-Code Pipelines:**
 ```bash
-/build-from-figma <URL>       # Full autonomous pipeline
+/build-from-figma <URL>       # Full autonomous Figma pipeline
+/build-from-canva <URL>       # Full autonomous Canva pipeline
 ```
 
 **Git Workflows (via commit-commands):**
@@ -416,4 +436,4 @@ gh issue create               # Create issue
 ---
 
 **Last Updated:** 2026-03-18
-**Architecture:** 47 agents, 15 skills, 4 plugins + gh CLI, Figma + Playwright MCP, 18 scripts, 7 hooks
+**Architecture:** 48 agents, 17 skills, 4 plugins + gh CLI, Figma + Canva + Playwright MCP, 18 scripts, 7 hooks

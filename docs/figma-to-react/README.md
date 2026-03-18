@@ -179,6 +179,7 @@ See the full config file for all options.
 
 ## Related Documentation
 
+- `docs/canva-to-react/README.md` -- Canva-to-React conversion pipeline
 - `scripts/README.md` -- Scripts reference (visual-diff.js, verify-tokens.sh, verify-test-coverage.sh)
 - `templates/README.md` -- Starter configs including Chrome extension E2E templates
 - `.claude/skills/README.md` -- Full skills catalog
