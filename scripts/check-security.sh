@@ -11,30 +11,24 @@ JSON_OUTPUT=false
 AUDIT_LEVEL=""
 NO_FAIL=false
 
-for arg in "$@"; do
-  case "$arg" in
-    --json)      JSON_OUTPUT=true ;;
-    --no-fail)   NO_FAIL=true ;;
-    --level)     :;; # value consumed below
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --json)    JSON_OUTPUT=true; shift ;;
+    --no-fail) NO_FAIL=true; shift ;;
+    --level)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --level requires a value (low, moderate, high, critical)" >&2
+        exit 1
+      fi
+      AUDIT_LEVEL="$2"
+      shift 2
+      ;;
     -h|--help)
       echo "Usage: check-security.sh [--json] [--level <level>] [--no-fail]"
       echo "  --json             Output results as JSON (machine-parseable)"
       echo "  --level <level>    Override audit level (low, moderate, high, critical)"
       echo "  --no-fail          Always exit 0, even if issues are found"
       exit 0
-      ;;
-    *)
-      # Check if previous arg was --level
-      ;;
-  esac
-done
-
-# Parse --level <value> (two-arg flag)
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --level)
-      AUDIT_LEVEL="$2"
-      shift 2
       ;;
     *)
       shift
@@ -99,7 +93,6 @@ fi
 
 ISSUES=0
 AUDIT_RESULTS=""
-PATTERN_RESULTS=""
 OUTDATED_RESULTS=""
 
 # --- Temp file cleanup ---
@@ -172,7 +165,7 @@ if [[ ${#SRC_DIRS[@]} -gt 0 ]]; then
   SECRET_TMPFILE=$(mktemp)
   TMPFILES+=("$SECRET_TMPFILE")
 
-  grep -rnE "(API_KEY|SECRET|PASSWORD|TOKEN)\s*[:=]\s*['\"][^'\"]+['\"]" "${SRC_DIRS[@]}" \
+  grep -rnE "(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*[:=]\s*['\"][^'\"]{8,}['\"]" "${SRC_DIRS[@]}" \
     --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
     2>/dev/null \
     | grep -v 'process\.env' \
@@ -243,7 +236,7 @@ if [[ -f ".gitignore" ]]; then
   fi
 else
   # No .gitignore at all is also a concern if .env files exist
-  if ls .env* &>/dev/null 2>&1; then
+  if ls .env* &>/dev/null; then
     ENV_NOT_IGNORED=true
     PATTERN_COUNT=$((PATTERN_COUNT + 1))
     PATTERN_DETAILS+="    No .gitignore found but .env files exist"$'\n'
@@ -299,15 +292,17 @@ fi
 # Summary
 # ============================================================
 if $JSON_OUTPUT; then
+  ISSUES="$ISSUES" AUDIT_LEVEL="$AUDIT_LEVEL" PATTERN_COUNT="$PATTERN_COUNT" \
+  ENV_NOT_IGNORED="$ENV_NOT_IGNORED" AUDIT_EXIT="$AUDIT_EXIT" OUTDATED_EXIT="$OUTDATED_EXIT" \
   node -e "
     const result = {
-      status: $ISSUES > 0 ? 'fail' : 'pass',
-      auditLevel: '$AUDIT_LEVEL',
-      issueCount: $ISSUES,
-      antiPatternCount: $PATTERN_COUNT,
-      envInGitignore: !$ENV_NOT_IGNORED,
-      hasVulnerabilities: $AUDIT_EXIT !== 0,
-      hasOutdatedPackages: $OUTDATED_EXIT !== 0
+      status: parseInt(process.env.ISSUES) > 0 ? 'fail' : 'pass',
+      auditLevel: process.env.AUDIT_LEVEL,
+      issueCount: parseInt(process.env.ISSUES),
+      antiPatternCount: parseInt(process.env.PATTERN_COUNT),
+      envInGitignore: process.env.ENV_NOT_IGNORED !== 'true',
+      hasVulnerabilities: process.env.AUDIT_EXIT !== '0',
+      hasOutdatedPackages: process.env.OUTDATED_EXIT !== '0'
     };
     console.log(JSON.stringify(result, null, 2));
   "
