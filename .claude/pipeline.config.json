@@ -136,5 +136,14 @@
     "accessibilityReportFile": "accessibility-report.md",
     "includeScreenshots": true,
     "includeDiffImages": true
+  },
+
+  "deadCode": {
+    "enabled": true,
+    "tool": "knip",
+    "ignorePatterns": ["**/*.stories.*", "**/*.test.*", "**/*.e2e.*"],
+    "reportUnusedExports": true,
+    "reportUnusedDependencies": true,
+    "reportUnusedFiles": true
   }
 }

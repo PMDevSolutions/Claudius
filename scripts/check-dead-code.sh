@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# check-dead-code.sh — Detect unused exports, files, and dependencies using knip
+# Exit codes: 0=no dead code, 1=dead code found
+set -euo pipefail
+
+# --- Flags ---
+JSON_OUTPUT=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --json)     JSON_OUTPUT=true ;;
+    -h|--help)
+      echo "Usage: check-dead-code.sh [--json]"
+      echo "  --json   Output results as JSON (machine-parseable)"
+      exit 0
+      ;;
+    *)
+      echo "Unknown flag: $arg"
+      exit 1
+      ;;
+  esac
+done
+
+# --- Check if dead code detection is enabled in pipeline config ---
+CONFIG_FILE=".claude/pipeline.config.json"
+ENABLED=true
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  ENABLED=$(node -e "
+    const fs = require('fs');
+    try {
+      const config = JSON.parse(fs.readFileSync('$CONFIG_FILE', 'utf8'));
+      console.log(config.deadCode?.enabled !== false ? 'true' : 'false');
+    } catch (e) {
+      console.log('true');
+    }
+  " 2>/dev/null || echo "true")
+fi
+
+if [[ "$ENABLED" == "false" ]]; then
+  if $JSON_OUTPUT; then
+    echo '{"status": "skipped", "reason": "deadCode.enabled is false in pipeline.config.json"}'
+  else
+    echo "⊘ Dead code detection is disabled in $CONFIG_FILE"
+  fi
+  exit 0
+fi
+
+if ! $JSON_OUTPUT; then
+  echo "=== Dead Code Detection ==="
+  echo ""
+fi
+
+# --- Ensure knip is installed ---
+if ! npx knip --version &>/dev/null 2>&1; then
+  if ! $JSON_OUTPUT; then
+    echo "▸ Installing knip..."
+  fi
+  pnpm add -D knip 2>/dev/null || {
+    if $JSON_OUTPUT; then
+      echo '{"status": "error", "reason": "Failed to install knip"}'
+    else
+      echo "  ✗ Failed to install knip. Run 'pnpm add -D knip' manually."
+    fi
+    exit 1
+  }
+  if ! $JSON_OUTPUT; then
+    echo "  ✓ knip installed"
+    echo ""
+  fi
+fi
+
+# --- Run knip ---
+if ! $JSON_OUTPUT; then
+  echo "▸ Scanning for dead code with knip..."
+  echo ""
+fi
+
+KNIP_OUTPUT_FILE=$(mktemp)
+KNIP_EXIT=0
+
+if $JSON_OUTPUT; then
+  npx knip --reporter json > "$KNIP_OUTPUT_FILE" 2>/dev/null || KNIP_EXIT=$?
+else
+  npx knip --reporter compact > "$KNIP_OUTPUT_FILE" 2>/dev/null || KNIP_EXIT=$?
+fi
+
+KNIP_OUTPUT=$(cat "$KNIP_OUTPUT_FILE")
+rm -f "$KNIP_OUTPUT_FILE"
+
+# --- Process output ---
+if $JSON_OUTPUT; then
+  if [[ $KNIP_EXIT -eq 0 ]] || [[ -z "$KNIP_OUTPUT" ]] || [[ "$KNIP_OUTPUT" == "{}" ]]; then
+    echo '{"status": "pass", "deadCodeFound": false, "issues": []}'
+    exit 0
+  else
+    # Wrap knip's JSON output with our status envelope
+    node -e "
+      try {
+        const knipOutput = JSON.parse(process.argv[1]);
+        const result = {
+          status: 'fail',
+          deadCodeFound: true,
+          issues: knipOutput
+        };
+        console.log(JSON.stringify(result, null, 2));
+      } catch (e) {
+        console.log(JSON.stringify({
+          status: 'fail',
+          deadCodeFound: true,
+          raw: process.argv[1]
+        }, null, 2));
+      }
+    " "$KNIP_OUTPUT"
+    exit 1
+  fi
+fi
+
+# --- Human-readable output ---
+if [[ $KNIP_EXIT -eq 0 ]] || [[ -z "$KNIP_OUTPUT" ]]; then
+  echo "=== Summary ==="
+  echo "✓ No dead code detected — all exports, files, and dependencies are in use"
+  exit 0
+fi
+
+# knip found issues — display them
+echo "$KNIP_OUTPUT" | sed 's/^/  /'
+echo ""
+
+echo "=== Summary ==="
+echo "✗ Dead code detected — unused exports, files, or dependencies found"
+echo "  Review the output above and remove unused code or add to knip ignore patterns"
+exit 1
