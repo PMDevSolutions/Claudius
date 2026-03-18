@@ -202,5 +202,21 @@
     "reportUnusedExports": true,
     "reportUnusedDependencies": true,
     "reportUnusedFiles": true
+  },
+
+  "canva": {
+    "enabled": true,
+    "tokenInference": {
+      "confirmWithUser": true,
+      "confidenceThreshold": "medium",
+      "maxInferenceRetries": 2
+    },
+    "export": {
+      "format": "png",
+      "scale": 2,
+      "quality": 100
+    },
+    "mcpServer": "canva",
+    "restApiFallback": false
   }
 }
