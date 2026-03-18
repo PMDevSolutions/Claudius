@@ -4,18 +4,21 @@ Convert Figma designs into fully working, tested React applications with a singl
 
 ## Overview
 
-The `/build-from-figma` command runs a 9-phase autonomous pipeline:
+The `/build-from-figma` command runs a 12-phase autonomous pipeline:
 
 ```
-[1] Intake       → figma-intake skill → build-spec.json
-[2] Token Lock   → design-token-lock skill → lockfile + Tailwind config
-[3] TDD (Gate)   → tdd-from-figma skill → failing tests (RED)
-[4] Build        → figma-to-react-workflow skill → components pass tests (GREEN)
-[5] Visual Diff  → visual-qa-verification skill → pixel-diff loop
-[6] E2E Tests    → e2e-test-generator skill → Playwright tests
+[0] Token Sync  → sync-tokens.sh → drift check (conditional)
+[1] Intake      → figma-intake skill → build-spec.json
+[2] Token Lock  → design-token-lock skill → lockfile + Tailwind config
+[3] TDD (Gate)  → tdd-from-figma skill → failing tests (RED)
+[4] Build       → figma-to-react-workflow skill → components pass tests (GREEN)
+[4.5] Storybook → generate-stories.sh → auto-generated stories
+[5] Visual Diff → visual-qa-verification skill → pixel-diff loop
+[5.5] Dark Mode → check-dark-mode.sh → dark mode verification
+[6] E2E Tests   → e2e-test-generator skill → Playwright tests
 [7] Cross-Browser→ Firefox/WebKit screenshots (non-blocking)
 [8] Quality Gate → coverage + TypeScript + build + tokens + Lighthouse
-[9] Report       → .claude/visual-qa/build-report.md
+[9] Report      → .claude/visual-qa/build-report.md + docs/components/
 ```
 
 ## Prerequisites
@@ -51,6 +54,11 @@ app/
 │   │   └── globals.css              # Tailwind base
 │   └── types/
 │       └── design-system.ts
+├── docs/
+│   └── components/           # Auto-generated component docs
+│       ├── index.mdx         # Component index with status table
+│       ├── Hero.mdx          # Per-component documentation
+│       └── Navigation.mdx
 ├── e2e/                     # Generated Playwright E2E tests
 ├── tailwind.config.ts       # Generated from design tokens
 ├── vitest.config.ts
@@ -68,6 +76,7 @@ app/
 │   ├── e2e-report.md            # E2E test results
 │   ├── screenshots/
 │   │   ├── figma/               # Reference screenshots from Figma
+│   │   ├── dark/               # Dark mode screenshots
 │   │   ├── chromium/            # App screenshots
 │   │   ├── firefox/             # Cross-browser (if applicable)
 │   │   └── webkit/              # Cross-browser (if applicable)
@@ -125,6 +134,10 @@ All pipeline behavior is controlled by `.claude/pipeline.config.json`:
 | `tdd.coverageThreshold` | 80 | Minimum test coverage percentage |
 | `qualityGate.lighthouseThresholds.accessibility` | 90 | Minimum Lighthouse a11y score |
 | `appTypes.chrome-extension.extensionPathDefault` | "dist" | Built extension directory |
+| `darkMode.enabled` | true | Enable dark mode visual verification |
+| `darkMode.diffThreshold` | 0.03 | Dark mode pixel mismatch threshold |
+| `storybook.autoGenerate` | true | Auto-generate Storybook stories |
+| `tokenSync.autoCheck` | true | Check for token drift before extraction |
 
 See the full config file for all options.
 
@@ -138,6 +151,10 @@ See the full config file for all options.
 | figma-to-react-workflow | 4 | Generates components that pass the tests |
 | visual-qa-verification | 5 | Pixel-diff comparison loop |
 | e2e-test-generator | 6 | Generates Playwright E2E tests |
+| sync-tokens.sh | 0 | Detects token drift between lockfile and source |
+| generate-stories.sh | 4.5 | Auto-generates Storybook stories |
+| check-dark-mode.sh | 5.5 | Dark mode visual verification |
+| generate-component-docs.sh | 9 | MDX component documentation |
 
 ## Agent Integration
 
