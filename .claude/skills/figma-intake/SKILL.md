@@ -133,6 +133,7 @@ Write the spec file that all downstream phases consume:
 // .claude/plans/build-spec.json
 {
   "version": "1.0.0",
+  "source": "figma",              // "figma" | "canva"
   "createdAt": "2026-03-16T12:00:00Z",
   "figma": {
     "fileKey": "abc123",
