@@ -17,8 +17,8 @@ The framework is designed for:
 ```
 project-root/
 ├── .claude/              # Claude Code configuration
-│   ├── agents/           # 44 specialized agents
-│   ├── skills/           # 10 React-specific skills
+│   ├── agents/           # 47 specialized agents
+│   ├── skills/           # 15 React-specific skills
 │   ├── commands/         # Custom slash commands
 │   ├── hooks/            # Hook scripts (automated hooks configured in settings.json)
 │   └── pipeline.config.json  # Pipeline thresholds, iteration limits, app types
@@ -80,6 +80,18 @@ node scripts/visual-diff.js --batch <actual-dir> <expected-dir> [--output-dir di
 
 # Component documentation generation
 ./scripts/generate-component-docs.sh
+
+# Dead code detection (unused exports, files, dependencies)
+./scripts/check-dead-code.sh [--json]
+
+# Security audit (dependency vulnerabilities + anti-patterns)
+./scripts/check-security.sh [--json] [--level critical] [--no-fail]
+
+# Generate typed API client from OpenAPI spec
+./scripts/generate-api-client.sh --spec <path-or-url> [--output dir] [--client]
+
+# Responsive screenshots at all breakpoints
+./scripts/check-responsive.sh [url] [output-dir]
 ```
 
 ## Development Commands
@@ -140,13 +152,13 @@ pnpm tsc --noEmit         # Type check without emitting
 
 ---
 
-### Custom Agents (44 Total)
+### Custom Agents (47 Total)
 
-44 specialized agents covering the full product lifecycle:
+47 specialized agents covering the full product lifecycle:
 
 | Category | Count | Key Agents |
 |----------|-------|------------|
-| Engineering | 7 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer |
+| Engineering | 10 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer, error-boundary-architect, migration-specialist, i18n-engineer |
 | Design | 5 | ui-designer, ux-researcher, brand-guardian |
 | Design-to-Code | 2 | figma-react-converter, asset-cataloger |
 | Testing & QA | 7 | visual-qa-agent, accessibility-auditor, api-tester, performance-benchmarker |
@@ -164,7 +176,7 @@ Agents are invoked automatically based on task context.
 
 ---
 
-### React Skills (10 Total)
+### React Skills (15 Total)
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
@@ -178,6 +190,11 @@ Agents are invoked automatically based on task context.
 | react-performance-optimization | Profiling, bundle analysis, Web Vitals | "performance", "bundle size" |
 | react-accessibility | WCAG patterns for React | "accessibility", "a11y", "ARIA" |
 | visual-qa-verification | Automated pixel-diff visual QA (v3: pixelmatch loop) | "verify", "visual QA", "compare to Figma" |
+| state-management | State architecture: Zustand, TanStack Query, URL state | "state management", "zustand", "data fetching" |
+| form-handling | React Hook Form + Zod: typed forms, field arrays, wizards | "form", "validation", "react hook form" |
+| auth-flows | Auth.js, Clerk, Supabase Auth, RBAC, protected routes | "auth", "login", "session", "OAuth" |
+| animation-motion | Framer Motion, CSS transitions, reduced-motion a11y | "animation", "framer motion", "transition" |
+| seo-metadata | Next.js Metadata API, JSON-LD, OG images, sitemaps | "SEO", "metadata", "open graph" |
 
 **Full catalog:** `.claude/skills/README.md`
 
@@ -202,7 +219,8 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
   [5.5] DARK MODE   → check-dark-mode.sh → dark mode verification (non-blocking)
   [6] E2E TESTS     → e2e-test-generator skill → Playwright tests (app-type-aware)
   [7] CROSS-BROWSER → Firefox/WebKit screenshots (non-blocking)
-  [8] QUALITY GATE  → coverage + types + build + tokens + Lighthouse
+  [8] QUALITY GATE  → coverage + types + build + tokens + Lighthouse + mutation score (opt-in)
+  [8.5] RESPONSIVE  → check-responsive.sh → screenshots at 5 breakpoints (non-blocking)
   [9] REPORT        → .claude/visual-qa/build-report.md (with diff images + docs)
 ```
 
@@ -231,7 +249,10 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 - **Storybook generation** — auto-generated stories with responsive viewports
 - **Token sync** — detects drift between Figma lockfile and source code
 - **Component docs** — auto-generated MDX documentation with props, tokens, and links
-- **Automated hooks** — pre-commit token guard, coverage warnings, dark mode reminders
+- **Automated hooks** — pre-commit token guard, coverage warnings, dark mode reminders, Lighthouse CI, bundle size guard, mutation testing
+- **Responsive verification** — automated screenshots at 5 breakpoints (320-1920px)
+- **Error monitoring** — Sentry integration configured via pipeline.config.json
+- **Deploy previews** — Vercel auto-deploy with visual QA on PRs
 
 **Documentation:** `docs/figma-to-react/README.md`
 
@@ -243,10 +264,11 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 - **Figma Remote MCP** - Fallback remote access
 - **Playwright MCP** - Cross-browser testing (Chromium, Firefox, WebKit)
 - **Chrome DevTools MCP** - Screenshots, Lighthouse audits, DOM inspection
+- **Sentry** - Error monitoring (configured via pipeline.config.json, setup by error-boundary-architect agent)
 
 ---
 
-### Automated Hooks (4 Total)
+### Automated Hooks (7 Total)
 
 Configured in `.claude/settings.json` as `PostToolUse` hooks on the `Bash` matcher:
 
@@ -256,6 +278,9 @@ Configured in `.claude/settings.json` as `PostToolUse` hooks on the `Bash` match
 | Pre-commit token guard | `git commit` detected | Runs `verify-tokens.sh`, warns if violations found |
 | Dark mode reminder | `visual-diff.js` passes | Suggests running `check-dark-mode.sh` |
 | Coverage enforcement | `vitest` with coverage output | Reminds to check 80% threshold from pipeline config |
+| Lighthouse CI | `pnpm build` succeeds | Suggests Lighthouse audit with threshold targets from config |
+| Bundle size guard | `git commit` detected | Warns if build output exceeds maxSizeKb from config |
+| Mutation testing reminder | `vitest` all tests pass | Suggests running Stryker for test quality validation |
 
 ---
 
@@ -382,9 +407,13 @@ gh issue create               # Create issue
 ./scripts/check-dark-mode.sh          # Dark mode verification
 ./scripts/generate-stories.sh         # Storybook generation
 ./scripts/generate-component-docs.sh  # Component documentation
+./scripts/check-dead-code.sh            # Dead code detection (knip)
+./scripts/check-security.sh             # Security audit
+./scripts/generate-api-client.sh        # OpenAPI → typed client
+./scripts/check-responsive.sh           # Responsive screenshots
 ```
 
 ---
 
 **Last Updated:** 2026-03-18
-**Architecture:** 44 agents, 10 skills, 4 plugins + gh CLI, Figma + Playwright MCP, 14 scripts
+**Architecture:** 47 agents, 15 skills, 4 plugins + gh CLI, Figma + Playwright MCP, 18 scripts, 7 hooks
