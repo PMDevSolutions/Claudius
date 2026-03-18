@@ -68,6 +68,18 @@ node scripts/visual-diff.js --batch <actual-dir> <expected-dir> [--output-dir di
 
 # Setup Playwright browsers (one-time)
 ./scripts/setup-playwright.sh
+
+# Dark mode visual verification
+./scripts/check-dark-mode.sh http://localhost:3000
+
+# Storybook story generation
+./scripts/generate-stories.sh
+
+# Token drift detection
+./scripts/sync-tokens.sh [--dry-run] [--json]
+
+# Component documentation generation
+./scripts/generate-component-docs.sh
 ```
 
 ## Development Commands
@@ -180,15 +192,18 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 ```
 /build-from-figma https://figma.com/file/abc123
 
+  [0] TOKEN SYNC    → sync-tokens.sh → drift check (conditional, if lockfile exists)
   [1] INTAKE        → figma-intake skill → build-spec.json (with appType)
   [2] TOKEN LOCK    → design-token-lock skill → design-tokens.lock.json
   [3] TDD (HARD GATE) → tdd-from-figma skill → failing tests (Red)
   [4] BUILD         → figma-to-react-workflow → components pass tests (Green)
+  [4.5] STORYBOOK   → generate-stories.sh → auto-generated stories (non-blocking)
   [5] VISUAL DIFF   → pixelmatch loop → max 5 iterations, 2% threshold
+  [5.5] DARK MODE   → check-dark-mode.sh → dark mode verification (non-blocking)
   [6] E2E TESTS     → e2e-test-generator skill → Playwright tests (app-type-aware)
   [7] CROSS-BROWSER → Firefox/WebKit screenshots (non-blocking)
   [8] QUALITY GATE  → coverage + types + build + tokens + Lighthouse
-  [9] REPORT        → .claude/visual-qa/build-report.md (with diff images)
+  [9] REPORT        → .claude/visual-qa/build-report.md (with diff images + docs)
 ```
 
 **Key artifacts:**
@@ -198,6 +213,10 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 - `verify-tokens.sh` — Catches hardcoded values and token drift
 - `verify-test-coverage.sh` — Ensures every component has tests
 - `visual-diff.js` — Pixel-level screenshot comparison with region analysis
+- `sync-tokens.sh` — Detects token drift between lockfile and source
+- `check-dark-mode.sh` — Dark mode screenshot capture and visual comparison
+- `generate-stories.sh` — Auto-generates Storybook stories from components
+- `generate-component-docs.sh` — Generates MDX component documentation
 
 **Features:**
 - **Enforced TDD** — tests must exist before components, hard gate blocks build phase
@@ -208,6 +227,11 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 - Cross-browser verification (Firefox, WebKit) with configurable thresholds
 - Quality gate: 80%+ coverage, TypeScript, Lighthouse audit
 - Resumable: TodoWrite tracks progress across interrupted sessions
+- **Dark mode verification** — automated dark theme screenshot comparison (non-blocking)
+- **Storybook generation** — auto-generated stories with responsive viewports
+- **Token sync** — detects drift between Figma lockfile and source code
+- **Component docs** — auto-generated MDX documentation with props, tokens, and links
+- **Automated hooks** — pre-commit token guard, coverage warnings, dark mode reminders
 
 **Documentation:** `docs/figma-to-react/README.md`
 
@@ -341,9 +365,13 @@ gh issue create               # Create issue
 ./scripts/check-bundle-size.sh      # Bundle analysis
 ./scripts/check-accessibility.sh    # a11y linting
 ./scripts/verify-tokens.sh          # Design token enforcement
+./scripts/sync-tokens.sh              # Token drift detection
+./scripts/check-dark-mode.sh          # Dark mode verification
+./scripts/generate-stories.sh         # Storybook generation
+./scripts/generate-component-docs.sh  # Component documentation
 ```
 
 ---
 
-**Last Updated:** 2026-03-17
-**Architecture:** 44 agents, 10 skills, 4 plugins + gh CLI, Figma + Playwright MCP
+**Last Updated:** 2026-03-18
+**Architecture:** 44 agents, 10 skills, 4 plugins + gh CLI, Figma + Playwright MCP, 14 scripts
