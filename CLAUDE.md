@@ -20,7 +20,7 @@ project-root/
 │   ├── agents/           # 44 specialized agents
 │   ├── skills/           # 10 React-specific skills
 │   ├── commands/         # Custom slash commands
-│   ├── hooks/            # Git and tool hooks
+│   ├── hooks/            # Hook scripts (automated hooks configured in settings.json)
 │   └── pipeline.config.json  # Pipeline thresholds, iteration limits, app types
 ├── scripts/              # Development automation scripts
 ├── templates/            # Starter configs (ESLint, Tailwind, Vitest, Chrome ext, etc.)
@@ -243,6 +243,19 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 - **Figma Remote MCP** - Fallback remote access
 - **Playwright MCP** - Cross-browser testing (Chromium, Firefox, WebKit)
 - **Chrome DevTools MCP** - Screenshots, Lighthouse audits, DOM inspection
+
+---
+
+### Automated Hooks (4 Total)
+
+Configured in `.claude/settings.json` as `PostToolUse` hooks on the `Bash` matcher:
+
+| Hook | Trigger | Action |
+|------|---------|--------|
+| Post-build QA reminder | `pnpm build` succeeds | Reminds to run quality gate (vitest, tsc, verify-tokens) |
+| Pre-commit token guard | `git commit` detected | Runs `verify-tokens.sh`, warns if violations found |
+| Dark mode reminder | `visual-diff.js` passes | Suggests running `check-dark-mode.sh` |
+| Coverage enforcement | `vitest` with coverage output | Reminds to check 80% threshold from pipeline config |
 
 ---
 
