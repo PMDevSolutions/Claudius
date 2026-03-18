@@ -107,6 +107,27 @@
     "outputDir": ".claude/visual-qa/screenshots"
   },
 
+  "darkMode": {
+    "enabled": true,
+    "diffThreshold": 0.03,
+    "emulateMediaFeature": "prefers-color-scheme: dark",
+    "compareAgainst": "light",
+    "screenshotDir": ".claude/visual-qa/screenshots/dark"
+  },
+
+  "storybook": {
+    "autoGenerate": true,
+    "includeResponsiveViewports": true,
+    "viewports": ["mobile", "tablet", "desktop"],
+    "skipPatterns": ["**/index.ts", "**/*.test.*", "**/*.stories.*"]
+  },
+
+  "tokenSync": {
+    "autoCheck": true,
+    "warnOnDrift": true,
+    "autoUpdate": false
+  },
+
   "reporting": {
     "outputDir": ".claude/visual-qa",
     "buildReportFile": "build-report.md",
