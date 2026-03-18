@@ -63,7 +63,13 @@
     },
     "e2eRequired": true,
     "crossBrowserScreenshotsRequired": false,
-    "testCoverageEnforced": true
+    "testCoverageEnforced": true,
+    "mutationScore": {
+      "enabled": false,
+      "threshold": 80,
+      "tool": "stryker",
+      "blocking": false
+    }
   },
 
   "appTypes": {
@@ -156,6 +162,37 @@
     "tool": "stryker",
     "scoreThreshold": 80,
     "reminder": true
+  },
+
+  "errorMonitoring": {
+    "provider": "sentry",
+    "dsn": "",
+    "environment": "production",
+    "sampleRate": 1.0,
+    "tracesSampleRate": 0.2,
+    "enableInDev": false,
+    "sourceMapUpload": true
+  },
+
+  "deployPreview": {
+    "enabled": true,
+    "provider": "vercel",
+    "autoDeployOnPR": true,
+    "runVisualQAOnPreview": true,
+    "runLighthouseOnPreview": true
+  },
+
+  "responsiveVerification": {
+    "enabled": true,
+    "breakpoints": {
+      "small-mobile": 320,
+      "mobile": 375,
+      "tablet": 768,
+      "desktop": 1440,
+      "wide": 1920
+    },
+    "diffThreshold": 0.03,
+    "blocking": false
   },
 
   "deadCode": {
