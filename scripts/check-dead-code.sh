@@ -3,6 +3,9 @@
 # Exit codes: 0=no dead code, 1=dead code found
 set -euo pipefail
 
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # --- Flags ---
 JSON_OUTPUT=false
 
@@ -52,7 +55,7 @@ if ! $JSON_OUTPUT; then
 fi
 
 # --- Ensure knip is installed ---
-if ! npx knip --version &>/dev/null 2>&1; then
+if ! npx knip --version &>/dev/null; then
   if ! $JSON_OUTPUT; then
     echo "▸ Installing knip..."
   fi
@@ -77,6 +80,7 @@ if ! $JSON_OUTPUT; then
 fi
 
 KNIP_OUTPUT_FILE=$(mktemp)
+trap 'rm -f "$KNIP_OUTPUT_FILE"' EXIT
 KNIP_EXIT=0
 
 if $JSON_OUTPUT; then
@@ -86,7 +90,6 @@ else
 fi
 
 KNIP_OUTPUT=$(cat "$KNIP_OUTPUT_FILE")
-rm -f "$KNIP_OUTPUT_FILE"
 
 # --- Process output ---
 if $JSON_OUTPUT; then
@@ -94,24 +97,19 @@ if $JSON_OUTPUT; then
     echo '{"status": "pass", "deadCodeFound": false, "issues": []}'
     exit 0
   else
-    # Wrap knip's JSON output with our status envelope
-    node -e "
-      try {
-        const knipOutput = JSON.parse(process.argv[1]);
-        const result = {
-          status: 'fail',
-          deadCodeFound: true,
-          issues: knipOutput
-        };
-        console.log(JSON.stringify(result, null, 2));
-      } catch (e) {
-        console.log(JSON.stringify({
-          status: 'fail',
-          deadCodeFound: true,
-          raw: process.argv[1]
-        }, null, 2));
-      }
-    " "$KNIP_OUTPUT"
+    # Wrap knip's JSON output with our status envelope (piped via stdin for large output)
+    echo "$KNIP_OUTPUT" | node -e "
+      let data = '';
+      process.stdin.on('data', c => data += c);
+      process.stdin.on('end', () => {
+        try {
+          const knipOutput = JSON.parse(data);
+          console.log(JSON.stringify({ status: 'fail', deadCodeFound: true, issues: knipOutput }, null, 2));
+        } catch (e) {
+          console.log(JSON.stringify({ status: 'fail', deadCodeFound: true, raw: data.trim() }, null, 2));
+        }
+      });
+    "
     exit 1
   fi
 fi
