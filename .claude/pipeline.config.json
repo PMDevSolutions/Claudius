@@ -138,6 +138,13 @@
     "includeDiffImages": true
   },
 
+  "security": {
+    "enabled": true,
+    "auditLevel": "moderate",
+    "failOnVulnerability": true,
+    "checkLockfile": true
+  },
+
   "deadCode": {
     "enabled": true,
     "tool": "knip",
