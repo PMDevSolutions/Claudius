@@ -6,6 +6,7 @@
 !.claude/hooks/
 !.claude/*.md
 !.claude/settings.json
+!.claude/pipeline.config.json
 
 # Claude Code temporary/user-specific files
 .claude/logs/
