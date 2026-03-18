@@ -145,6 +145,19 @@
     "checkLockfile": true
   },
 
+  "bundleSize": {
+    "enabled": true,
+    "maxSizeKb": 200,
+    "warnSizeKb": 150
+  },
+
+  "mutationTesting": {
+    "enabled": true,
+    "tool": "stryker",
+    "scoreThreshold": 80,
+    "reminder": true
+  },
+
   "deadCode": {
     "enabled": true,
     "tool": "knip",
