@@ -17,7 +17,8 @@ The `/build-from-figma` command runs a 12-phase autonomous pipeline:
 [5.5] Dark Mode → check-dark-mode.sh → dark mode verification
 [6] E2E Tests   → e2e-test-generator skill → Playwright tests
 [7] Cross-Browser→ Firefox/WebKit screenshots (non-blocking)
-[8] Quality Gate → coverage + TypeScript + build + tokens + Lighthouse
+[8] Quality Gate → coverage + TypeScript + build + tokens + Lighthouse + mutation score (opt-in)
+[8.5] Responsive→ check-responsive.sh → screenshots at 5 breakpoints (non-blocking)
 [9] Report      → .claude/visual-qa/build-report.md + docs/components/
 ```
 
@@ -155,6 +156,7 @@ See the full config file for all options.
 | generate-stories.sh | 4.5 | Auto-generates Storybook stories |
 | check-dark-mode.sh | 5.5 | Dark mode visual verification |
 | generate-component-docs.sh | 9 | MDX component documentation |
+| check-responsive.sh | 8.5 | Responsive screenshots at 5 breakpoints |
 
 ## Agent Integration
 

@@ -175,8 +175,8 @@ project-root/
 ├── templates/            # Starter configs (shared, Next.js, Vite, Chrome ext)
 ├── docs/                 # Documentation
 └── .claude/              # Claude Code configuration
-    ├── agents/           # 44 custom agents
-    ├── skills/           # 10 development skills
+    ├── agents/           # 47 custom agents
+    ├── skills/           # 15 development skills
     └── pipeline.config.json
 ```
 
@@ -202,8 +202,8 @@ pnpm build
 ## Related Documentation
 
 - `docs/figma-to-react/README.md` -- Figma-to-React conversion pipeline
-- `.claude/skills/README.md` -- Skills catalog (10 skills)
-- `.claude/CUSTOM-AGENTS-GUIDE.md` -- Agent catalog (44 agents)
+- `.claude/skills/README.md` -- Skills catalog (15 skills)
+- `.claude/CUSTOM-AGENTS-GUIDE.md` -- Agent catalog (47 agents)
 - `.claude/PLUGINS-REFERENCE.md` -- Plugin reference
 - `scripts/README.md` -- Scripts reference
 - `templates/README.md` -- Template configs reference

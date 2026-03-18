@@ -1,7 +1,7 @@
 # Skills Catalog
 
-**Last Updated:** 2026-03-17
-**Total Skills:** 10
+**Last Updated:** 2026-03-18
+**Total Skills:** 15
 **Location:** `.claude/skills/`
 
 Skills are documentation-based workflows that trigger automatically when relevant keywords appear in conversation. They provide systematic guidance, not tool integrations.
@@ -68,6 +68,31 @@ These skills provide patterns and best practices. They trigger on relevant keywo
 - **Triggers:** "accessibility", "WCAG", "ARIA", "a11y", "keyboard navigation"
 - **Works with:** accessibility-auditor agent, ux-researcher agent
 
+#### 11. state-management
+- **Purpose:** State architecture decisions — Zustand for global UI state, TanStack Query for server state, URL state patterns, and anti-patterns to avoid
+- **Triggers:** "state management", "zustand", "tanstack query", "react query", "global state", "data fetching", "caching"
+- **Works with:** frontend-developer agent
+
+#### 12. form-handling
+- **Purpose:** Form patterns with React Hook Form + Zod — typed forms, reusable field components, dynamic field arrays, multi-step wizards, server actions, and accessible error handling
+- **Triggers:** "form", "form handling", "react hook form", "zod", "validation", "multi-step form", "wizard"
+- **Works with:** frontend-developer agent, accessibility-auditor agent
+
+#### 13. auth-flows
+- **Purpose:** Authentication patterns — Auth.js v5 (NextAuth), Clerk, Supabase Auth. Covers session management, protected routes, OAuth, and role-based access control (RBAC)
+- **Triggers:** "auth", "authentication", "login", "sign in", "session", "protected route", "OAuth", "clerk", "supabase auth"
+- **Works with:** backend-architect agent, frontend-developer agent
+
+#### 14. animation-motion
+- **Purpose:** Animation patterns — Framer Motion (motion/react), CSS transitions, page transitions, scroll-driven animations, staggered lists, and reduced-motion accessibility
+- **Triggers:** "animation", "framer motion", "transition", "micro-interaction", "page transition", "scroll animation", "motion"
+- **Works with:** frontend-developer agent, whimsy-injector agent
+
+#### 15. seo-metadata
+- **Purpose:** SEO patterns — Next.js Metadata API, Open Graph tags, dynamic OG images, structured data (JSON-LD), sitemaps, robots.txt, and Vite SPA SEO with react-helmet-async
+- **Triggers:** "SEO", "metadata", "open graph", "og image", "sitemap", "structured data", "json-ld", "meta tags"
+- **Works with:** frontend-developer agent, content-creator agent
+
 ---
 
 ## Pipeline Flow
@@ -101,6 +126,13 @@ Figma Design
     |
     v
 Production-Ready Application
+
+Supporting skills (used throughout):
+  - state-management (Zustand, TanStack Query decisions)
+  - form-handling (React Hook Form + Zod patterns)
+  - auth-flows (Auth.js, Clerk, Supabase patterns)
+  - animation-motion (Framer Motion, CSS transitions)
+  - seo-metadata (Next.js Metadata API, JSON-LD)
 ```
 
 ## Skills vs Agents vs Plugins

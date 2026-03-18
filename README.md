@@ -4,9 +4,9 @@ A Claude Code-integrated framework for building React applications with TypeScri
 
 ## What This Framework Provides
 
-- **44 Custom Agents** -- Specialized AI agents for engineering, design, testing, marketing, operations, and more
-- **10 Development Skills** -- Automated workflows for Figma conversion, TDD, E2E testing, visual QA, accessibility, and React development
-- **9-Phase Figma-to-React Pipeline** -- Convert Figma designs into fully working, tested React apps with a single command
+- **47 Custom Agents** -- Specialized AI agents for engineering, design, testing, marketing, operations, and more
+- **15 Development Skills** -- Automated workflows for Figma conversion, TDD, E2E testing, visual QA, state management, forms, auth, animation, SEO, and more
+- **10-Phase Figma-to-React Pipeline** -- Convert Figma designs into fully working, tested React apps with a single command
 - **App-Type Awareness** -- Tailored build and test strategies for web apps, Chrome extensions, and PWAs
 - **Testing Stack** -- Vitest, React Testing Library, Playwright (cross-browser), Storybook, and pixel-diff visual QA
 - **Code Quality Scripts** -- Linting, formatting, type checking, bundle analysis, accessibility scanning, and design token verification
@@ -34,9 +34,10 @@ pnpm dev
 /build-from-figma https://figma.com/file/abc123/My-Design
 ```
 
-This runs a 9-phase autonomous pipeline:
+This runs a 10-phase autonomous pipeline:
 
 ```
+[0] Token Sync   → Drift check (conditional, if lockfile exists)
 [1] Intake       → Figma discovery + build-spec.json
 [2] Token Lock   → Design tokens lockfile + Tailwind config
 [3] TDD (Gate)   → Failing tests written first (mandatory)
@@ -44,8 +45,9 @@ This runs a 9-phase autonomous pipeline:
 [5] Visual Diff  → Pixel-level comparison loop (max 5 iterations, 2% threshold)
 [6] E2E Tests    → Playwright tests (app-type-aware)
 [7] Cross-Browser→ Firefox/WebKit screenshots (non-blocking)
-[8] Quality Gate → Coverage + TypeScript + build + tokens + Lighthouse
-[9] Report       → Build report with diff images
+[8] Quality Gate → Coverage + TypeScript + build + tokens + Lighthouse + mutation score (opt-in)
+[8.5] Responsive → Screenshots at 5 breakpoints (non-blocking)
+[9] Report       → Build report with diff images + component docs
 ```
 
 ## Directory Structure
@@ -64,7 +66,15 @@ project-root/
 │   ├── verify-test-coverage.sh  # Component test verification
 │   ├── visual-diff.js           # Pixel-level screenshot comparison
 │   ├── cross-browser-test.sh    # Playwright multi-browser
-│   └── setup-playwright.sh      # One-time browser setup
+│   ├── setup-playwright.sh      # One-time browser setup
+│   ├── check-dead-code.sh       # Dead code detection (knip)
+│   ├── check-security.sh        # Dependency audit + anti-patterns
+│   ├── generate-api-client.sh   # OpenAPI → typed client
+│   ├── check-responsive.sh      # Responsive screenshots
+│   ├── check-dark-mode.sh       # Dark mode verification
+│   ├── sync-tokens.sh           # Token drift detection
+│   ├── generate-stories.sh      # Storybook story generation
+│   └── generate-component-docs.sh # Component documentation
 ├── templates/            # Starter configs
 │   ├── shared/                  # ESLint, Prettier, Tailwind, TS, Vitest
 │   ├── nextjs/                  # Next.js config
@@ -74,8 +84,8 @@ project-root/
 │   ├── figma-to-react/          # Pipeline guide
 │   └── react-development/       # Development standards
 ├── .claude/              # Claude Code configuration
-│   ├── agents/                  # 44 custom agents
-│   ├── skills/                  # 10 development skills
+│   ├── agents/                  # 47 custom agents
+│   ├── skills/                  # 15 development skills
 │   ├── commands/                # Slash commands (/build-from-figma, /lint, /test)
 │   ├── pipeline.config.json     # Pipeline thresholds and app-type definitions
 │   ├── CUSTOM-AGENTS-GUIDE.md   # Agent catalog
@@ -88,7 +98,7 @@ project-root/
 
 ### How It Works
 
-The `/build-from-figma` command takes a Figma URL and autonomously builds a working React application through 9 phases. Key enforcement rules:
+The `/build-from-figma` command takes a Figma URL and autonomously builds a working React application through 10 phases. Key enforcement rules:
 
 - **TDD is mandatory** -- Tests are written before components (Phase 3 gates Phase 4)
 - **Visual QA uses pixel diff** -- `pixelmatch`-based comparison, not manual eyeballing
@@ -114,13 +124,13 @@ All thresholds and behavior are configurable in `.claude/pipeline.config.json`:
 - Lighthouse minimums (performance: 80, accessibility: 90)
 - App-type-specific E2E strategies
 
-## 44 Custom Agents
+## 47 Custom Agents
 
 Agents are auto-selected by Claude Code based on your task:
 
 | Category | Count | Key Agents |
 |----------|-------|------------|
-| Engineering | 7 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer |
+| Engineering | 10 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer, error-boundary-architect, migration-specialist, i18n-engineer |
 | Design | 5 | ui-designer, ux-researcher, brand-guardian |
 | Design-to-Code | 2 | figma-react-converter, asset-cataloger |
 | Testing & QA | 7 | visual-qa-agent, accessibility-auditor, api-tester, performance-benchmarker |
@@ -132,7 +142,7 @@ Agents are auto-selected by Claude Code based on your task:
 
 Full catalog: `.claude/CUSTOM-AGENTS-GUIDE.md`
 
-## 10 Development Skills
+## 15 Development Skills
 
 ### Pipeline Skills (Phases 1-6)
 
@@ -153,6 +163,11 @@ Full catalog: `.claude/CUSTOM-AGENTS-GUIDE.md`
 | 8 | react-testing-workflows | Vitest, RTL, Playwright, Storybook |
 | 9 | react-performance-optimization | Profiling, bundle analysis, Web Vitals |
 | 10 | react-accessibility | WCAG 2.1 AA patterns for React |
+| 11 | state-management | Zustand, TanStack Query, URL state architecture |
+| 12 | form-handling | React Hook Form + Zod: typed forms, wizards |
+| 13 | auth-flows | Auth.js, Clerk, Supabase Auth, RBAC |
+| 14 | animation-motion | Framer Motion, CSS transitions, reduced-motion a11y |
+| 15 | seo-metadata | Next.js Metadata API, JSON-LD, OG images, sitemaps |
 
 Full catalog: `.claude/skills/README.md`
 
@@ -228,8 +243,8 @@ Details: `.claude/PLUGINS-REFERENCE.md`
 | Project instructions | `CLAUDE.md` | Full project config for Claude Code |
 | Figma pipeline guide | `docs/figma-to-react/README.md` | Pipeline overview and troubleshooting |
 | React standards | `docs/react-development/README.md` | TypeScript, Tailwind, testing conventions |
-| Agent catalog | `.claude/CUSTOM-AGENTS-GUIDE.md` | All 44 agents with use cases |
-| Skills catalog | `.claude/skills/README.md` | All 10 skills with triggers |
+| Agent catalog | `.claude/CUSTOM-AGENTS-GUIDE.md` | All 47 agents with use cases |
+| Skills catalog | `.claude/skills/README.md` | All 15 skills with triggers |
 | Plugin reference | `.claude/PLUGINS-REFERENCE.md` | Plugin configuration and commands |
 | Scripts reference | `scripts/README.md` | All scripts with usage examples |
 | Templates reference | `templates/README.md` | Starter configs and how to use them |

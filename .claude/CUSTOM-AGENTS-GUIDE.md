@@ -1,7 +1,7 @@
 # Custom Agents Guide
 
-**Last Updated:** 2026-03-11
-**Total Agents:** 44
+**Last Updated:** 2026-03-18
+**Total Agents:** 47
 **Location:** `.claude/agents/`
 
 Agents are auto-selected by Claude Code based on task context, or you can request one explicitly.
@@ -19,6 +19,9 @@ Agents are auto-selected by Claude Code based on task context, or you can reques
 | mobile-app-builder | React Native and mobile-first development | Building cross-platform mobile apps, responsive mobile experiences |
 | rapid-prototyper | Quick proof-of-concept implementations | Validating ideas fast, throwaway prototypes, spike solutions |
 | test-writer-fixer | Write tests, run them, fix failures iteratively | Unit tests, integration tests, increasing coverage, fixing flaky tests |
+| error-boundary-architect | Error handling strategy, React error boundaries, fallback UIs, Sentry integration | Making React apps resilient to runtime failures, graceful degradation |
+| migration-specialist | Framework upgrades, dependency migrations, codemods | Upgrading React/Next.js versions, CRA to Vite, Redux to Zustand, Jest to Vitest |
+| i18n-engineer | Internationalization setup, translation management, RTL support | Adding i18n (next-intl, react-i18next), locale formatting, RTL layouts |
 
 ## Design
 
@@ -133,7 +136,7 @@ User: "Use the accessibility-auditor agent to check this page"
 
 ## Agent + Skill Integration
 
-Agents work alongside the 6 custom skills in `.claude/skills/`:
+Agents work alongside the 15 custom skills in `.claude/skills/`:
 
 | Agent | Complementary Skill |
 |-------|-------------------|
@@ -143,6 +146,9 @@ Agents work alongside the 6 custom skills in `.claude/skills/`:
 | performance-benchmarker | react-performance-optimization |
 | accessibility-auditor | react-accessibility |
 | visual-qa-agent | visual-qa-verification |
+| error-boundary-architect | (works with Sentry integration in pipeline.config.json) |
+| migration-specialist | (uses WebSearch for changelog/codemod lookup) |
+| i18n-engineer | (works with frontend-developer for component i18n) |
 
 **Skills Documentation:** `.claude/skills/README.md`
 
@@ -163,4 +169,7 @@ Agents work alongside the 6 custom skills in `.claude/skills/`:
 | Set up CI/CD | devops-automator |
 | API endpoint testing | api-tester |
 | Create documentation site | docusaurus-expert |
+| Add error boundaries | error-boundary-architect |
+| Upgrade React/Next.js | migration-specialist |
+| Add internationalization | i18n-engineer |
 | Ship a release | project-shipper |
