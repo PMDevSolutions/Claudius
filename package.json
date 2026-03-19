@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-react-framework",
+  "name": "aurelius",
   "version": "0.5.0",
   "description": "Claude Code-integrated React app development framework with specialized agents, skills, and Figma-to-React pipeline",
   "private": true,
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/PMDevSolutions/Coding-Framework.git"
+    "url": "https://github.com/PMDevSolutions/Aurelius.git"
   },
   "keywords": [
     "claude-code",
