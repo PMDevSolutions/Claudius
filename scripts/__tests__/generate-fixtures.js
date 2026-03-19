@@ -50,9 +50,9 @@ export function withSubPixelNoise(baseFn, density = 0.001) {
     if (Math.random() < density) {
       const base = baseFn(x, y, w, h);
       return [
-        Math.min(255, base[0] + 1),
-        Math.min(255, base[1] + 1),
-        Math.min(255, base[2] + 1),
+        Math.min(255, base[0] + 50),
+        Math.min(255, base[1] + 50),
+        Math.min(255, base[2] + 50),
         base[3],
       ];
     }

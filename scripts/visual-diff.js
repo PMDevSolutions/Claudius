@@ -159,6 +159,88 @@ function analyzeRegions(diffData, width, height, gridSize) {
   return regions.sort((a, b) => b.mismatchPct - a.mismatchPct);
 }
 
+/**
+ * Classify diff pixels as sub-pixel artifacts vs real differences.
+ * Sub-pixel: isolated pixels or clusters <= maxClusterSize.
+ * Real: connected clusters > maxClusterSize.
+ */
+function analyzeSubPixel(diffData, width, height, diffColor, maxClusterSize = 2) {
+  // Build a boolean grid of diff pixels
+  const isDiff = new Uint8Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * 4;
+    if (
+      diffData[idx] === diffColor[0] &&
+      diffData[idx + 1] === diffColor[1] &&
+      diffData[idx + 2] === diffColor[2]
+    ) {
+      isDiff[i] = 1;
+    }
+  }
+
+  // Connected-component labeling (4-connected flood fill)
+  const visited = new Uint8Array(width * height);
+  const clusters = [];
+
+  function floodFill(startIdx) {
+    const stack = [startIdx];
+    const pixels = [];
+    visited[startIdx] = 1;
+
+    while (stack.length > 0) {
+      const idx = stack.pop();
+      pixels.push(idx);
+      const x = idx % width;
+      const y = Math.floor(idx / width);
+
+      const neighbors = [];
+      if (x > 0) neighbors.push(idx - 1);
+      if (x < width - 1) neighbors.push(idx + 1);
+      if (y > 0) neighbors.push(idx - width);
+      if (y < height - 1) neighbors.push(idx + width);
+
+      for (const n of neighbors) {
+        if (isDiff[n] && !visited[n]) {
+          visited[n] = 1;
+          stack.push(n);
+        }
+      }
+    }
+    return pixels;
+  }
+
+  let subPixelCount = 0;
+  let realDiffCount = 0;
+
+  for (let i = 0; i < width * height; i++) {
+    if (isDiff[i] && !visited[i]) {
+      const cluster = floodFill(i);
+      if (cluster.length <= maxClusterSize) {
+        subPixelCount += cluster.length;
+        clusters.push({ size: cluster.length, type: "sub-pixel" });
+      } else {
+        realDiffCount += cluster.length;
+        clusters.push({ size: cluster.length, type: "real" });
+      }
+    }
+  }
+
+  const totalDiff = subPixelCount + realDiffCount;
+  const totalPixels = width * height;
+
+  return {
+    totalDiffPixels: totalDiff,
+    subPixelPixels: subPixelCount,
+    realDiffPixels: realDiffCount,
+    subPixelPct: totalDiff > 0 ? Math.round((subPixelCount / totalDiff) * 10000) / 10000 : 0,
+    realDiffPct: totalPixels > 0 ? Math.round((realDiffCount / totalPixels) * 10000) / 10000 : 0,
+    clusterCount: clusters.length,
+    subPixelClusters: clusters.filter((c) => c.type === "sub-pixel").length,
+    realClusters: clusters.filter((c) => c.type === "real").length,
+    largestCluster: clusters.reduce((max, c) => Math.max(max, c.size), 0),
+  };
+}
+
 function compareSingle(actualPath, expectedPath, options) {
   const config = loadConfig();
   const vdConfig = config?.visualDiff || {};
@@ -215,6 +297,9 @@ function compareSingle(actualPath, expectedPath, options) {
   const failingRegions = regions.filter((r) => r.status === "fail");
   const warningRegions = regions.filter((r) => r.status === "warn");
 
+  // Sub-pixel classification
+  const subPixelAnalysis = analyzeSubPixel(diff.data, width, height, diffColor);
+
   // Save diff image if output specified
   const outputPath =
     options.output || (options.outputDir ? join(options.outputDir, `diff-${basename(actualPath)}`) : null);
@@ -243,6 +328,7 @@ function compareSingle(actualPath, expectedPath, options) {
           ? "All regions within tolerance"
           : `${failingRegions.length} region(s) exceed threshold: ${failingRegions.map((r) => r.name).join(", ")}`,
     },
+    subPixelAnalysis,
   };
 }
 
