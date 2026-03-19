@@ -35,6 +35,7 @@ htmlcov/
 playwright-report/
 .playwright/
 test-results/
+scripts/__tests__/fixtures/
 
 # Environment
 .env
