@@ -245,9 +245,11 @@ function analyzeSubPixel(diffData, width, height, diffColor, maxClusterSize = 2)
  * Detect font weight mismatches and font fallback issues.
  * Analyzes luminance patterns in text regions of both images.
  */
-function analyzeTypography(actualData, expectedData, width, height) {
+function analyzeTypography(actualData, expectedData, width, height, options = {}) {
   const DARK_THRESHOLD = 180;
   const BAND_HEIGHT = 4;
+  const WEIGHT_THRESHOLD = options.fontWeightThreshold ?? 15;
+  const FALLBACK_THRESHOLD = options.fontFallbackDensityThreshold ?? 0.05;
 
   function getLuminance(data, idx) {
     return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
@@ -257,7 +259,6 @@ function analyzeTypography(actualData, expectedData, width, height) {
     const bands = [];
     for (let bandY = 0; bandY < height; bandY += BAND_HEIGHT) {
       let darkPixels = 0;
-      let totalLuminance = 0;
       let darkLuminance = 0;
       let pixelCount = 0;
 
@@ -265,7 +266,6 @@ function analyzeTypography(actualData, expectedData, width, height) {
         for (let x = 0; x < width; x++) {
           const idx = (y * width + x) * 4;
           const lum = getLuminance(data, idx);
-          totalLuminance += lum;
           pixelCount++;
           if (lum < DARK_THRESHOLD) {
             darkPixels++;
@@ -307,7 +307,6 @@ function analyzeTypography(actualData, expectedData, width, height) {
   }
 
   const avgWeightDiff = weightSamples > 0 ? weightDiff / weightSamples : 0;
-  const WEIGHT_THRESHOLD = 15;
   const fontWeightMismatch = Math.abs(avgWeightDiff) > WEIGHT_THRESHOLD;
   let weightDirection = "none";
   if (fontWeightMismatch) {
@@ -330,7 +329,6 @@ function analyzeTypography(actualData, expectedData, width, height) {
   }
 
   const avgDensityDiff = densitySamples > 0 ? densityDiffSum / densitySamples : 0;
-  const FALLBACK_THRESHOLD = 0.05;
   const fontFallbackDetected = avgDensityDiff > FALLBACK_THRESHOLD;
 
   return {
@@ -351,8 +349,9 @@ function analyzeTypography(actualData, expectedData, width, height) {
  * Vertical profile: sum of dark pixels per column (detects horizontal shift).
  * Cross-correlation finds the best-matching offset.
  */
-function analyzeLayout(actualData, expectedData, width, height) {
+function analyzeLayout(actualData, expectedData, width, height, options = {}) {
   const DARK_THRESHOLD = 200;
+  const SHIFT_THRESHOLD = options.layoutShiftThresholdPx ?? 2;
 
   function buildProfiles(data) {
     const horizontal = new Float64Array(height);
@@ -424,7 +423,6 @@ function analyzeLayout(actualData, expectedData, width, height) {
     MAX_SHIFT
   );
 
-  const SHIFT_THRESHOLD = 2;
   const dx = Math.abs(vResult.offset);
   const dy = Math.abs(hResult.offset);
   const layoutShiftDetected = dx > SHIFT_THRESHOLD || dy > SHIFT_THRESHOLD;
@@ -520,12 +518,17 @@ function compareSingle(actualPath, expectedPath, options) {
 
   // Typography analysis
   const typographyAnalysis = typographyEnabled
-    ? analyzeTypography(actualData, expectedData, width, height)
+    ? analyzeTypography(actualData, expectedData, width, height, {
+        fontWeightThreshold: vdConfig.fontWeightThreshold,
+        fontFallbackDensityThreshold: vdConfig.fontFallbackDensityThreshold,
+      })
     : null;
 
   // Layout drift analysis
   const layoutAnalysis = layoutEnabled
-    ? analyzeLayout(actualData, expectedData, width, height)
+    ? analyzeLayout(actualData, expectedData, width, height, {
+        layoutShiftThresholdPx: vdConfig.layoutShiftThresholdPx,
+      })
     : null;
 
   // Save diff image if output specified
@@ -714,7 +717,7 @@ function formatHumanReadable(result) {
       lines.push("");
       lines.push("Typography Analysis:");
       if (ta.fontWeightMismatch) {
-        lines.push(`  WARN  Font weight mismatch detected (actual is ${ta.weightDirection}, delta: ${ta.avgWeightDifference})`);
+        lines.push(`  WARN  Font weight mismatch detected (expected is ${ta.weightDirection}, delta: ${ta.avgWeightDifference})`);
       }
       if (ta.fontFallbackDetected) {
         lines.push(`  WARN  Font fallback likely (character density diff: ${(ta.avgDensityDifference * 100).toFixed(1)}%)`);
