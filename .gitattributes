@@ -1,0 +1,12 @@
+# Language statistics overrides for GitHub Linguist
+# Mark pipeline/build scripts as generated so TypeScript/JavaScript
+# shows as the primary language instead of Shell
+
+scripts/**/*.sh linguist-generated=true
+scripts/**/*.bash linguist-generated=true
+templates/**/*.sh linguist-generated=true
+templates/**/*.tpl linguist-generated=true
+*.sh linguist-generated=true
+
+# Lock files are vendored
+pnpm-lock.yaml linguist-generated=true
