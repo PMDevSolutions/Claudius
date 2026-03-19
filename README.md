@@ -1,6 +1,6 @@
-# React App Development Framework
+# Aurelius
 
-A Claude Code-integrated framework for building React applications with TypeScript, Tailwind CSS, and an automated Figma-to-React pipeline.
+A Claude Code-integrated multi-framework app development framework with TypeScript, Tailwind CSS, and automated design-to-code pipelines.
 
 ## What This Framework Provides
 
@@ -16,7 +16,7 @@ A Claude Code-integrated framework for building React applications with TypeScri
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd coding-framework
+cd aurelius
 
 # Initialize a new project (Next.js or Vite)
 ./scripts/setup-project.sh my-app --vite    # or --next
