@@ -1,6 +1,6 @@
 # Templates Reference
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-18
 
 Starter configuration files for new projects. These are copied by `scripts/setup-project.sh` or referenced directly when scaffolding a new app.
 
@@ -11,6 +11,9 @@ templates/
 ├── shared/              # Framework-agnostic configs (used by all project types)
 ├── nextjs/              # Next.js-specific configs
 ├── vite/                # Vite-specific configs
+├── vue/                 # Vue 3 + Vite configs
+├── sveltekit/           # SvelteKit configs
+├── expo/                # Expo + React Native configs
 └── chrome-extension/    # Chrome extension E2E testing templates
 ```
 
@@ -67,6 +70,59 @@ Copies shared templates plus Next.js-specific config.
 ```
 
 Copies shared templates plus Vite-specific config.
+
+## Vue 3 Templates (`vue/`)
+
+| File | Purpose |
+|------|---------|
+| `vite.config.ts` | Vite config with Vue plugin and path aliases |
+| `tsconfig.json` | TypeScript config for Vue 3 with strict mode |
+| `vitest.config.ts` | Vitest config with @vue/test-utils setup |
+| `tailwind.config.ts` | Tailwind config with Vue-compatible content paths |
+
+### Usage
+
+```bash
+./scripts/setup-project.sh my-app --vue
+```
+
+Copies shared templates plus Vue 3-specific configs. Sets up a Vue 3 + Vite + Tailwind CSS + Vitest project with Composition API (`<script setup>`) as the default component pattern.
+
+## SvelteKit Templates (`sveltekit/`)
+
+| File | Purpose |
+|------|---------|
+| `svelte.config.js` | SvelteKit config with Vite adapter |
+| `vite.config.ts` | Vite config with SvelteKit plugin |
+| `tsconfig.json` | TypeScript config for Svelte |
+| `vitest.config.ts` | Vitest config with @testing-library/svelte setup |
+| `tailwind.config.ts` | Tailwind config with Svelte-compatible content paths |
+
+### Usage
+
+```bash
+./scripts/setup-project.sh my-app --sveltekit
+```
+
+Copies shared templates plus SvelteKit-specific configs. Sets up a SvelteKit + Tailwind CSS + Vitest project with TypeScript support.
+
+## Expo Templates (`expo/`)
+
+| File | Purpose |
+|------|---------|
+| `app.json` | Expo app config with default settings |
+| `tsconfig.json` | TypeScript config for React Native / Expo |
+| `jest.config.ts` | Jest config with @testing-library/react-native setup |
+| `tailwind.config.ts` | NativeWind (Tailwind for React Native) config |
+| `babel.config.js` | Babel config with NativeWind preset |
+
+### Usage
+
+```bash
+./scripts/setup-project.sh my-app --expo
+```
+
+Sets up an Expo + NativeWind + Jest project with TypeScript. Uses Expo Router for navigation and NativeWind for Tailwind CSS-style styling in React Native.
 
 ## Chrome Extension Templates (`chrome-extension/`)
 

@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Claude Code-integrated React app development framework** providing specialized agents, skills, scripts, and a Figma-to-React conversion pipeline.
+This is a **Claude Code-integrated multi-framework app development framework** providing specialized agents, skills, scripts, and design-to-code conversion pipelines. Supports React, Vue 3, Svelte/SvelteKit, and React Native (Expo) output targets.
 
 The framework is designed for:
-- Framework-agnostic React app development (Next.js, Vite, Remix)
-- Figma-to-React and Canva-to-React component conversion with Tailwind CSS
+- Multi-framework app development (React/Next.js/Vite/Remix, Vue 3, SvelteKit, React Native/Expo)
+- Figma-to-code, Canva-to-code, and Screenshot/URL-to-code conversion with Tailwind CSS
 - Comprehensive testing (Vitest, React Testing Library, Playwright, Storybook)
 - Full product lifecycle support (engineering, design, testing, marketing, operations)
 
@@ -17,8 +17,8 @@ The framework is designed for:
 ```
 project-root/
 ├── .claude/              # Claude Code configuration
-│   ├── agents/           # 48 specialized agents
-│   ├── skills/           # 17 React-specific skills
+│   ├── agents/           # 51 specialized agents
+│   ├── skills/           # 18 React-specific skills
 │   ├── commands/         # Custom slash commands
 │   ├── hooks/            # Hook scripts (automated hooks configured in settings.json)
 │   └── pipeline.config.json  # Pipeline thresholds, iteration limits, app types
@@ -27,6 +27,8 @@ project-root/
 ├── docs/                 # Documentation
 │   ├── figma-to-react/   # Figma conversion pipeline docs
 │   ├── canva-to-react/   # Canva conversion pipeline docs
+│   ├── screenshot-to-app/ # Screenshot/URL conversion pipeline docs
+│   ├── multi-framework/  # Multi-framework output target docs
 │   └── react-development/# React development standards
 └── CLAUDE.md             # This file
 ```
@@ -153,15 +155,15 @@ pnpm tsc --noEmit         # Type check without emitting
 
 ---
 
-### Custom Agents (48 Total)
+### Custom Agents (51 Total)
 
-48 specialized agents covering the full product lifecycle:
+51 specialized agents covering the full product lifecycle:
 
 | Category | Count | Key Agents |
 |----------|-------|------------|
 | Engineering | 10 | frontend-developer, backend-architect, rapid-prototyper, test-writer-fixer, error-boundary-architect, migration-specialist, i18n-engineer |
 | Design | 5 | ui-designer, ux-researcher, brand-guardian |
-| Design-to-Code | 3 | figma-react-converter, canva-react-converter, asset-cataloger |
+| Design-to-Code | 6 | figma-react-converter, canva-react-converter, asset-cataloger, vue-converter, svelte-converter, react-native-converter |
 | Testing & QA | 7 | visual-qa-agent, accessibility-auditor, api-tester, performance-benchmarker |
 | Product | 3 | sprint-prioritizer, feedback-synthesizer, trend-researcher |
 | Marketing | 7 | content-creator, growth-hacker, app-store-optimizer |
@@ -177,7 +179,7 @@ Agents are invoked automatically based on task context.
 
 ---
 
-### React Skills (17 Total)
+### Skills (18 Total)
 
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
@@ -192,7 +194,8 @@ Agents are invoked automatically based on task context.
 | react-accessibility | WCAG patterns for React | "accessibility", "a11y", "ARIA" |
 | visual-qa-verification | Automated pixel-diff visual QA (v3: pixelmatch loop) | "verify", "visual QA", "compare to Figma" |
 | canva-intake | Canva design discovery → build-spec.json (with appType) | Phase 1 of /build-from-canva |
-| canva-token-inference | AI-powered token extraction from Canva screenshots | Phase 2 of /build-from-canva |
+| canva-token-inference | AI-powered token extraction from Canva/screenshot sources | Phase 2 of /build-from-canva and /build-from-screenshot |
+| screenshot-intake | URL/screenshot discovery → build-spec.json (with outputTarget) | "build from screenshot", "clone this site" |
 | state-management | State architecture: Zustand, TanStack Query, URL state | "state management", "zustand", "data fetching" |
 | form-handling | React Hook Form + Zod: typed forms, field arrays, wizards | "form", "validation", "react hook form" |
 | auth-flows | Auth.js, Clerk, Supabase Auth, RBAC, protected routes | "auth", "login", "session", "OAuth" |
@@ -229,7 +232,7 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 
 **Key artifacts:**
 - `design-tokens.lock.json` — Single source of truth for all design values
-- `build-spec.json` — Machine-readable build plan with appType and E2E flows
+- `build-spec.json` — Machine-readable build plan with appType, outputTarget (`"react" | "vue" | "svelte" | "react-native"`), and E2E flows
 - `pipeline.config.json` — Thresholds, iteration limits, app-type definitions
 - `verify-tokens.sh` — Catches hardcoded values and token drift
 - `verify-test-coverage.sh` — Ensures every component has tests
@@ -242,7 +245,7 @@ Autonomous 9-phase pipeline that converts a Figma design into a working, tested 
 **Features:**
 - **Enforced TDD** — tests must exist before components, hard gate blocks build phase
 - **Pixel-perfect visual diff** — `pixelmatch`-based comparison (not manual), up to 5 iterations
-- **App-type awareness** — Chrome extensions, PWAs, and web apps get tailored E2E strategies
+- **App-type awareness** — Chrome extensions, PWAs, React Native, and web apps get tailored E2E strategies
 - **Chrome extension E2E** — Playwright persistent context with `--load-extension`
 - Design token extraction with lockfile enforcement
 - Cross-browser verification (Firefox, WebKit) with configurable thresholds
@@ -273,6 +276,40 @@ Same 12-phase pipeline as Figma with Canva-specific phases 1, 2, and 4:
 - **Phases 3, 5-9:** shared (identical to Figma pipeline)
 
 **Documentation:** `docs/canva-to-react/README.md`
+
+---
+
+### Screenshot/URL-to-App Pipeline
+
+**Single command:** `/build-from-screenshot <URL or image paths>`
+
+Same 12-phase pipeline as Figma/Canva with screenshot-specific Phase 1:
+
+- **Phase 1:** screenshot-intake (captures URL or reads provided images, vision-based discovery)
+- **Phase 2:** canva-token-inference (shared, accepts screenshot source)
+- **Phase 4:** framework-specific converter agent dispatched by `outputTarget` (vue-converter, svelte-converter, react-native-converter, or figma-react-converter)
+- **Phases 3, 5-9:** shared (identical to Figma/Canva pipeline)
+
+Supports all output targets: React, Vue 3, Svelte/SvelteKit, React Native (Expo).
+
+**Documentation:** `docs/screenshot-to-app/README.md`
+
+---
+
+### Multi-Framework Output
+
+The `outputTarget` field in `build-spec.json` controls which framework the pipeline generates code for:
+
+| Target | Value | Converter Agent | Test Library | Template |
+|--------|-------|----------------|-------------|----------|
+| React | `"react"` | figma-react-converter / canva-react-converter | Vitest + RTL | `templates/nextjs/` or `templates/vite/` |
+| Vue 3 | `"vue"` | vue-converter | Vitest + @vue/test-utils | `templates/vue/` |
+| Svelte | `"svelte"` | svelte-converter | Vitest + @testing-library/svelte | `templates/sveltekit/` |
+| React Native | `"react-native"` | react-native-converter | Jest + @testing-library/react-native | `templates/expo/` |
+
+Framework auto-detection: if `outputTarget` is not specified, the pipeline detects the framework from `package.json` dependencies and config files (e.g., `next.config.*`, `svelte.config.*`, `app.json`).
+
+**Documentation:** `docs/multi-framework/README.md`
 
 ---
 
@@ -399,6 +436,7 @@ Claude: [Uses test-writer-fixer agent]
 ```bash
 /build-from-figma <URL>       # Full autonomous Figma pipeline
 /build-from-canva <URL>       # Full autonomous Canva pipeline
+/build-from-screenshot <URL or paths>  # Full autonomous screenshot pipeline
 ```
 
 **Git Workflows (via commit-commands):**
@@ -436,4 +474,4 @@ gh issue create               # Create issue
 ---
 
 **Last Updated:** 2026-03-18
-**Architecture:** 48 agents, 17 skills, 4 plugins + gh CLI, Figma + Canva + Playwright MCP, 18 scripts, 7 hooks
+**Architecture:** 51 agents, 18 skills, 4 plugins + gh CLI, Figma + Canva + Playwright MCP, 18 scripts, 7 hooks
