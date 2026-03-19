@@ -345,6 +345,114 @@ function analyzeTypography(actualData, expectedData, width, height) {
   };
 }
 
+/**
+ * Detect layout drift by comparing projection profiles.
+ * Horizontal profile: sum of dark pixels per row (detects vertical shift).
+ * Vertical profile: sum of dark pixels per column (detects horizontal shift).
+ * Cross-correlation finds the best-matching offset.
+ */
+function analyzeLayout(actualData, expectedData, width, height) {
+  const DARK_THRESHOLD = 200;
+
+  function buildProfiles(data) {
+    const horizontal = new Float64Array(height);
+    const vertical = new Float64Array(width);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+        if (lum < DARK_THRESHOLD) {
+          horizontal[y]++;
+          vertical[x]++;
+        }
+      }
+    }
+    return { horizontal, vertical };
+  }
+
+  /**
+   * Cross-correlate two 1D profiles to find the offset that maximizes similarity.
+   * Returns { offset, correlation } where offset is the pixel shift.
+   */
+  function crossCorrelate(profileA, profileB, maxShift) {
+    const len = profileA.length;
+    let bestOffset = 0;
+    let bestCorr = -Infinity;
+
+    for (let shift = -maxShift; shift <= maxShift; shift++) {
+      let sum = 0;
+      let count = 0;
+      for (let i = 0; i < len; i++) {
+        const j = i + shift;
+        if (j >= 0 && j < len) {
+          sum += profileA[i] * profileB[j];
+          count++;
+        }
+      }
+      const corr = count > 0 ? sum / count : 0;
+      // Prefer smaller absolute offset when correlations are effectively equal
+      const eps = bestCorr * 1e-9;
+      if (corr > bestCorr + eps || (Math.abs(corr - bestCorr) <= eps && Math.abs(shift) < Math.abs(bestOffset))) {
+        bestCorr = corr;
+        bestOffset = shift;
+      }
+    }
+
+    let zeroCorr = 0;
+    for (let i = 0; i < len; i++) {
+      zeroCorr += profileA[i] * profileB[i];
+    }
+    zeroCorr /= len;
+
+    return { offset: bestOffset, correlation: bestCorr, zeroCorrelation: zeroCorr };
+  }
+
+  const actualProfiles = buildProfiles(actualData);
+  const expectedProfiles = buildProfiles(expectedData);
+
+  const MAX_SHIFT = Math.min(50, Math.floor(Math.min(width, height) * 0.1));
+
+  const hResult = crossCorrelate(
+    actualProfiles.horizontal,
+    expectedProfiles.horizontal,
+    MAX_SHIFT
+  );
+  const vResult = crossCorrelate(
+    actualProfiles.vertical,
+    expectedProfiles.vertical,
+    MAX_SHIFT
+  );
+
+  const SHIFT_THRESHOLD = 2;
+  const dx = Math.abs(vResult.offset);
+  const dy = Math.abs(hResult.offset);
+  const layoutShiftDetected = dx > SHIFT_THRESHOLD || dy > SHIFT_THRESHOLD;
+
+  return {
+    layoutShiftDetected,
+    estimatedShift: {
+      dx: vResult.offset,
+      dy: hResult.offset,
+    },
+    shiftMagnitude: Math.round(Math.sqrt(dx * dx + dy * dy) * 100) / 100,
+    horizontalProfile: {
+      offset: hResult.offset,
+      correlationImprovement:
+        hResult.correlation > 0
+          ? Math.round(((hResult.correlation - hResult.zeroCorrelation) / hResult.correlation) * 10000) / 10000
+          : 0,
+    },
+    verticalProfile: {
+      offset: vResult.offset,
+      correlationImprovement:
+        vResult.correlation > 0
+          ? Math.round(((vResult.correlation - vResult.zeroCorrelation) / vResult.correlation) * 10000) / 10000
+          : 0,
+    },
+  };
+}
+
 function compareSingle(actualPath, expectedPath, options) {
   const config = loadConfig();
   const vdConfig = config?.visualDiff || {};
@@ -407,6 +515,9 @@ function compareSingle(actualPath, expectedPath, options) {
   // Typography analysis
   const typographyAnalysis = analyzeTypography(actualData, expectedData, width, height);
 
+  // Layout drift analysis
+  const layoutAnalysis = analyzeLayout(actualData, expectedData, width, height);
+
   // Save diff image if output specified
   const outputPath =
     options.output || (options.outputDir ? join(options.outputDir, `diff-${basename(actualPath)}`) : null);
@@ -437,6 +548,7 @@ function compareSingle(actualPath, expectedPath, options) {
     },
     subPixelAnalysis,
     typographyAnalysis,
+    layoutAnalysis,
   };
 }
 
