@@ -241,6 +241,110 @@ function analyzeSubPixel(diffData, width, height, diffColor, maxClusterSize = 2)
   };
 }
 
+/**
+ * Detect font weight mismatches and font fallback issues.
+ * Analyzes luminance patterns in text regions of both images.
+ */
+function analyzeTypography(actualData, expectedData, width, height) {
+  const DARK_THRESHOLD = 180;
+  const BAND_HEIGHT = 4;
+
+  function getLuminance(data, idx) {
+    return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  }
+
+  function analyzeBands(data) {
+    const bands = [];
+    for (let bandY = 0; bandY < height; bandY += BAND_HEIGHT) {
+      let darkPixels = 0;
+      let totalLuminance = 0;
+      let darkLuminance = 0;
+      let pixelCount = 0;
+
+      for (let y = bandY; y < Math.min(bandY + BAND_HEIGHT, height); y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          const lum = getLuminance(data, idx);
+          totalLuminance += lum;
+          pixelCount++;
+          if (lum < DARK_THRESHOLD) {
+            darkPixels++;
+            darkLuminance += lum;
+          }
+        }
+      }
+
+      const darkRatio = pixelCount > 0 ? darkPixels / pixelCount : 0;
+      const avgDarkLum = darkPixels > 0 ? darkLuminance / darkPixels : 255;
+      bands.push({ darkRatio, avgDarkLum, darkPixels, pixelCount });
+    }
+    return bands;
+  }
+
+  function getTextBands(bands) {
+    return bands
+      .map((b, i) => ({ ...b, index: i }))
+      .filter((b) => b.darkRatio > 0.05);
+  }
+
+  const actualBands = analyzeBands(actualData);
+  const expectedBands = analyzeBands(expectedData);
+  const actualText = getTextBands(actualBands);
+  const expectedText = getTextBands(expectedBands);
+
+  // --- Font weight detection ---
+  let weightDiff = 0;
+  let weightSamples = 0;
+  const minTextBands = Math.min(actualText.length, expectedText.length);
+
+  for (let i = 0; i < minTextBands; i++) {
+    const aIdx = actualText[i].index;
+    const eIdx = expectedText[i].index;
+    if (aIdx < actualBands.length && eIdx < expectedBands.length) {
+      weightDiff += actualBands[aIdx].avgDarkLum - expectedBands[eIdx].avgDarkLum;
+      weightSamples++;
+    }
+  }
+
+  const avgWeightDiff = weightSamples > 0 ? weightDiff / weightSamples : 0;
+  const WEIGHT_THRESHOLD = 15;
+  const fontWeightMismatch = Math.abs(avgWeightDiff) > WEIGHT_THRESHOLD;
+  let weightDirection = "none";
+  if (fontWeightMismatch) {
+    weightDirection = avgWeightDiff > 0 ? "heavier" : "lighter";
+  }
+
+  // --- Font fallback detection ---
+  let densityDiffSum = 0;
+  let densitySamples = 0;
+
+  for (let i = 0; i < minTextBands; i++) {
+    const aIdx = actualText[i].index;
+    const eIdx = expectedText[i].index;
+    if (aIdx < actualBands.length && eIdx < expectedBands.length) {
+      const aDensity = actualBands[aIdx].darkRatio;
+      const eDensity = expectedBands[eIdx].darkRatio;
+      densityDiffSum += Math.abs(aDensity - eDensity);
+      densitySamples++;
+    }
+  }
+
+  const avgDensityDiff = densitySamples > 0 ? densityDiffSum / densitySamples : 0;
+  const FALLBACK_THRESHOLD = 0.05;
+  const fontFallbackDetected = avgDensityDiff > FALLBACK_THRESHOLD;
+
+  return {
+    fontWeightMismatch,
+    weightDirection,
+    avgWeightDifference: Math.round(Math.abs(avgWeightDiff) * 100) / 100,
+    fontFallbackDetected,
+    avgDensityDifference: Math.round(avgDensityDiff * 10000) / 10000,
+    textBandsActual: actualText.length,
+    textBandsExpected: expectedText.length,
+    textBandCountMismatch: actualText.length !== expectedText.length,
+  };
+}
+
 function compareSingle(actualPath, expectedPath, options) {
   const config = loadConfig();
   const vdConfig = config?.visualDiff || {};
@@ -300,6 +404,9 @@ function compareSingle(actualPath, expectedPath, options) {
   // Sub-pixel classification
   const subPixelAnalysis = analyzeSubPixel(diff.data, width, height, diffColor);
 
+  // Typography analysis
+  const typographyAnalysis = analyzeTypography(actualData, expectedData, width, height);
+
   // Save diff image if output specified
   const outputPath =
     options.output || (options.outputDir ? join(options.outputDir, `diff-${basename(actualPath)}`) : null);
@@ -329,6 +436,7 @@ function compareSingle(actualPath, expectedPath, options) {
           : `${failingRegions.length} region(s) exceed threshold: ${failingRegions.map((r) => r.name).join(", ")}`,
     },
     subPixelAnalysis,
+    typographyAnalysis,
   };
 }
 
