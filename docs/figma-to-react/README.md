@@ -120,6 +120,30 @@ Phase 5 uses `scripts/visual-diff.js` (pixelmatch) for programmatic comparison:
 - Region-based analysis identifies which areas need fixes (4x4 grid)
 - Diff images saved for review
 
+### Advanced Visual Analysis
+
+Phase 5 includes three additional analysis layers beyond pixel comparison:
+
+- **Sub-pixel classification** — Diff pixels are classified as sub-pixel rendering artifacts (isolated 1-2px clusters) vs real differences (larger connected regions). When >50% of diffs are sub-pixel, the report flags this so developers know the mismatch is cosmetic, not structural.
+
+- **Font weight detection** — Luminance analysis of text regions detects when rendered font weight differs from the design (e.g., 400 vs 700). Reports whether the actual rendering is "heavier" or "lighter" than expected.
+
+- **Font fallback detection** — Character density profile comparison detects when a fallback font is rendering instead of the intended font family. Different fonts have different character widths, producing measurably different density patterns.
+
+- **Layout drift detection** — Cross-correlation of horizontal/vertical projection profiles detects when content has shifted position between screenshots. Reports estimated dx/dy offset in pixels. Threshold: >2px triggers a warning.
+
+These analyses are enabled by default and configurable in `pipeline.config.json`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `visualDiff.subPixelClassification` | true | Classify diff pixels as sub-pixel vs real |
+| `visualDiff.typographyAnalysis` | true | Detect font weight and fallback mismatches |
+| `visualDiff.layoutDriftAnalysis` | true | Detect content position shifts |
+| `visualDiff.subPixelMaxClusterSize` | 2 | Max cluster size for sub-pixel classification |
+| `visualDiff.fontWeightThreshold` | 15 | Luminance difference for weight mismatch |
+| `visualDiff.fontFallbackDensityThreshold` | 0.05 | Density diff for fallback detection |
+| `visualDiff.layoutShiftThresholdPx` | 2 | Pixel shift threshold for layout drift |
+
 ### Design Token Lockfile
 All design values (colors, typography, spacing, text content) are extracted into `design-tokens.lock.json`. Components must reference tokens through Tailwind classes -- no hardcoded values. Enforced by `scripts/verify-tokens.sh`.
 
