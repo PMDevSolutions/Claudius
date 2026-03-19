@@ -27,7 +27,7 @@ These configs apply to any React project regardless of framework:
 | `prettier.config.js` | Prettier formatting rules (2-space indent, trailing commas) |
 | `tailwind.config.ts` | Base Tailwind config with design token structure |
 | `tsconfig.json` | TypeScript strict mode with path aliases |
-| `vitest.config.template.ts` | Vitest config with jsdom, RTL setup, and coverage thresholds |
+| `vitest.config.template.ts.tpl` | Vitest config with jsdom, RTL setup, and coverage thresholds |
 
 ### Usage
 
@@ -38,7 +38,7 @@ cp templates/shared/eslint.config.js .
 cp templates/shared/prettier.config.js .
 cp templates/shared/tailwind.config.ts .
 cp templates/shared/tsconfig.json .
-cp templates/shared/vitest.config.template.ts vitest.config.ts
+cp templates/shared/vitest.config.template.ts.tpl vitest.config.ts
 ```
 
 Or use the setup script: `./scripts/setup-project.sh my-app --vite`
@@ -61,7 +61,7 @@ Copies shared templates plus Next.js-specific config.
 
 | File | Purpose |
 |------|---------|
-| `vite.config.ts` | Vite config with React plugin, path aliases, and build optimizations |
+| `vite.config.ts.tpl` | Vite config with React plugin, path aliases, and build optimizations |
 
 ### Usage
 
@@ -75,9 +75,9 @@ Copies shared templates plus Vite-specific config.
 
 | File | Purpose |
 |------|---------|
-| `vite.config.ts` | Vite config with Vue plugin and path aliases |
+| `vite.config.ts.tpl` | Vite config with Vue plugin and path aliases |
 | `tsconfig.json` | TypeScript config for Vue 3 with strict mode |
-| `vitest.config.ts` | Vitest config with @vue/test-utils setup |
+| `vitest.config.ts.tpl` | Vitest config with @vue/test-utils setup |
 | `tailwind.config.ts` | Tailwind config with Vue-compatible content paths |
 
 ### Usage
@@ -93,9 +93,9 @@ Copies shared templates plus Vue 3-specific configs. Sets up a Vue 3 + Vite + Ta
 | File | Purpose |
 |------|---------|
 | `svelte.config.js` | SvelteKit config with Vite adapter |
-| `vite.config.ts` | Vite config with SvelteKit plugin |
+| `vite.config.ts.tpl` | Vite config with SvelteKit plugin |
 | `tsconfig.json` | TypeScript config for Svelte |
-| `vitest.config.ts` | Vitest config with @testing-library/svelte setup |
+| `vitest.config.ts.tpl` | Vitest config with @testing-library/svelte setup |
 | `tailwind.config.ts` | Tailwind config with Svelte-compatible content paths |
 
 ### Usage

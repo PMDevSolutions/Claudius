@@ -118,6 +118,8 @@ if [[ -d "$TEMPLATES_DIR" ]]; then
         for template_file in "$TEMPLATES_DIR/shared"/*; do
             if [[ -f "$template_file" ]]; then
                 FILENAME=$(basename "$template_file")
+                # Strip .tpl suffix (template configs renamed to avoid IDE auto-discovery)
+                FILENAME="${FILENAME%.tpl}"
                 if [[ ! -f "$FILENAME" ]]; then
                     cp "$template_file" "./$FILENAME"
                     echo "  Copied: $FILENAME"
@@ -144,6 +146,8 @@ if [[ -d "$TEMPLATES_DIR" ]]; then
         for template_file in "$FRAMEWORK_DIR"/*; do
             if [[ -f "$template_file" ]]; then
                 FILENAME=$(basename "$template_file")
+                # Strip .tpl suffix (template configs renamed to avoid IDE auto-discovery)
+                FILENAME="${FILENAME%.tpl}"
                 if [[ ! -f "$FILENAME" ]]; then
                     cp "$template_file" "./$FILENAME"
                     echo "  Copied: $FILENAME (${FRAMEWORK}-specific)"
