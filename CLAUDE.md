@@ -57,7 +57,7 @@ project-root/
 # Verify every component has a test file
 ./scripts/verify-test-coverage.sh
 
-# Pixel-level visual diff between screenshots
+# Pixel-level visual diff with sub-pixel, typography, and layout analysis
 node scripts/visual-diff.js <actual.png> <expected.png> [--threshold 0.02] [--json]
 node scripts/visual-diff.js --batch <actual-dir> <expected-dir> [--output-dir diffs/]
 

@@ -462,6 +462,10 @@ function compareSingle(actualPath, expectedPath, options) {
   const antialiasing = options.antialiasing ?? vdConfig.antialiasing ?? true;
   const regionGrid = options.regionGrid ?? iterConfig.regionGridSize ?? 4;
   const diffColor = vdConfig.diffColorRgb || [255, 0, 255];
+  const subPixelEnabled = vdConfig.subPixelClassification !== false;
+  const typographyEnabled = vdConfig.typographyAnalysis !== false;
+  const layoutEnabled = vdConfig.layoutDriftAnalysis !== false;
+  const subPixelMaxCluster = vdConfig.subPixelMaxClusterSize ?? 2;
 
   const actual = loadPNG(actualPath);
   const expected = loadPNG(expectedPath);
@@ -510,13 +514,19 @@ function compareSingle(actualPath, expectedPath, options) {
   const warningRegions = regions.filter((r) => r.status === "warn");
 
   // Sub-pixel classification
-  const subPixelAnalysis = analyzeSubPixel(diff.data, width, height, diffColor);
+  const subPixelAnalysis = subPixelEnabled
+    ? analyzeSubPixel(diff.data, width, height, diffColor, subPixelMaxCluster)
+    : null;
 
   // Typography analysis
-  const typographyAnalysis = analyzeTypography(actualData, expectedData, width, height);
+  const typographyAnalysis = typographyEnabled
+    ? analyzeTypography(actualData, expectedData, width, height)
+    : null;
 
   // Layout drift analysis
-  const layoutAnalysis = analyzeLayout(actualData, expectedData, width, height);
+  const layoutAnalysis = layoutEnabled
+    ? analyzeLayout(actualData, expectedData, width, height)
+    : null;
 
   // Save diff image if output specified
   const outputPath =

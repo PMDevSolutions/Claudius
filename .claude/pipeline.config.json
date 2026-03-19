@@ -22,7 +22,14 @@
       "tablet",
       "desktop"
     ],
-    "outputDir": ".claude/visual-qa/diffs"
+    "outputDir": ".claude/visual-qa/diffs",
+    "subPixelClassification": true,
+    "subPixelMaxClusterSize": 2,
+    "typographyAnalysis": true,
+    "fontWeightThreshold": 15,
+    "fontFallbackDensityThreshold": 0.05,
+    "layoutDriftAnalysis": true,
+    "layoutShiftThresholdPx": 2
   },
   "iterationLoop": {
     "maxVisualIterations": 5,
