@@ -14,12 +14,16 @@ The output is identical to `design-token-lock` — a `design-tokens.lock.json` t
 ## When to Use
 
 - Phase 2 of the `/build-from-canva` pipeline (after `canva-intake`)
+- Phase 2 of the `/build-from-screenshot` pipeline (after `screenshot-intake`)
 - Any time you need to extract design tokens from Canva screenshots
+- Any time you need to extract design tokens from screenshots (any source)
 - When regenerating Tailwind config from Canva screenshots
 
 ## Inputs
 
-- **Required:** `.claude/plans/build-spec.json` with `"source": "canva"` and `exportedScreenshots` paths
+- **Required:** `.claude/plans/build-spec.json` with `"source": "canva"` or `"source": "screenshot"` and screenshot paths
+  - For canva: reads `canva.exportedScreenshots[]`
+  - For screenshot: reads `screenshot.capturedScreenshots[]`
 - **Optional:** User-provided brand guidelines, style guide, or color palette
 
 ## Process
@@ -29,12 +33,14 @@ The output is identical to `design-token-lock` — a `design-tokens.lock.json` t
 Read `build-spec.json` and collect all exported screenshots:
 
 ```
-1. Load canva.exportedScreenshots[] from build-spec.json
-2. Verify all screenshot files exist
-3. If any are missing, re-export via Canva MCP:
-   → Use canva MCP to export pages as PNG at 2x scale
-4. Additionally, request section-level crops if available:
-   → Export individual sections for spacing/typography detail
+1. Determine source type from build-spec.json.source
+2. If "canva": read canva.exportedScreenshots[]
+3. If "screenshot": read screenshot.capturedScreenshots[]
+4. Verify all screenshot files exist
+5. If missing:
+   - canva: re-export via Canva MCP
+   - screenshot URL: re-capture via Chrome DevTools/Playwright MCP
+   - screenshot files: ask user to re-provide
 ```
 
 ### Step 2: AI Vision Token Extraction
@@ -292,5 +298,5 @@ User confirmation compensates for lower accuracy areas.
 ## Integration
 
 - **Produces:** `design-tokens.lock.json`, `tailwind.config.ts`, `tokens.css`
-- **Consumed by:** `tdd-from-figma` (test assertions), `canva-react-converter` (component generation), `verify-tokens.sh` (enforcement)
+- **Consumed by:** `tdd-from-figma` (test assertions), `canva-react-converter` (component generation), `verify-tokens.sh` (enforcement), `/build-from-screenshot` (screenshot pipeline)
 - **Uses:** Canva MCP (export), Claude vision analysis, Read
