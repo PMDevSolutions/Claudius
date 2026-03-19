@@ -435,6 +435,263 @@ describe("Service Worker", () => {
 4. ALWAYS: Generate standard component tests (existing behavior)
 ```
 
+## Output-Target-Aware Test Generation
+
+Read `build-spec.json` field `outputTarget` to determine test library and component patterns. Default is `"react"` (existing behavior above).
+
+### Vue 3 Tests (outputTarget: "vue")
+
+Use `@vue/test-utils` + Vitest:
+
+#### Rendering Tests
+```typescript
+import { mount } from "@vue/test-utils";
+import { describe, it, expect } from "vitest";
+import Button from "./Button.vue";
+
+describe("Button", () => {
+  it("renders without crashing", () => {
+    const wrapper = mount(Button, { slots: { default: "Click me" } });
+    expect(wrapper.find("button").exists()).toBe(true);
+  });
+});
+```
+
+#### Text Content Tests (from lockfile)
+```typescript
+it("displays correct heading text", () => {
+  const wrapper = mount(HeroSection);
+  expect(wrapper.text()).toContain("Build faster with AI");
+});
+
+it("displays correct CTA text", () => {
+  const wrapper = mount(HeroSection);
+  expect(wrapper.find("button").text()).toBe("Get Started");
+});
+```
+
+#### Accessibility Tests
+```typescript
+it("has correct heading hierarchy", () => {
+  const wrapper = mount(HeroSection);
+  const h1 = wrapper.find("h1");
+  expect(h1.exists()).toBe(true);
+  expect(h1.text()).toBe("Build faster with AI");
+});
+
+it("form inputs have labels", () => {
+  const wrapper = mount(SearchInput);
+  expect(wrapper.find("label").exists()).toBe(true);
+});
+```
+
+#### Props and Emits Tests
+```typescript
+it("emits click event", async () => {
+  const wrapper = mount(Button, { slots: { default: "Click" } });
+  await wrapper.find("button").trigger("click");
+  expect(wrapper.emitted("click")).toHaveLength(1);
+});
+
+it("renders primary variant", () => {
+  const wrapper = mount(Button, {
+    props: { variant: "primary" },
+    slots: { default: "Click" },
+  });
+  expect(wrapper.find("button").classes()).toContain("bg-primary");
+});
+
+it("renders disabled state", () => {
+  const wrapper = mount(Button, {
+    props: { disabled: true },
+    slots: { default: "Click" },
+  });
+  expect(wrapper.find("button").attributes("disabled")).toBeDefined();
+});
+```
+
+#### Slot Tests
+```typescript
+it("renders default slot content", () => {
+  const wrapper = mount(Card, {
+    slots: { default: "<p>Card content</p>" },
+  });
+  expect(wrapper.find("p").text()).toBe("Card content");
+});
+
+it("renders named slots", () => {
+  const wrapper = mount(Card, {
+    slots: {
+      header: "<h3>Title</h3>",
+      default: "<p>Body</p>",
+      footer: "<button>Action</button>",
+    },
+  });
+  expect(wrapper.find("h3").text()).toBe("Title");
+  expect(wrapper.find("p").text()).toBe("Body");
+  expect(wrapper.find("button").text()).toBe("Action");
+});
+```
+
+### Svelte Tests (outputTarget: "svelte")
+
+Use `@testing-library/svelte` + Vitest:
+
+#### Rendering Tests
+```typescript
+import { render, screen } from "@testing-library/svelte";
+import { describe, it, expect } from "vitest";
+import Button from "./Button.svelte";
+
+describe("Button", () => {
+  it("renders without crashing", () => {
+    render(Button, { props: { children: "Click me" } });
+    expect(screen.getByRole("button")).toBeInTheDocument();
+  });
+});
+```
+
+#### Text Content Tests (from lockfile)
+```typescript
+it("displays correct heading text", () => {
+  render(HeroSection);
+  expect(screen.getByText("Build faster with AI")).toBeInTheDocument();
+});
+
+it("displays correct CTA text", () => {
+  render(HeroSection);
+  expect(screen.getByRole("button", { name: "Get Started" })).toBeInTheDocument();
+});
+```
+
+#### Event Tests
+```typescript
+import { fireEvent } from "@testing-library/svelte";
+
+it("fires click event", async () => {
+  const onclick = vi.fn();
+  render(Button, { props: { onclick } });
+  await fireEvent.click(screen.getByRole("button"));
+  expect(onclick).toHaveBeenCalledOnce();
+});
+```
+
+#### Props Tests
+```typescript
+it("renders primary variant", () => {
+  const { container } = render(Button, { props: { variant: "primary" } });
+  expect(container.querySelector("button")).toHaveClass("bg-primary");
+});
+
+it("renders disabled state", () => {
+  render(Button, { props: { disabled: true } });
+  expect(screen.getByRole("button")).toBeDisabled();
+});
+```
+
+#### Accessibility Tests
+```typescript
+it("has correct heading hierarchy", () => {
+  render(HeroSection);
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Build faster with AI");
+});
+
+it("navigation has correct landmark", () => {
+  render(Header);
+  expect(screen.getByRole("navigation")).toBeInTheDocument();
+});
+```
+
+### React Native Tests (outputTarget: "react-native")
+
+Use `@testing-library/react-native` + Jest (Expo default):
+
+#### Rendering Tests
+```typescript
+import { render, screen } from "@testing-library/react-native";
+import { describe, it, expect } from "@jest/globals";
+import { Button } from "./Button";
+
+describe("Button", () => {
+  it("renders without crashing", () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole("button")).toBeTruthy();
+  });
+});
+```
+
+#### Text Content Tests (from lockfile)
+```typescript
+it("displays correct heading text", () => {
+  render(<HeroSection />);
+  expect(screen.getByText("Build faster with AI")).toBeTruthy();
+});
+```
+
+#### Accessibility Tests
+```typescript
+it("button has accessibility role", () => {
+  render(<Button>Submit</Button>);
+  expect(screen.getByRole("button")).toBeTruthy();
+});
+
+it("icon button has accessibility label", () => {
+  render(<IconButton icon="search" accessibilityLabel="Search" />);
+  expect(screen.getByLabelText("Search")).toBeTruthy();
+});
+
+it("images have accessibility labels", () => {
+  render(<HeroSection />);
+  const images = screen.getAllByRole("image");
+  images.forEach((img) => {
+    expect(img.props.accessibilityLabel || img.props.accessible).toBeTruthy();
+  });
+});
+```
+
+#### Interaction Tests
+```typescript
+import { fireEvent } from "@testing-library/react-native";
+
+it("calls onPress when pressed", () => {
+  const onPress = jest.fn();
+  render(<Button onPress={onPress}>Click</Button>);
+  fireEvent.press(screen.getByRole("button"));
+  expect(onPress).toHaveBeenCalledOnce();
+});
+
+it("does not fire onPress when disabled", () => {
+  const onPress = jest.fn();
+  render(<Button onPress={onPress} disabled>Click</Button>);
+  fireEvent.press(screen.getByRole("button"));
+  expect(onPress).not.toHaveBeenCalled();
+});
+```
+
+#### Variant Tests
+```typescript
+it("renders primary variant styling", () => {
+  const { toJSON } = render(<Button variant="primary">Click</Button>);
+  // NativeWind applies classes at render
+  expect(toJSON()).toBeTruthy();
+});
+```
+
+### Conditional Test Generation Logic (Updated)
+
+```
+1. Read build-spec.json → outputTarget, appType
+2. Select test library based on outputTarget:
+   - "react" → @testing-library/react + vitest (existing)
+   - "vue" → @vue/test-utils + vitest
+   - "svelte" → @testing-library/svelte + vitest
+   - "react-native" → @testing-library/react-native + jest
+3. Generate component tests using the appropriate library patterns
+4. THEN apply app-type-specific tests (existing chrome-extension/pwa logic)
+   - Note: chrome-extension and pwa app types only apply to web targets (react/vue/svelte)
+   - react-native does not use chrome-extension or pwa test templates
+```
+
 ## Output
 
 | File | Purpose |
