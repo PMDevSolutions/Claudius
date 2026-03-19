@@ -595,6 +595,10 @@ function compareBatch(actualDir, expectedDir, options) {
     }
   }
 
+  const fontIssues = results.filter((r) => r.typographyAnalysis?.fontWeightMismatch || r.typographyAnalysis?.fontFallbackDetected);
+  const layoutIssues = results.filter((r) => r.layoutAnalysis?.layoutShiftDetected);
+  const subPixelDominant = results.filter((r) => r.subPixelAnalysis?.subPixelPct > 0.5);
+
   return {
     mode: "batch",
     actualDir: resolve(actualDir),
@@ -606,6 +610,13 @@ function compareBatch(actualDir, expectedDir, options) {
     skipped: results.filter((r) => r.status === "SKIP" || r.status === "MISSING").length,
     overallPass,
     results,
+    analysisSummary: {
+      fontIssueCount: fontIssues.length,
+      layoutShiftCount: layoutIssues.length,
+      subPixelDominantCount: subPixelDominant.length,
+      filesWithFontIssues: fontIssues.map((r) => r.file),
+      filesWithLayoutShifts: layoutIssues.map((r) => r.file),
+    },
   };
 }
 
@@ -630,6 +641,15 @@ function formatHumanReadable(result) {
         lines.push(`  ${r.status} ${r.file} — ${pct}% diff (${r.diffPixels} pixels)`);
         if (r.regions?.failing?.length > 0) {
           lines.push(`       Problem areas: ${r.regions.failing.map((r) => r.name).join(", ")}`);
+        }
+        if (r.typographyAnalysis?.fontWeightMismatch) {
+          lines.push(`       Font: weight mismatch (${r.typographyAnalysis.weightDirection})`);
+        }
+        if (r.typographyAnalysis?.fontFallbackDetected) {
+          lines.push(`       Font: fallback detected`);
+        }
+        if (r.layoutAnalysis?.layoutShiftDetected) {
+          lines.push(`       Layout: shift dx=${r.layoutAnalysis.estimatedShift.dx}px dy=${r.layoutAnalysis.estimatedShift.dy}px`);
         }
       }
     }
@@ -663,6 +683,50 @@ function formatHumanReadable(result) {
     }
     if (result.regions.failing.length === 0 && result.regions.warning.length === 0) {
       lines.push("All regions within tolerance.");
+    }
+
+    // Sub-pixel analysis
+    if (result.subPixelAnalysis) {
+      const spa = result.subPixelAnalysis;
+      lines.push("");
+      lines.push("Sub-Pixel Analysis:");
+      lines.push(`  Total diff clusters: ${spa.clusterCount} (${spa.subPixelClusters} sub-pixel, ${spa.realClusters} real)`);
+      lines.push(`  Sub-pixel artifacts: ${(spa.subPixelPct * 100).toFixed(1)}% of diff pixels`);
+      lines.push(`  Real differences:    ${(spa.realDiffPct * 100).toFixed(2)}% of image`);
+      if (spa.subPixelPct > 0.5) {
+        lines.push("  NOTE: Majority of differences are sub-pixel rendering artifacts");
+      }
+    }
+
+    // Typography analysis
+    if (result.typographyAnalysis) {
+      const ta = result.typographyAnalysis;
+      lines.push("");
+      lines.push("Typography Analysis:");
+      if (ta.fontWeightMismatch) {
+        lines.push(`  WARN  Font weight mismatch detected (actual is ${ta.weightDirection}, delta: ${ta.avgWeightDifference})`);
+      }
+      if (ta.fontFallbackDetected) {
+        lines.push(`  WARN  Font fallback likely (character density diff: ${(ta.avgDensityDifference * 100).toFixed(1)}%)`);
+      }
+      if (ta.textBandCountMismatch) {
+        lines.push(`  WARN  Text line count differs (actual: ${ta.textBandsActual}, expected: ${ta.textBandsExpected})`);
+      }
+      if (!ta.fontWeightMismatch && !ta.fontFallbackDetected && !ta.textBandCountMismatch) {
+        lines.push("  Typography consistent");
+      }
+    }
+
+    // Layout analysis
+    if (result.layoutAnalysis) {
+      const la = result.layoutAnalysis;
+      lines.push("");
+      lines.push("Layout Analysis:");
+      if (la.layoutShiftDetected) {
+        lines.push(`  WARN  Layout shift detected: dx=${la.estimatedShift.dx}px, dy=${la.estimatedShift.dy}px (magnitude: ${la.shiftMagnitude}px)`);
+      } else {
+        lines.push("  Layout consistent");
+      }
     }
   }
 
