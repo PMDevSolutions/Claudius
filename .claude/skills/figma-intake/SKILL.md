@@ -36,10 +36,15 @@ Simultaneously scan the local project:
 
 ```
 1. Detect framework:
-   - next.config.* → Next.js (check App Router vs Pages Router)
-   - vite.config.* → Vite
-   - remix.config.* → Remix
-   - None → New project needed
+   - next.config.* → Next.js (outputTarget: "react")
+   - vite.config.* + vue in package.json → Vue + Vite (outputTarget: "vue")
+   - nuxt.config.* → Nuxt (outputTarget: "vue")
+   - svelte.config.* → SvelteKit (outputTarget: "svelte")
+   - vite.config.* + svelte in package.json → Svelte + Vite (outputTarget: "svelte")
+   - app.json with "expo" → Expo (outputTarget: "react-native")
+   - vite.config.* → Vite + React (outputTarget: "react")
+   - remix.config.* → Remix (outputTarget: "react")
+   - None → New project needed (ask output target question)
 
 2. Detect app type:
    - manifest.json with "manifest_version" → Chrome Extension
@@ -121,7 +126,15 @@ Only ask questions whose answers cannot be derived from the Figma file or local 
 > b) Integrated into the existing project at [detected path]
 > (Only ask if existing project detected)
 
-**Question 6 — App Type (only if ambiguous):**
+**Question 6 — Output Target (only if no framework detected):**
+> What framework should I build this in?
+> a) React (Next.js / Vite / Remix)
+> b) Vue 3 (Nuxt / Vite)
+> c) Svelte (SvelteKit / Vite)
+> d) React Native (Expo)
+> (Skip if existing project with framework detected — auto-detect from package.json)
+
+**Question 7 — App Type (only if ambiguous):**
 > I detected this as a [chrome-extension / web-app / pwa]. Is that correct?
 > (Skip if detection is unambiguous. Skip if manifest.json clearly identifies type.)
 
@@ -134,6 +147,7 @@ Write the spec file that all downstream phases consume:
 {
   "version": "1.0.0",
   "source": "figma",              // "figma" | "canva"
+  "outputTarget": "react",    // "react" | "vue" | "svelte" | "react-native"
   "createdAt": "2026-03-16T12:00:00Z",
   "figma": {
     "fileKey": "abc123",
@@ -142,7 +156,7 @@ Write the spec file that all downstream phases consume:
   },
   "appType": "web-app",          // "web-app" | "chrome-extension" | "pwa"
   "framework": {
-    "type": "vite",           // "nextjs-app" | "nextjs-pages" | "vite" | "remix"
+    "type": "vite",           // "nextjs-app" | "nextjs-pages" | "vite" | "remix" | "nuxt" | "sveltekit" | "expo"
     "version": "6.0.0",
     "outputDir": "src"
   },
