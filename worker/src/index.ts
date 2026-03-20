@@ -14,7 +14,11 @@ app.use(
   cors({
     origin: (origin, c) => {
       const allowed = c.env.ALLOWED_ORIGIN || "https://pmds.info";
-      return origin === allowed ? origin : "";
+      // Allow localhost in development
+      if (origin?.startsWith("http://localhost:")) {
+        return origin;
+      }
+      return origin === allowed ? origin : allowed;
     },
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],

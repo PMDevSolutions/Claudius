@@ -7,11 +7,10 @@ describe("system prompt", () => {
     expect(SYSTEM_PROMPT).toContain("(443) 866-7356");
   });
 
-  it("contains pricing tiers", () => {
+  it("contains pricing info", () => {
     expect(SYSTEM_PROMPT).toContain("$1,000");
-    expect(SYSTEM_PROMPT).toContain("$3,750");
-    expect(SYSTEM_PROMPT).toContain("$7,500");
-    expect(SYSTEM_PROMPT).toContain("$15,000");
+    expect(SYSTEM_PROMPT).toContain("$75/hr");
+    expect(SYSTEM_PROMPT).toContain("4 pages or fewer");
   });
 
   it("contains contact form URL", () => {

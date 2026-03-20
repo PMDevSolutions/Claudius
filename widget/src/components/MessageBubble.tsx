@@ -6,22 +6,34 @@ interface MessageBubbleProps {
 const URL_REGEX = /(https?:\/\/[^\s)]+)/;
 
 function renderContentWithLinks(content: string) {
-  const parts = content.split(URL_REGEX);
-  return parts.map((part, i) => {
-    if (URL_REGEX.test(part)) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline font-medium hover:opacity-80"
-        >
-          {part.replace(/^https?:\/\//, "")}
-        </a>
-      );
-    }
-    return part;
+  // Split by newlines first, then handle URLs within each line
+  const lines = content.split("\n");
+
+  return lines.map((line, lineIndex) => {
+    const parts = line.split(URL_REGEX);
+    const renderedParts = parts.map((part, partIndex) => {
+      if (URL_REGEX.test(part)) {
+        return (
+          <a
+            key={`${lineIndex}-${partIndex}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-medium hover:opacity-80"
+          >
+            {part.replace(/^https?:\/\//, "")}
+          </a>
+        );
+      }
+      return part;
+    });
+
+    return (
+      <span key={lineIndex}>
+        {renderedParts}
+        {lineIndex < lines.length - 1 && <br />}
+      </span>
+    );
   });
 }
 

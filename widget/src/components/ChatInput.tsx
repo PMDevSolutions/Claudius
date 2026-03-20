@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -7,6 +7,11 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -19,6 +24,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 border-t border-gray-200 p-3">
       <input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
