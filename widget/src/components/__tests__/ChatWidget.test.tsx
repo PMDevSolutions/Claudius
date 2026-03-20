@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ChatWidget } from "../ChatWidget";
 
 // Mock fetch for useChat
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 describe("ChatWidget", () => {
   it("renders toggle button initially (chat closed)", () => {
@@ -36,7 +36,7 @@ describe("ChatWidget", () => {
 
   it("preserves messages when toggling open/close", async () => {
     const user = userEvent.setup();
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ reply: "Hello!" }),
     });
