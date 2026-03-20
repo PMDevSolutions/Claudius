@@ -13,8 +13,7 @@ app.use(
   "/api/*",
   cors({
     origin: (origin, c) => {
-      const allowed = c.env.ALLOWED_ORIGIN || "https://pmds.info";
-      // Allow localhost in development
+      const allowed = c.env.ALLOWED_ORIGIN || "http://localhost:5173";
       if (origin?.startsWith("http://localhost:")) {
         return origin;
       }

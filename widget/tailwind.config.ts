@@ -6,21 +6,19 @@ export default {
     extend: {
       colors: {
         pmds: {
-          blue: "hsl(207, 100%, 32%)",
-          dark: "hsl(140, 67%, 2%)",
-          "light-blue": "hsl(206, 68%, 85%)",
-          "light-green": "hsl(122, 64%, 95%)",
-          gray: "hsl(135, 5%, 30%)",
-          peach: "hsl(27, 100%, 91%)",
+          blue: "var(--claudius-primary, #2563eb)",
+          dark: "var(--claudius-dark, #1e293b)",
+          "light-green": "var(--claudius-light, #f1f5f9)",
+          gray: "var(--claudius-gray, #64748b)",
         },
       },
       fontFamily: {
-        heading: ["Comfortaa", "sans-serif"],
-        body: ["Assistant", "sans-serif"],
+        heading: ["system-ui", "sans-serif"],
+        body: ["system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "40px",
-        button: "32px",
+        card: "16px",
+        button: "12px",
       },
     },
   },

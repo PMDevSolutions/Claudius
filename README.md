@@ -1,151 +1,99 @@
-# Claudius
+# Claudius - Embeddable AI Chat Widget
 
-An embeddable AI chat widget for PMDS and client sites. React component + standalone script embed, powered by Cloudflare Workers and Claude.
+An open-source, embeddable AI chat widget powered by Claude. Drop it into any website with a single script tag.
 
 ## Features
 
-- Floating chat button with expandable chat window
-- Powered by Claude AI via Anthropic API
-- Cloudflare Workers backend for fast, global responses
-- React component for easy integration
-- Auto-focus input on open
-- URL detection and linking in messages
-- Line break rendering for formatted responses
-- Mobile responsive design
-- Tailwind CSS styling
+- Floating chat bubble with toggle
+- Markdown rendering (bold, italic, links)
+- Accessible (WCAG 2.1 AA, Lighthouse 98/100)
+- Responsive (mobile-first, works at 320px+)
+- Configurable (title, colors, system prompt)
+- Lightweight (~150KB gzipped JS + 3KB CSS)
 
-## Project Structure
+## Quick Start
 
-```
-claudius/
-├── widget/              # React chat widget
-│   ├── src/
-│   │   ├── components/  # ChatWidget, ChatWindow, ChatInput, etc.
-│   │   ├── hooks/       # useChat hook
-│   │   └── styles.css   # Tailwind styles
-│   └── package.json
-├── worker/              # Cloudflare Workers backend
-│   ├── src/
-│   │   ├── index.ts     # Hono API routes
-│   │   ├── chat.ts      # Claude API integration
-│   │   └── system-prompt.ts  # Bot personality and knowledge
-│   └── package.json
-└── package.json         # Root package
-```
-
-## Local Development
-
-### Prerequisites
-
-- Node.js 18+
-- pnpm
-- Anthropic API key
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/PMDevSolutions/Claudius.git
-cd claudius
-
-# Install dependencies
-cd widget && pnpm install
-cd ../worker && pnpm install
-
-# Configure API key
-cp worker/.dev.vars.example worker/.dev.vars
-# Edit .dev.vars with your Anthropic API key
-```
-
-### Run locally
-
-**Terminal 1 - Worker (backend):**
-```bash
-cd worker
-pnpm dev
-# Runs on http://localhost:8787
-```
-
-**Terminal 2 - Widget (frontend):**
-```bash
-cd widget
-pnpm dev
-# Runs on http://localhost:5173
-```
-
-Open http://localhost:5173 and click the chat button.
-
-## Testing
-
-```bash
-# Widget tests
-cd widget && pnpm test
-
-# Worker tests
-cd worker && pnpm test
-```
-
-## Deployment
-
-### Worker (Cloudflare)
+### 1. Set up the worker (backend)
 
 ```bash
 cd worker
-
-# Set production API key
-wrangler secret put ANTHROPIC_API_KEY
-
-# Deploy
-pnpm deploy
+pnpm install
+cp .dev.vars.example .dev.vars   # Add your Anthropic API key
+pnpm dev                          # Starts on http://localhost:8787
 ```
 
-### Widget
-
-Build the widget and include it in your site:
+### 2. Set up the widget (frontend)
 
 ```bash
 cd widget
-pnpm build
+pnpm install
+pnpm dev                          # Starts on http://localhost:5173
 ```
 
-## Usage
+### 3. Open http://localhost:5173 and test the chat
 
-### React Component
-
-```tsx
-import { ChatWidget } from "pmds-chat-widget";
-
-function App() {
-  return <ChatWidget apiUrl="https://your-worker.workers.dev" />;
-}
-```
-
-### Props
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `apiUrl` | `string` | URL of your Cloudflare Worker API |
-
-## Configuration
+## Customization
 
 ### System Prompt
 
-Edit `worker/src/system-prompt.ts` to customize:
+Edit `worker/src/system-prompt.ts` to customize the AI's personality, knowledge base, services, pricing, and FAQ. This is where you make the chatbot yours.
 
-- Bot personality and tone
-- Business information
-- Pricing details
-- FAQ responses
-- Blog post references
+### Widget Configuration
 
-### CORS
+Configure the widget via `window.ClaudiusConfig`:
 
-Update `ALLOWED_ORIGIN` in `worker/wrangler.toml` for production:
+| Option | Default | Description |
+|--------|---------|-------------|
+| `apiUrl` | (required) | URL of your Cloudflare Worker |
+| `title` | "Chat" | Header title |
+| `subtitle` | "Ask me anything" | Header subtitle |
+| `welcomeMessage` | "Hi! How can I help you today?" | First message shown |
+| `placeholder` | "Type your message..." | Input placeholder |
 
-```toml
-[vars]
-ALLOWED_ORIGIN = "https://yourdomain.com"
+### Brand Colors
+
+Edit `widget/tailwind.config.ts` to change brand colors, fonts, and border radii. Colors use CSS custom properties so you can also override them at runtime.
+
+## Deployment
+
+### Deploy the Worker
+
+```bash
+cd worker
+npx wrangler login
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler deploy
 ```
+
+### Build the Widget
+
+```bash
+cd widget
+pnpm build:embed
+```
+
+Output: `dist/claudius.iife.js` and `dist/claudius.css`
+
+### Embed on Your Site
+
+```html
+<script>
+  window.ClaudiusConfig = {
+    apiUrl: "https://your-worker.workers.dev",
+    title: "Support",
+    subtitle: "Ask me anything",
+    welcomeMessage: "Hi! How can I help?",
+  };
+</script>
+<link rel="stylesheet" href="/path/to/claudius.css" />
+<script src="/path/to/claudius.iife.js"></script>
+```
+
+## Tech Stack
+
+- **Widget:** React 18, TypeScript, Tailwind CSS, Vite
+- **Worker:** Cloudflare Workers, Hono, Anthropic SDK
+- **AI Model:** Claude Haiku 4.5
 
 ## License
 

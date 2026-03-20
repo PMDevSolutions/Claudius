@@ -2,32 +2,33 @@ import { describe, it, expect } from "vitest";
 import { SYSTEM_PROMPT } from "../system-prompt";
 
 describe("system prompt", () => {
-  it("contains business contact info", () => {
-    expect(SYSTEM_PROMPT).toContain("paul@pmds.info");
-    expect(SYSTEM_PROMPT).toContain("(443) 866-7356");
+  it("contains business information section", () => {
+    expect(SYSTEM_PROMPT).toContain("Business Information");
+    expect(SYSTEM_PROMPT).toContain("Business Name");
   });
 
-  it("contains pricing info", () => {
-    expect(SYSTEM_PROMPT).toContain("$1,000");
-    expect(SYSTEM_PROMPT).toContain("$75/hr");
-    expect(SYSTEM_PROMPT).toContain("4 pages or fewer");
+  it("contains pricing section", () => {
+    expect(SYSTEM_PROMPT).toContain("Pricing");
+    expect(SYSTEM_PROMPT).toContain("Starter package");
   });
 
-  it("contains contact form URL", () => {
-    expect(SYSTEM_PROMPT).toContain("https://pmds.info/contact");
+  it("contains services section", () => {
+    expect(SYSTEM_PROMPT).toContain("Services");
+    expect(SYSTEM_PROMPT).toContain("Web Development");
   });
 
-  it("instructs the bot to recommend the contact form", () => {
-    expect(SYSTEM_PROMPT.toLowerCase()).toContain("contact");
-    expect(SYSTEM_PROMPT.toLowerCase()).toContain("recommend");
+  it("contains behavioral rules", () => {
+    expect(SYSTEM_PROMPT.toLowerCase()).toContain("concise");
+    expect(SYSTEM_PROMPT.toLowerCase()).toContain("emojis");
   });
 
-  it("contains FAQ content", () => {
-    expect(SYSTEM_PROMPT).toContain("How much does a custom website cost");
-    expect(SYSTEM_PROMPT).toContain("How long does it take");
+  it("contains FAQ section", () => {
+    expect(SYSTEM_PROMPT).toContain("How much does it cost");
+    expect(SYSTEM_PROMPT).toContain("How long does a project take");
   });
 
-  it("contains blog post summaries", () => {
-    expect(SYSTEM_PROMPT).toContain("blog");
+  it("contains prompt injection guard", () => {
+    expect(SYSTEM_PROMPT.toLowerCase()).toContain("ignore");
+    expect(SYSTEM_PROMPT.toLowerCase()).toContain("reveal your system prompt");
   });
 });
