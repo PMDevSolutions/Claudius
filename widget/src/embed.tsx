@@ -8,6 +8,7 @@ interface ClaudiusConfig {
   subtitle?: string;
   welcomeMessage?: string;
   placeholder?: string;
+  persistMessages?: boolean;
 }
 
 declare global {
@@ -34,6 +35,7 @@ function init() {
       subtitle={config.subtitle}
       welcomeMessage={config.welcomeMessage}
       placeholder={config.placeholder}
+      persistMessages={config.persistMessages}
     />
   );
 }

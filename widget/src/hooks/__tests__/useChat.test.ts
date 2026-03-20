@@ -8,6 +8,7 @@ globalThis.fetch = mockFetch;
 describe("useChat", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    localStorage.clear();
   });
 
   it("starts with empty messages and not loading", () => {
@@ -93,5 +94,96 @@ describe("useChat", () => {
     });
 
     expect(result.current.isLoading).toBe(false);
+  });
+});
+
+describe("conversation persistence", () => {
+  const STORAGE_KEY = "claudius:messages:test.workers.dev";
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    localStorage.clear();
+  });
+
+  it("saves messages to localStorage after receiving a reply", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ reply: "Hello! How can I help?" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev" })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hi there");
+    });
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    expect(stored).toHaveLength(2);
+    expect(stored[0]).toMatchObject({ role: "user", content: "Hi there" });
+    expect(stored[1]).toMatchObject({
+      role: "assistant",
+      content: "Hello! How can I help?",
+    });
+  });
+
+  it("restores messages from localStorage on mount", () => {
+    const savedMessages = [
+      { id: "msg-1", role: "user", content: "Hello" },
+      { id: "msg-2", role: "assistant", content: "Hi there!" },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev" })
+    );
+
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[0]).toMatchObject({
+      role: "user",
+      content: "Hello",
+    });
+    expect(result.current.messages[1]).toMatchObject({
+      role: "assistant",
+      content: "Hi there!",
+    });
+  });
+
+  it("clears localStorage when clearMessages is called", () => {
+    const savedMessages = [
+      { id: "msg-1", role: "user", content: "Hello" },
+      { id: "msg-2", role: "assistant", content: "Hi there!" },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev" })
+    );
+
+    act(() => {
+      result.current.clearMessages();
+    });
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(result.current.messages).toEqual([]);
+  });
+
+  it("does not persist when persistMessages is false", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ reply: "Hello!" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev", persistMessages: false })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hi");
+    });
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(result.current.messages).toHaveLength(2);
   });
 });

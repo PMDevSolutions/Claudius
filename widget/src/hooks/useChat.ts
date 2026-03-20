@@ -8,6 +8,7 @@ export interface ChatMessage {
 
 interface UseChatOptions {
   apiUrl: string;
+  persistMessages?: boolean;
 }
 
 interface UseChatReturn {
@@ -18,14 +19,58 @@ interface UseChatReturn {
   clearMessages: () => void;
 }
 
-export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+const MAX_PERSISTED_MESSAGES = 200;
+
+function getStorageKey(apiUrl: string): string {
+  let host: string;
+  try {
+    host = new URL(apiUrl).host;
+  } catch {
+    host = apiUrl;
+  }
+  return `claudius:messages:${host}`;
+}
+
+function loadMessages(storageKey: string): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+export function useChat({
+  apiUrl,
+  persistMessages = true,
+}: UseChatOptions): UseChatReturn {
+  const storageKey = getStorageKey(apiUrl);
+
+  const initialMessages = persistMessages ? loadMessages(storageKey) : [];
+
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const idCounterRef = useRef(0);
+  const idCounterRef = useRef(initialMessages.length);
   const isLoadingRef = useRef(false);
-  const messagesRef = useRef<ChatMessage[]>([]);
+  const messagesRef = useRef<ChatMessage[]>(initialMessages);
+
+  const saveMessages = useCallback(
+    (msgs: ChatMessage[]) => {
+      if (!persistMessages) return;
+      try {
+        const toSave = msgs.slice(-MAX_PERSISTED_MESSAGES);
+        localStorage.setItem(storageKey, JSON.stringify(toSave));
+      } catch {
+        // localStorage may be unavailable in private browsing
+      }
+    },
+    [persistMessages, storageKey]
+  );
 
   const nextId = () => {
     idCounterRef.current += 1;
@@ -46,6 +91,7 @@ export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
       const updatedMessages = [...messagesRef.current, userMessage];
       messagesRef.current = updatedMessages;
       setMessages(updatedMessages);
+      saveMessages(updatedMessages);
       setIsLoading(true);
       isLoadingRef.current = true;
       setError(null);
@@ -72,6 +118,7 @@ export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
         const withReply = [...updatedMessages, assistantMessage];
         messagesRef.current = withReply;
         setMessages(withReply);
+        saveMessages(withReply);
       } catch {
         setError("Failed to connect. Please try again.");
       } finally {
@@ -79,14 +126,21 @@ export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
         isLoadingRef.current = false;
       }
     },
-    [apiUrl]
+    [apiUrl, saveMessages]
   );
 
   const clearMessages = useCallback(() => {
     messagesRef.current = [];
     setMessages([]);
     setError(null);
-  }, []);
+    if (persistMessages) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // localStorage may be unavailable
+      }
+    }
+  }, [persistMessages, storageKey]);
 
   return { messages, isLoading, error, sendMessage, clearMessages };
 }

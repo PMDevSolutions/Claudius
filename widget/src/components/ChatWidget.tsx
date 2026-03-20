@@ -9,6 +9,7 @@ export interface ChatWidgetProps {
   subtitle?: string;
   welcomeMessage?: string;
   placeholder?: string;
+  persistMessages?: boolean;
 }
 
 export function ChatWidget({
@@ -17,9 +18,13 @@ export function ChatWidget({
   subtitle,
   welcomeMessage,
   placeholder,
+  persistMessages,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, isLoading, error, sendMessage } = useChat({ apiUrl });
+  const { messages, isLoading, error, sendMessage } = useChat({
+    apiUrl,
+    persistMessages,
+  });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
 
