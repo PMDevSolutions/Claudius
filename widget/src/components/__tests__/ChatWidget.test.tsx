@@ -12,7 +12,7 @@ describe("ChatWidget", () => {
     expect(
       screen.getByRole("button", { name: /open chat/i })
     ).toBeInTheDocument();
-    expect(screen.queryByText("PMDS Chat")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chat")).not.toBeInTheDocument();
   });
 
   it("opens chat window on button click", async () => {
@@ -20,7 +20,7 @@ describe("ChatWidget", () => {
     render(<ChatWidget apiUrl="https://test.workers.dev" />);
 
     await user.click(screen.getByRole("button", { name: /open chat/i }));
-    expect(screen.getByText("PMDS Chat")).toBeInTheDocument();
+    expect(screen.getByText("Chat")).toBeInTheDocument();
   });
 
   it("closes chat window on second button click", async () => {
@@ -28,12 +28,12 @@ describe("ChatWidget", () => {
     render(<ChatWidget apiUrl="https://test.workers.dev" />);
 
     await user.click(screen.getByRole("button", { name: /open chat/i }));
-    expect(screen.getByText("PMDS Chat")).toBeInTheDocument();
+    expect(screen.getByText("Chat")).toBeInTheDocument();
 
     // Use header close button (first of two "Close chat" buttons)
     const closeButtons = screen.getAllByRole("button", { name: /close chat/i });
     await user.click(closeButtons[0]);
-    expect(screen.queryByText("PMDS Chat")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chat")).not.toBeInTheDocument();
   });
 
   it("preserves messages when toggling open/close", async () => {
@@ -47,7 +47,7 @@ describe("ChatWidget", () => {
 
     // Open and send a message
     await user.click(screen.getByRole("button", { name: /open chat/i }));
-    const input = screen.getByPlaceholderText(/ask me anything/i);
+    const input = screen.getByPlaceholderText(/type your message/i);
     await user.type(input, "Hi{enter}");
 
     // Wait for reply

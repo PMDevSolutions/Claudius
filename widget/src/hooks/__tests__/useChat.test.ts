@@ -35,14 +35,16 @@ describe("useChat", () => {
     });
 
     expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0]).toEqual({
+    expect(result.current.messages[0]).toMatchObject({
       role: "user",
       content: "Hi there",
     });
-    expect(result.current.messages[1]).toEqual({
+    expect(result.current.messages[0].id).toBeDefined();
+    expect(result.current.messages[1]).toMatchObject({
       role: "assistant",
       content: "Hello! How can I help?",
     });
+    expect(result.current.messages[1].id).toBeDefined();
   });
 
   it("sets error on failed fetch", async () => {

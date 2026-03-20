@@ -6,7 +6,7 @@ import { ChatInput } from "../ChatInput";
 describe("ChatInput", () => {
   it("renders input and submit button", () => {
     render(<ChatInput onSend={vi.fn()} isLoading={false} />);
-    expect(screen.getByPlaceholderText(/ask me anything/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/type your message/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
   });
 
@@ -15,7 +15,7 @@ describe("ChatInput", () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isLoading={false} />);
 
-    const input = screen.getByPlaceholderText(/ask me anything/i);
+    const input = screen.getByPlaceholderText(/type your message/i);
     await user.type(input, "What are your prices?");
     await user.click(screen.getByRole("button", { name: /send/i }));
 
@@ -26,7 +26,7 @@ describe("ChatInput", () => {
     const user = userEvent.setup();
     render(<ChatInput onSend={vi.fn()} isLoading={false} />);
 
-    const input = screen.getByPlaceholderText(/ask me anything/i);
+    const input = screen.getByPlaceholderText(/type your message/i);
     await user.type(input, "Hello");
     await user.click(screen.getByRole("button", { name: /send/i }));
 
@@ -38,7 +38,7 @@ describe("ChatInput", () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isLoading={false} />);
 
-    const input = screen.getByPlaceholderText(/ask me anything/i);
+    const input = screen.getByPlaceholderText(/type your message/i);
     await user.type(input, "Hello{enter}");
 
     expect(onSend).toHaveBeenCalledWith("Hello");
@@ -46,7 +46,7 @@ describe("ChatInput", () => {
 
   it("disables input and button when loading", () => {
     render(<ChatInput onSend={vi.fn()} isLoading={true} />);
-    expect(screen.getByPlaceholderText(/ask me anything/i)).toBeDisabled();
+    expect(screen.getByPlaceholderText(/type your message/i)).toBeDisabled();
     expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
   });
 

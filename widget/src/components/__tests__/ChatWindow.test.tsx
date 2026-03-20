@@ -12,13 +12,13 @@ describe("ChatWindow", () => {
         onSend={vi.fn()} onClose={vi.fn()}
       />
     );
-    expect(screen.getByText(/Hi! I'm Paul's assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/How can I help you today/i)).toBeInTheDocument();
   });
 
   it("renders messages", () => {
     const messages = [
-      { role: "user" as const, content: "What are your prices?" },
-      { role: "assistant" as const, content: "Prices start at $1,000." },
+      { id: "msg-1", role: "user" as const, content: "What are your prices?" },
+      { id: "msg-2", role: "assistant" as const, content: "Prices start at $1,000." },
     ];
     render(
       <ChatWindow
@@ -35,13 +35,13 @@ describe("ChatWindow", () => {
   it("shows typing indicator when loading", () => {
     render(
       <ChatWindow
-        messages={[{ role: "user", content: "Hi" }]}
+        messages={[{ id: "msg-1", role: "user", content: "Hi" }]}
         isLoading={true}
         error={null}
         onSend={vi.fn()} onClose={vi.fn()}
       />
     );
-    expect(screen.getByLabelText(/typing/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("shows error message", () => {
@@ -65,6 +65,6 @@ describe("ChatWindow", () => {
         onSend={vi.fn()} onClose={vi.fn()}
       />
     );
-    expect(screen.getByText("PMDS Chat")).toBeInTheDocument();
+    expect(screen.getByText("Chat")).toBeInTheDocument();
   });
 });

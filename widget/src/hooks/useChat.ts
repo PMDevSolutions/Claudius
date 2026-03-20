@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
-interface ChatMessage {
+export interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
 }
@@ -22,16 +23,31 @@ export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const idCounterRef = useRef(0);
+  const isLoadingRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  const nextId = () => {
+    idCounterRef.current += 1;
+    return `msg-${idCounterRef.current}`;
+  };
+
   const sendMessage = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
-      if (!trimmed || isLoading) return;
+      if (!trimmed || isLoadingRef.current) return;
 
-      const userMessage: ChatMessage = { role: "user", content: trimmed };
-      const updatedMessages = [...messages, userMessage];
+      const userMessage: ChatMessage = {
+        id: nextId(),
+        role: "user",
+        content: trimmed,
+      };
 
+      const updatedMessages = [...messagesRef.current, userMessage];
+      messagesRef.current = updatedMessages;
       setMessages(updatedMessages);
       setIsLoading(true);
+      isLoadingRef.current = true;
       setError(null);
 
       try {
@@ -49,20 +65,25 @@ export function useChat({ apiUrl }: UseChatOptions): UseChatReturn {
         }
 
         const assistantMessage: ChatMessage = {
+          id: nextId(),
           role: "assistant",
           content: data.reply,
         };
-        setMessages([...updatedMessages, assistantMessage]);
+        const withReply = [...updatedMessages, assistantMessage];
+        messagesRef.current = withReply;
+        setMessages(withReply);
       } catch {
         setError("Failed to connect. Please try again.");
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [messages, isLoading, apiUrl]
+    [apiUrl]
   );
 
   const clearMessages = useCallback(() => {
+    messagesRef.current = [];
     setMessages([]);
     setError(null);
   }, []);
