@@ -1,0 +1,6 @@
+{
+  "name": "pmds-chat-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-14",
+  "compatibility_flags": ["nodejs_compat"]
+}
