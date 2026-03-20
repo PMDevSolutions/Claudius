@@ -1,0 +1,88 @@
+import { useEffect, useRef } from "react";
+import { MessageBubble } from "./MessageBubble";
+import { ChatInput } from "./ChatInput";
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface ChatWindowProps {
+  messages: ChatMessage[];
+  isLoading: boolean;
+  error: string | null;
+  onSend: (message: string) => void;
+}
+
+function TypingIndicator() {
+  return (
+    <div aria-label="Typing" className="mr-auto flex max-w-[85%]">
+      <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-pmds-light-green px-4 py-3">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:0ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:150ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:300ms]" />
+      </div>
+    </div>
+  );
+}
+
+export function ChatWindow({
+  messages,
+  isLoading,
+  error,
+  onSend,
+}: ChatWindowProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  return (
+    <div className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-card bg-white shadow-2xl font-body">
+      {/* Header */}
+      <div className="flex items-center gap-3 bg-pmds-blue px-5 py-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
+          P
+        </div>
+        <div>
+          <h2 className="text-sm font-heading font-semibold text-white">
+            PMDS Chat
+          </h2>
+          <p className="text-xs text-white/70">
+            Ask me anything about our services
+          </p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {messages.length === 0 && !error && (
+          <div className="mr-auto flex max-w-[85%]">
+            <div className="rounded-2xl rounded-bl-sm bg-pmds-light-green px-4 py-2.5 text-sm leading-relaxed text-pmds-dark">
+              Hi! I&apos;m Paul&apos;s assistant. Ask me about web development
+              services, pricing, or anything else. How can I help?
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <MessageBubble key={i} role={msg.role} content={msg.content} />
+        ))}
+
+        {isLoading && <TypingIndicator />}
+
+        {error && (
+          <div className="mx-auto max-w-[90%] rounded-lg bg-red-50 px-3 py-2 text-center text-xs text-red-600">
+            {error}
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <ChatInput onSend={onSend} isLoading={isLoading} />
+    </div>
+  );
+}
