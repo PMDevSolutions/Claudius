@@ -48,6 +48,7 @@ scripts/__tests__/fixtures/
 # Cloudflare Workers
 .dev.vars
 .wrangler/
+wrangler.jsonc
 
 # IDE & Editor Files
 .DS_Store
