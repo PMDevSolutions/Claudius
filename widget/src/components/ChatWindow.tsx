@@ -23,7 +23,7 @@ interface ChatWindowProps {
 function TypingIndicator() {
   return (
     <div role="status" aria-live="polite" className="mr-auto flex max-w-[85%]">
-      <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-pmds-light-green px-4 py-3">
+      <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-pmds-light-green dark:bg-gray-800 px-4 py-3">
         <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:0ms]" />
         <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:150ms]" />
         <span className="h-2 w-2 animate-bounce rounded-full bg-pmds-gray [animation-delay:300ms]" />
@@ -53,7 +53,7 @@ export function ChatWindow({
   }, [messages, isLoading]);
 
   return (
-    <div className="fixed bottom-24 right-3 z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-card bg-white shadow-2xl font-body sm:right-6">
+    <div className="fixed bottom-24 right-3 z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-card bg-white dark:bg-gray-900 shadow-2xl font-body sm:right-6">
       {/* Header */}
       <div className="flex items-center gap-3 bg-pmds-blue px-5 py-4">
         <div
@@ -92,7 +92,7 @@ export function ChatWindow({
       >
         {messages.length === 0 && !error && (
           <div className="mr-auto flex max-w-[85%]">
-            <div className="rounded-2xl rounded-bl-sm bg-pmds-light-green px-4 py-2.5 text-sm leading-relaxed text-pmds-dark">
+            <div className="rounded-2xl rounded-bl-sm bg-pmds-light-green dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-pmds-dark dark:text-gray-200">
               {welcomeMessage}
             </div>
           </div>
@@ -105,7 +105,7 @@ export function ChatWindow({
         {isLoading && <TypingIndicator />}
 
         {error && (
-          <div role="alert" className="mx-auto max-w-[90%] rounded-lg bg-red-50 px-3 py-2 text-center text-xs text-red-600">
+          <div role="alert" className="mx-auto max-w-[90%] rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400">
             {error}
           </div>
         )}

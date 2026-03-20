@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: ["selector", '[data-claudius-dark="true"]'],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {

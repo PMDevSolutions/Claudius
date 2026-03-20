@@ -9,6 +9,8 @@ interface ClaudiusConfig {
   welcomeMessage?: string;
   placeholder?: string;
   persistMessages?: boolean;
+  theme?: "light" | "dark" | "auto";
+  accentColor?: string;
 }
 
 declare global {
@@ -36,6 +38,8 @@ function init() {
       welcomeMessage={config.welcomeMessage}
       placeholder={config.placeholder}
       persistMessages={config.persistMessages}
+      theme={config.theme}
+      accentColor={config.accentColor}
     />
   );
 }

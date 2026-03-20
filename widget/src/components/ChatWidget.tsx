@@ -10,6 +10,8 @@ export interface ChatWidgetProps {
   welcomeMessage?: string;
   placeholder?: string;
   persistMessages?: boolean;
+  theme?: "light" | "dark" | "auto";
+  accentColor?: string;
 }
 
 export function ChatWidget({
@@ -19,6 +21,8 @@ export function ChatWidget({
   welcomeMessage,
   placeholder,
   persistMessages,
+  theme = "light",
+  accentColor,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { messages, isLoading, error, sendMessage } = useChat({
@@ -27,6 +31,19 @@ export function ChatWidget({
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
+
+  const [osDark, setOsDark] = useState(false);
+
+  useEffect(() => {
+    if (theme !== "auto") return;
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setOsDark(mq.matches);
+
+    const handler = (e: MediaQueryListEvent) => setOsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [theme]);
 
   useEffect(() => {
     // Return focus to toggle button when chat closes
@@ -44,8 +61,14 @@ export function ChatWidget({
     setIsOpen((prev) => !prev);
   }, []);
 
+  const isDark = theme === "dark" || (theme === "auto" && osDark);
+
+  const wrapperStyle: React.CSSProperties | undefined = accentColor
+    ? ({ "--claudius-primary": accentColor } as React.CSSProperties)
+    : undefined;
+
   return (
-    <>
+    <div data-claudius-dark={isDark ? "true" : "false"} style={wrapperStyle}>
       {isOpen && (
         <ChatWindow
           messages={messages}
@@ -64,6 +87,6 @@ export function ChatWidget({
         isOpen={isOpen}
         onClick={handleToggle}
       />
-    </>
+    </div>
   );
 }

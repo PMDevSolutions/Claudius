@@ -22,7 +22,7 @@ function renderLink(rawUrl: string, key: string): ReactNode {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline font-medium hover:opacity-80"
+        className="underline font-medium hover:opacity-80 dark:text-blue-400"
       >
         {url.replace(/^https?:\/\//, "")}
         <span className="sr-only"> (opens in a new tab)</span>
@@ -93,7 +93,7 @@ export const MessageBubble = memo(function MessageBubble({
       className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-body ${
         isUser
           ? "bg-pmds-blue text-white rounded-br-sm"
-          : "bg-pmds-light-green text-pmds-dark rounded-bl-sm"
+          : "bg-pmds-light-green text-pmds-dark dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
       }`}
     >
       {renderFormattedContent(content)}

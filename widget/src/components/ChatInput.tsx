@@ -29,7 +29,7 @@ export function ChatInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 border-t border-gray-200 p-3">
+    <form onSubmit={handleSubmit} className="flex gap-2 border-t border-gray-200 dark:border-gray-700 dark:bg-gray-900 p-3">
       <input
         ref={inputRef}
         type="text"
@@ -38,7 +38,7 @@ export function ChatInput({
         placeholder={placeholder}
         disabled={isLoading}
         aria-label="Type your message"
-        className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-body text-pmds-dark placeholder:text-pmds-gray focus:border-pmds-blue focus:outline-none focus:ring-1 focus:ring-pmds-blue disabled:opacity-50"
+        className="flex-1 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400 px-3 py-2 text-sm font-body text-pmds-dark placeholder:text-pmds-gray focus:border-pmds-blue focus:outline-none focus:ring-1 focus:ring-pmds-blue disabled:opacity-50"
       />
       <button
         type="submit"
