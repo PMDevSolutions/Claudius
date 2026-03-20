@@ -36,15 +36,13 @@ Reporters will be credited in the release notes and changelog for the fix unless
 
 ### In Scope
 
-- Framework source code
-- Scripts (all files in `scripts/`)
-- Templates (all files in `templates/`)
-- Agent definitions (all files in `.claude/agents/`)
-- Pipeline configuration and skill definitions
+- Widget source code (`widget/src/`)
+- Worker source code (`worker/src/`)
+- Configuration files (`wrangler.toml`, `vite.config.ts`, etc.)
 
 ### Out of Scope
 
-- **Third-party dependencies** -- please report vulnerabilities in upstream packages through their own security reporting channels (e.g., npm advisories, GitHub Security Advisories for the respective project)
+- **Third-party dependencies**: Please report vulnerabilities in upstream packages through their own security reporting channels (e.g., npm advisories, GitHub Security Advisories for the respective project)
 - Issues that require physical access to a user's machine
 - Social engineering attacks
 

@@ -45,6 +45,10 @@ scripts/__tests__/fixtures/
 .env.test.local
 .env.production.local
 
+# Cloudflare Workers
+.dev.vars
+.wrangler/
+
 # IDE & Editor Files
 .DS_Store
 .vscode/
