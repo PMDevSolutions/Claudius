@@ -3,13 +3,12 @@ interface MessageBubbleProps {
   content: string;
 }
 
-const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+const URL_REGEX = /(https?:\/\/[^\s)]+)/;
 
 function renderContentWithLinks(content: string) {
   const parts = content.split(URL_REGEX);
   return parts.map((part, i) => {
     if (URL_REGEX.test(part)) {
-      URL_REGEX.lastIndex = 0;
       return (
         <a
           key={i}

@@ -29,11 +29,17 @@ export async function handleChat(
     throw new Error("Too many messages");
   }
 
-  // Sanitize: trim and cap individual message length
-  const sanitizedMessages = request.messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content.slice(0, MAX_MESSAGE_LENGTH).trim(),
-  }));
+  // Validate roles and sanitize content
+  const validRoles = new Set(["user", "assistant"]);
+  const sanitizedMessages = request.messages.map((msg) => {
+    if (!validRoles.has(msg.role)) {
+      throw new Error("Invalid message role");
+    }
+    return {
+      role: msg.role,
+      content: msg.content.slice(0, MAX_MESSAGE_LENGTH).trim(),
+    };
+  });
 
   const client = new Anthropic({ apiKey });
 

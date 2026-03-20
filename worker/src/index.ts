@@ -28,9 +28,15 @@ app.post("/api/chat", async (c) => {
     const result = await handleChat(body, c.env.ANTHROPIC_API_KEY);
     return c.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal error";
-    const status = message.includes("required") || message.includes("Too many") ? 400 : 500;
-    return c.json({ error: message }, status);
+    const message = error instanceof Error ? error.message : "";
+    const isClientError =
+      message.includes("required") ||
+      message.includes("Too many") ||
+      message.includes("Invalid message role");
+    if (isClientError) {
+      return c.json({ error: message }, 400);
+    }
+    return c.json({ error: "Something went wrong. Please try again." }, 500);
   }
 });
 

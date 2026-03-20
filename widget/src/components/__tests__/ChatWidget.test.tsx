@@ -30,7 +30,9 @@ describe("ChatWidget", () => {
     await user.click(screen.getByRole("button", { name: /open chat/i }));
     expect(screen.getByText("PMDS Chat")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /close chat/i }));
+    // Use header close button (first of two "Close chat" buttons)
+    const closeButtons = screen.getAllByRole("button", { name: /close chat/i });
+    await user.click(closeButtons[0]);
     expect(screen.queryByText("PMDS Chat")).not.toBeInTheDocument();
   });
 
@@ -51,8 +53,9 @@ describe("ChatWidget", () => {
     // Wait for reply
     expect(await screen.findByText("Hello!")).toBeInTheDocument();
 
-    // Close and reopen
-    await user.click(screen.getByRole("button", { name: /close chat/i }));
+    // Close via header button and reopen
+    const closeButtons = screen.getAllByRole("button", { name: /close chat/i });
+    await user.click(closeButtons[0]);
     await user.click(screen.getByRole("button", { name: /open chat/i }));
 
     // Messages should still be there

@@ -12,6 +12,7 @@ interface ChatWindowProps {
   isLoading: boolean;
   error: string | null;
   onSend: (message: string) => void;
+  onClose: () => void;
 }
 
 function TypingIndicator() {
@@ -31,6 +32,7 @@ export function ChatWindow({
   isLoading,
   error,
   onSend,
+  onClose,
 }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,13 +41,13 @@ export function ChatWindow({
   }, [messages, isLoading]);
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-card bg-white shadow-2xl font-body">
+    <div className="fixed bottom-24 right-3 z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] flex-col overflow-hidden rounded-card bg-white shadow-2xl font-body sm:right-6">
       {/* Header */}
       <div className="flex items-center gap-3 bg-pmds-blue px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
           P
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-sm font-heading font-semibold text-white">
             PMDS Chat
           </h2>
@@ -53,6 +55,16 @@ export function ChatWindow({
             Ask me anything about our services
           </p>
         </div>
+        <button
+          onClick={onClose}
+          aria-label="Close chat"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Messages */}

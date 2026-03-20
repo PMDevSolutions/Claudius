@@ -19,6 +19,7 @@ export function ChatWidget({ apiUrl }: ChatWidgetProps) {
           isLoading={isLoading}
           error={error}
           onSend={sendMessage}
+          onClose={() => setIsOpen(false)}
         />
       )}
       <ChatToggleButton isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />

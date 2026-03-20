@@ -9,7 +9,7 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error={null}
-        onSend={vi.fn()}
+        onSend={vi.fn()} onClose={vi.fn()}
       />
     );
     expect(screen.getByText(/Hi! I'm Paul's assistant/i)).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe("ChatWindow", () => {
         messages={messages}
         isLoading={false}
         error={null}
-        onSend={vi.fn()}
+        onSend={vi.fn()} onClose={vi.fn()}
       />
     );
     expect(screen.getByText("What are your prices?")).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe("ChatWindow", () => {
         messages={[{ role: "user", content: "Hi" }]}
         isLoading={true}
         error={null}
-        onSend={vi.fn()}
+        onSend={vi.fn()} onClose={vi.fn()}
       />
     );
     expect(screen.getByLabelText(/typing/i)).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error="Connection failed"
-        onSend={vi.fn()}
+        onSend={vi.fn()} onClose={vi.fn()}
       />
     );
     expect(screen.getByText(/Connection failed/i)).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error={null}
-        onSend={vi.fn()}
+        onSend={vi.fn()} onClose={vi.fn()}
       />
     );
     expect(screen.getByText("PMDS Chat")).toBeInTheDocument();
