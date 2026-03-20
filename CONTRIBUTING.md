@@ -1,6 +1,6 @@
-# Contributing to Aurelius
+# Contributing to Claudius
 
-Welcome, and thank you for your interest in contributing to Aurelius. Named after the Roman Emperor Marcus Aurelius — a leader known for discipline, thoughtful decision-making, and principled action — this project strives to bring those same qualities to modern app development. Aurelius is a Claude Code-integrated multi-framework app development framework built by PMDevSolutions, and contributions from the community are what make it better.
+Welcome, and thank you for your interest in contributing to Claudius. Named after the Roman Emperor Claudius, known for infrastructure, administration, and expanding connectivity across the empire, this project strives to bring those same qualities to modern app development. Claudius is an embeddable AI chat widget built by PMDevSolutions, and contributions from the community are what make it better.
 
 Whether you are fixing a bug, adding a feature, improving documentation, or suggesting an idea, we appreciate your time and effort.
 
@@ -11,8 +11,8 @@ Whether you are fixing a bug, adding a feature, improving documentation, or sugg
 1. **Fork and clone the repository:**
 
    ```bash
-   git clone https://github.com/<your-username>/aurelius.git
-   cd aurelius
+   git clone https://github.com/<your-username>/claudius.git
+   cd claudius
    ```
 
 2. **Install pnpm** if you do not already have it. This project uses pnpm exclusively — npm and yarn are not supported.
@@ -106,7 +106,7 @@ Branch names should be lowercase, use hyphens as separators, and be descriptive 
 
 ## Claude Code Agents
 
-Aurelius includes 51 specialized Claude Code agents and 18 skills that automate significant portions of the development workflow — from design-to-code conversion to testing, accessibility, and deployment.
+Claudius includes 51 specialized Claude Code agents and 18 skills that automate significant portions of the development workflow, from design-to-code conversion to testing, accessibility, and deployment.
 
 If you have Claude Code installed, these agents and skills are available to you automatically when working in this repository. They can assist with component development, test writing, visual QA, and much more.
 
@@ -140,4 +140,4 @@ Harassment, discrimination, and disruptive behavior will not be tolerated. Maint
 
 ---
 
-Thank you for contributing to Aurelius. Your work helps make multi-framework development more accessible, reliable, and efficient for everyone.
+Thank you for contributing to Claudius. Your work helps make AI-powered chat widgets more accessible, reliable, and efficient for everyone.

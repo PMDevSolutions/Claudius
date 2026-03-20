@@ -1,7 +1,7 @@
 {
-  "name": "aurelius",
+  "name": "claudius",
   "version": "0.5.0",
-  "description": "Claude Code-integrated React app development framework with specialized agents, skills, and Figma-to-React pipeline",
+  "description": "Embeddable AI chat widget for PMDS and client sites. React component + standalone script embed, powered by Cloudflare Workers and Claude.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,14 +14,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/PMDevSolutions/Aurelius.git"
+    "url": "https://github.com/PMDevSolutions/Claudius.git"
   },
   "keywords": [
-    "claude-code",
     "react",
-    "figma",
-    "chrome-extension",
-    "template"
+    "chat-widget",
+    "ai-chat",
+    "claude",
+    "cloudflare-workers",
+    "embeddable-widget",
+    "typescript"
   ],
   "author": "PAMulligan",
   "license": "MIT",

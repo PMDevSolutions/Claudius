@@ -11,7 +11,7 @@ Only the latest release on the `main` branch is actively supported with security
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Aurelius, please report it responsibly. **Do not open a public GitHub issue for security vulnerabilities.**
+If you discover a security vulnerability in Claudius, please report it responsibly. **Do not open a public GitHub issue for security vulnerabilities.**
 
 ### How to Report
 
