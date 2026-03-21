@@ -85,7 +85,7 @@ export function useChat({
     fallback?: string
   ): string => {
     if (!translations) {
-      return fallback ?? translations?.errorGeneric ?? "Something went wrong. Please try again.";
+      return fallback ?? "Something went wrong. Please try again.";
     }
 
     switch (code) {
