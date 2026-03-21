@@ -1,0 +1,23 @@
+{
+  "$schema": "./_schema.json",
+  "name": "Example Corp",
+  "slug": "example",
+  "apiUrl": "https://example-chat.workers.dev/api/chat",
+  "allowedDomains": ["example.com", "www.example.com"],
+  "widget": {
+    "title": "Example Support",
+    "subtitle": "How can we help?",
+    "welcomeMessage": "Hi! Welcome to Example Corp. How can I help you today?",
+    "placeholder": "Ask us anything...",
+    "theme": "light",
+    "position": "bottom-right",
+    "accentColor": "#2563eb"
+  },
+  "worker": {
+    "model": "claude-haiku-4-5-20251001",
+    "maxTokens": 1024,
+    "rateLimitMinute": 10,
+    "rateLimitHour": 50,
+    "systemPrompt": "./example-system-prompt.md"
+  }
+}
