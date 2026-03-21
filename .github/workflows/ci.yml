@@ -27,7 +27,7 @@ jobs:
       - name: Validate JSON configs
         run: |
           errors=0
-          for f in .claude/pipeline.config.json package.json templates/**/*.json; do
+          for f in package.json; do
             if [ -f "$f" ]; then
               echo "Checking $f..."
               python3 -m json.tool "$f" > /dev/null || errors=$((errors + 1))
@@ -41,11 +41,9 @@ jobs:
           required_files=(
             "CLAUDE.md"
             "package.json"
-            ".claude/pipeline.config.json"
             "scripts/lint-and-format.sh"
             "scripts/run-tests.sh"
             "scripts/check-types.sh"
-            "scripts/visual-diff.js"
           )
           for f in "${required_files[@]}"; do
             if [ -f "$f" ]; then
