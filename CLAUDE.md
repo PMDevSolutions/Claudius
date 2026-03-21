@@ -110,6 +110,15 @@ Manages chat state:
 - `sendMessage(text)` - Send a message to the API
 - `clearMessages()` - Clear chat history
 
+### API Client
+
+`ChatApiClient` in `widget/src/api/client.ts` handles communication with the Worker:
+- Typed requests/responses (`ChatRequest`, `ChatResponse`)
+- Retry on 429 (respects `Retry-After`) and 503 (exponential backoff: 1s, 3s)
+- Max 2 retries (3 total attempts)
+- Debounced sends (configurable, default 300ms)
+- Typed errors (`ChatApiError` with status/code, `DebounceError`)
+
 ### Worker API
 
 | Endpoint | Method | Description |
