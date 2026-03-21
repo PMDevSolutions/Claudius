@@ -40,6 +40,16 @@ claudius/
 │   ├── wrangler.toml                # Cloudflare config
 │   ├── .dev.vars.example            # Local secrets template
 │   └── package.json
+├── clients/                # Per-client configs
+│   ├── _schema.json                 # JSON Schema for validation
+│   ├── example.json                 # Example client config
+│   └── example-system-prompt.md     # Example system prompt
+├── scripts/                # CLI and build tooling
+│   ├── cli.ts                       # CLI entry point
+│   ├── lib/
+│   │   ├── config.ts                # Config loader/validator
+│   │   └── snippet.ts               # Embed snippet generator
+│   └── vitest.config.ts
 ├── .gitignore
 ├── package.json            # Root package
 ├── README.md
@@ -154,6 +164,37 @@ The widget uses Tailwind CSS with custom colors defined in `widget/tailwind.conf
 - `pmds-dark` - Text color
 - `pmds-gray` - Secondary text
 - `pmds-light-green` - Assistant message background
+
+## Multi-Client Configuration
+
+### Client Config Files
+
+Each client gets a JSON config file in `clients/`:
+
+```bash
+pnpm claudius init acme        # Scaffold new client
+pnpm claudius validate acme    # Validate config
+pnpm claudius snippet acme     # Generate embed snippets
+```
+
+Config files reference `clients/_schema.json` for IDE autocomplete. See `clients/example.json` for the full schema.
+
+### Client Config Structure
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Human-readable client name |
+| `slug` | Yes | URL-safe identifier (must match filename) |
+| `apiUrl` | Yes | Worker chat endpoint URL |
+| `allowedDomains` | Yes | Domains where widget may be embedded |
+| `widget` | No | Widget appearance (title, theme, colors) |
+| `worker` | No | Worker settings (model, rate limits, system prompt) |
+
+### Scripts Tests
+
+```bash
+pnpm test:scripts  # Run config/snippet/CLI tests
+```
 
 ## Testing
 

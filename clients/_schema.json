@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "claudius-client-config",
+  "title": "Claudius Client Configuration",
+  "type": "object",
+  "required": ["name", "slug", "apiUrl", "allowedDomains"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable client name",
+      "minLength": 1
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-safe identifier (lowercase alphanumeric and hyphens)",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "apiUrl": {
+      "type": "string",
+      "description": "Full URL to the client's Claudius Worker chat endpoint",
+      "format": "uri"
+    },
+    "allowedDomains": {
+      "type": "array",
+      "description": "Domains where this widget may be embedded",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "widget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "welcomeMessage": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark", "auto"] },
+        "position": {
+          "type": "string",
+          "enum": ["bottom-right", "bottom-left", "top-right", "top-left"]
+        },
+        "accentColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    },
+    "worker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "maxTokens": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "rateLimitMinute": { "type": "integer", "minimum": 1 },
+        "rateLimitHour": { "type": "integer", "minimum": 1 },
+        "systemPrompt": {
+          "type": "string",
+          "description": "Relative path to a markdown file containing the system prompt"
+        }
+      }
+    }
+  }
+}
