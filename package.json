@@ -9,8 +9,7 @@
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
     "release:patch": "standard-version --release-as patch",
-    "release:dry": "standard-version --dry-run",
-    "new-app": "node scripts/create-app.js"
+    "release:dry": "standard-version --dry-run"
   },
   "repository": {
     "type": "git",
@@ -28,9 +27,6 @@
   "author": "PAMulligan",
   "license": "MIT",
   "devDependencies": {
-    "pixelmatch": "^7.1.0",
-    "pngjs": "^7.0.0",
-    "standard-version": "^9.5.0",
-    "vitest": "^4.1.0"
+    "standard-version": "^9.5.0"
   }
 }

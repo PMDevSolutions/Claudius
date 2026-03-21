@@ -1,15 +1,5 @@
 {
   "mcpServers": {
-    "figma-desktop": {
-      "type": "http",
-      "url": "http://127.0.0.1:3845/mcp",
-      "description": "Figma desktop app MCP server (local) - requires Figma desktop with Dev Mode enabled"
-    },
-    "figma": {
-      "type": "http",
-      "url": "https://mcp.figma.com/mcp",
-      "description": "Figma remote MCP server (fallback)"
-    },
     "playwright": {
       "command": "cmd",
       "args": ["/c", "npx", "@playwright/mcp@latest", "--headless"],
