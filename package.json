@@ -10,7 +10,8 @@
     "release:major": "standard-version --release-as major",
     "release:patch": "standard-version --release-as patch",
     "release:dry": "standard-version --dry-run",
-    "claudius": "tsx scripts/cli.ts"
+    "claudius": "tsx scripts/cli.ts",
+    "test:scripts": "cd scripts && npx vitest run --config vitest.config.ts"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "license": "MIT",
   "devDependencies": {
     "standard-version": "^9.5.0",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "vitest": "^4.1.0"
   }
 }
