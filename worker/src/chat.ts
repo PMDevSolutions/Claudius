@@ -14,12 +14,20 @@ export interface ChatResponse {
   reply: string;
 }
 
+export interface ChatConfig {
+  model?: string;
+  maxTokens?: number;
+}
+
 const MAX_MESSAGES = 100;
 const MAX_MESSAGE_LENGTH = 2000;
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MAX_TOKENS = 1024;
 
 export async function handleChat(
   request: ChatRequest,
-  apiKey: string
+  apiKey: string,
+  config: ChatConfig = {}
 ): Promise<ChatResponse> {
   if (!request.messages || request.messages.length === 0) {
     throw new Error("Messages array is required");
@@ -44,8 +52,8 @@ export async function handleChat(
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
+    model: config.model ?? DEFAULT_MODEL,
+    max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: sanitizedMessages,
   });

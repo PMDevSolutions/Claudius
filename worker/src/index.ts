@@ -7,6 +7,16 @@ interface Env {
   ANTHROPIC_API_KEY: string;
   ALLOWED_ORIGIN: string;
   RATE_LIMIT: KVNamespace;
+  // Optional configuration
+  CLAUDE_MODEL?: string;
+  MAX_TOKENS?: string;
+  RATE_LIMIT_MINUTE?: string;
+  RATE_LIMIT_HOUR?: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+  code?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -34,28 +44,81 @@ app.post("/api/chat", async (c) => {
       c.req.header("x-forwarded-for") ||
       "unknown";
 
-    const rateLimit = await checkRateLimit(c.env.RATE_LIMIT, clientIp);
+    const rateLimitConfig = {
+      minuteLimit: c.env.RATE_LIMIT_MINUTE
+        ? parseInt(c.env.RATE_LIMIT_MINUTE, 10)
+        : undefined,
+      hourLimit: c.env.RATE_LIMIT_HOUR
+        ? parseInt(c.env.RATE_LIMIT_HOUR, 10)
+        : undefined,
+    };
+
+    const rateLimit = await checkRateLimit(
+      c.env.RATE_LIMIT,
+      clientIp,
+      rateLimitConfig
+    );
 
     if (!rateLimit.allowed) {
-      return c.json(
-        { error: "Too many requests. Please try again in a moment." },
-        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } }
+      const errorMessage =
+        rateLimit.limitType === "minute"
+          ? "Too many requests. Please wait a minute before trying again."
+          : "Hourly limit reached. Please try again later.";
+
+      return c.json<ErrorResponse>(
+        { error: errorMessage, code: "RATE_LIMITED" },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfter) },
+        }
       );
     }
 
     const body = await c.req.json<ChatRequest>();
-    const result = await handleChat(body, c.env.ANTHROPIC_API_KEY);
+
+    const chatConfig = {
+      model: c.env.CLAUDE_MODEL,
+      maxTokens: c.env.MAX_TOKENS ? parseInt(c.env.MAX_TOKENS, 10) : undefined,
+    };
+
+    const result = await handleChat(body, c.env.ANTHROPIC_API_KEY, chatConfig);
     return c.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    const isClientError =
+
+    // Client errors (bad input)
+    if (
       message.includes("required") ||
       message.includes("Too many") ||
-      message.includes("Invalid message role");
-    if (isClientError) {
-      return c.json({ error: message }, 400);
+      message.includes("Invalid message role")
+    ) {
+      return c.json<ErrorResponse>(
+        { error: message, code: "VALIDATION_ERROR" },
+        400
+      );
     }
-    return c.json({ error: "Something went wrong. Please try again." }, 500);
+
+    // API key issues
+    if (message.includes("authentication") || message.includes("api_key")) {
+      return c.json<ErrorResponse>(
+        { error: "Service configuration error. Please try again later.", code: "CONFIG_ERROR" },
+        500
+      );
+    }
+
+    // Model/API errors
+    if (message.includes("model") || message.includes("overloaded")) {
+      return c.json<ErrorResponse>(
+        { error: "AI service temporarily unavailable. Please try again.", code: "SERVICE_ERROR" },
+        503
+      );
+    }
+
+    // Generic fallback
+    return c.json<ErrorResponse>(
+      { error: "Something went wrong. Please try again.", code: "UNKNOWN_ERROR" },
+      500
+    );
   }
 });
 

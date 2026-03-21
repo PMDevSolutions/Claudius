@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import type { ClaudiusTranslations } from "../i18n";
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +10,7 @@ export interface ChatMessage {
 interface UseChatOptions {
   apiUrl: string;
   persistMessages?: boolean;
+  translations?: ClaudiusTranslations;
 }
 
 interface UseChatReturn {
@@ -46,6 +48,7 @@ function loadMessages(storageKey: string): ChatMessage[] {
 export function useChat({
   apiUrl,
   persistMessages = true,
+  translations,
 }: UseChatOptions): UseChatReturn {
   const storageKey = getStorageKey(apiUrl);
 
@@ -77,6 +80,30 @@ export function useChat({
     return `msg-${idCounterRef.current}`;
   };
 
+  const getErrorMessage = (
+    code?: string,
+    fallback?: string
+  ): string => {
+    if (!translations) {
+      return fallback ?? translations?.errorGeneric ?? "Something went wrong. Please try again.";
+    }
+
+    switch (code) {
+      case "RATE_LIMITED":
+        // Check the message to determine minute vs hour
+        if (fallback?.includes("minute")) {
+          return translations.errorRateLimitMinute;
+        }
+        return translations.errorRateLimitHour;
+      case "VALIDATION_ERROR":
+      case "CONFIG_ERROR":
+      case "SERVICE_ERROR":
+      case "UNKNOWN_ERROR":
+      default:
+        return fallback ?? translations.errorGeneric;
+    }
+  };
+
   const sendMessage = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
@@ -106,7 +133,8 @@ export function useChat({
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || "Something went wrong");
+          const errorMsg = getErrorMessage(data.code, data.error);
+          setError(errorMsg);
           return;
         }
 
@@ -120,13 +148,16 @@ export function useChat({
         setMessages(withReply);
         saveMessages(withReply);
       } catch {
-        setError("Failed to connect. Please try again.");
+        setError(
+          translations?.errorConnection ??
+            "Failed to connect. Please try again."
+        );
       } finally {
         setIsLoading(false);
         isLoadingRef.current = false;
       }
     },
-    [apiUrl, saveMessages]
+    [apiUrl, saveMessages, translations]
   );
 
   const clearMessages = useCallback(() => {

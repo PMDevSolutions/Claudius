@@ -1,9 +1,16 @@
-name = "chat-worker"
+name = "claudius-chat-worker"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 [vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
+# Optional: Configure Claude model (default: claude-haiku-4-5-20251001)
+# CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+# Optional: Configure max response tokens (default: 1024)
+# MAX_TOKENS = "1024"
+# Optional: Configure rate limits (defaults: 10/min, 50/hr)
+# RATE_LIMIT_MINUTE = "10"
+# RATE_LIMIT_HOUR = "50"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"

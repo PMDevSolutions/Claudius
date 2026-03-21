@@ -1,7 +1,18 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useChat } from "../hooks/useChat";
 import { ChatToggleButton } from "./ChatToggleButton";
 import { ChatWindow } from "./ChatWindow";
+import {
+  ClaudiusTranslations,
+  defaultTranslations,
+  createTranslations,
+} from "../i18n";
+
+export type WidgetPosition =
+  | "bottom-right"
+  | "bottom-left"
+  | "top-right"
+  | "top-left";
 
 export interface ChatWidgetProps {
   apiUrl: string;
@@ -12,6 +23,8 @@ export interface ChatWidgetProps {
   persistMessages?: boolean;
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
+  position?: WidgetPosition;
+  translations?: Partial<ClaudiusTranslations>;
 }
 
 export function ChatWidget({
@@ -23,11 +36,20 @@ export function ChatWidget({
   persistMessages,
   theme = "light",
   accentColor,
+  position = "bottom-right",
+  translations: translationOverrides,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const translations = useMemo(
+    () => createTranslations(translationOverrides),
+    [translationOverrides]
+  );
+
   const { messages, isLoading, error, sendMessage } = useChat({
     apiUrl,
     persistMessages,
+    translations,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
@@ -76,17 +98,25 @@ export function ChatWidget({
           error={error}
           onSend={sendMessage}
           onClose={handleClose}
-          title={title}
-          subtitle={subtitle}
-          welcomeMessage={welcomeMessage}
-          placeholder={placeholder}
+          title={title ?? translations.title}
+          subtitle={subtitle ?? translations.subtitle}
+          welcomeMessage={welcomeMessage ?? translations.welcomeMessage}
+          placeholder={placeholder ?? translations.placeholder}
+          position={position}
+          translations={translations}
         />
       )}
       <ChatToggleButton
         ref={toggleRef}
         isOpen={isOpen}
         onClick={handleToggle}
+        position={position}
+        translations={translations}
       />
     </div>
   );
 }
+
+// Re-export for convenience
+export { defaultTranslations, createTranslations };
+export type { ClaudiusTranslations };

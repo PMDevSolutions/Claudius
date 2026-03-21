@@ -1,5 +1,5 @@
 {
-  "name": "pmds-chat-worker",
+  "name": "claudius-chat-worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",

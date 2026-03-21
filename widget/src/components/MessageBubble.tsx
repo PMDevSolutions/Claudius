@@ -90,10 +90,10 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-body ${
+      className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%] rounded-bubble px-4 py-2.5 text-sm leading-relaxed font-body ${
         isUser
-          ? "bg-pmds-blue text-white rounded-br-sm"
-          : "bg-pmds-light-green text-pmds-dark dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
+          ? "bg-claudius-user-bg text-claudius-user-text rounded-br-sm"
+          : "bg-claudius-assistant-bg text-claudius-assistant-text dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
       }`}
     >
       {renderFormattedContent(content)}

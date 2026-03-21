@@ -1,17 +1,27 @@
-const MINUTE_LIMIT = 10;
-const HOUR_LIMIT = 50;
+const DEFAULT_MINUTE_LIMIT = 10;
+const DEFAULT_HOUR_LIMIT = 50;
 const MINUTE_TTL = 60;
 const HOUR_TTL = 3600;
+
+export interface RateLimitConfig {
+  minuteLimit?: number;
+  hourLimit?: number;
+}
 
 export interface RateLimitResult {
   allowed: boolean;
   retryAfter?: number;
+  limitType?: "minute" | "hour";
 }
 
 export async function checkRateLimit(
   kv: KVNamespace,
-  ip: string
+  ip: string,
+  config: RateLimitConfig = {}
 ): Promise<RateLimitResult> {
+  const minuteLimit = config.minuteLimit ?? DEFAULT_MINUTE_LIMIT;
+  const hourLimit = config.hourLimit ?? DEFAULT_HOUR_LIMIT;
+
   const minuteKey = `rate:min:${ip}`;
   const hourKey = `rate:hr:${ip}`;
 
@@ -20,12 +30,12 @@ export async function checkRateLimit(
     kv.get(hourKey).then((v) => parseInt(v || "0", 10)),
   ]);
 
-  if (minuteCount >= MINUTE_LIMIT) {
-    return { allowed: false, retryAfter: MINUTE_TTL };
+  if (minuteCount >= minuteLimit) {
+    return { allowed: false, retryAfter: MINUTE_TTL, limitType: "minute" };
   }
 
-  if (hourCount >= HOUR_LIMIT) {
-    return { allowed: false, retryAfter: HOUR_TTL };
+  if (hourCount >= hourLimit) {
+    return { allowed: false, retryAfter: HOUR_TTL, limitType: "hour" };
   }
 
   await Promise.all([
