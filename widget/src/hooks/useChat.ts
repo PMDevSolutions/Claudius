@@ -1,11 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type { ClaudiusTranslations } from "../i18n";
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
+import type { ChatMessage } from "../api/types";
+import { ChatApiClient } from "../api/client";
+import { ChatApiError, DebounceError } from "../api/errors";
 
 interface UseChatOptions {
   apiUrl: string;
@@ -50,6 +47,11 @@ export function useChat({
   persistMessages = true,
   translations,
 }: UseChatOptions): UseChatReturn {
+  const client = useMemo(
+    () => new ChatApiClient(apiUrl, { debounceMs: 0 }),
+    [apiUrl],
+  );
+
   const storageKey = getStorageKey(apiUrl);
 
   const initialMessages = persistMessages ? loadMessages(storageKey) : [];
@@ -124,19 +126,7 @@ export function useChat({
       setError(null);
 
       try {
-        const response = await fetch(`${apiUrl}/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: updatedMessages }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          const errorMsg = getErrorMessage(data.code, data.error);
-          setError(errorMsg);
-          return;
-        }
+        const data = await client.sendMessage(updatedMessages);
 
         const assistantMessage: ChatMessage = {
           id: nextId(),
@@ -147,17 +137,22 @@ export function useChat({
         messagesRef.current = withReply;
         setMessages(withReply);
         saveMessages(withReply);
-      } catch {
-        setError(
-          translations?.errorConnection ??
-            "Failed to connect. Please try again."
-        );
+      } catch (err) {
+        if (err instanceof DebounceError) return;
+        if (err instanceof ChatApiError) {
+          setError(getErrorMessage(err.code, err.message));
+        } else {
+          setError(
+            translations?.errorConnection ??
+              "Failed to connect. Please try again.",
+          );
+        }
       } finally {
         setIsLoading(false);
         isLoadingRef.current = false;
       }
     },
-    [apiUrl, saveMessages, translations]
+    [client, saveMessages, translations]
   );
 
   const clearMessages = useCallback(() => {
@@ -175,3 +170,5 @@ export function useChat({
 
   return { messages, isLoading, error, sendMessage, clearMessages };
 }
+
+export type { ChatMessage };

@@ -24,6 +24,8 @@ describe("useChat", () => {
   it("sends message and receives reply", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
+      headers: new Headers(),
       json: () => Promise.resolve({ reply: "Hello! How can I help?" }),
     });
 
@@ -51,7 +53,9 @@ describe("useChat", () => {
   it("sets error on failed fetch", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      json: () => Promise.resolve({ error: "Server error" }),
+      status: 500,
+      headers: new Headers(),
+      json: () => Promise.resolve({ error: "Server error", code: "UNKNOWN_ERROR" }),
     });
 
     const { result } = renderHook(() =>
@@ -88,6 +92,8 @@ describe("useChat", () => {
     await act(async () => {
       resolvePromise!({
         ok: true,
+        status: 200,
+        headers: new Headers(),
         json: () => Promise.resolve({ reply: "Hello!" }),
       });
       await sendPromise;
@@ -108,6 +114,8 @@ describe("conversation persistence", () => {
   it("saves messages to localStorage after receiving a reply", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
+      headers: new Headers(),
       json: () => Promise.resolve({ reply: "Hello! How can I help?" }),
     });
 
@@ -172,6 +180,8 @@ describe("conversation persistence", () => {
   it("does not persist when persistMessages is false", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
+      headers: new Headers(),
       json: () => Promise.resolve({ reply: "Hello!" }),
     });
 
