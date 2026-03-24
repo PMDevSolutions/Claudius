@@ -1,8 +1,13 @@
 import { memo, type ReactNode } from "react";
+import { SourceIcon } from "./SourceIcon";
+import type { Source } from "../api/types";
 
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
+  sources?: Source[];
+  onSourceClick?: () => void;
+  isSourceActive?: boolean;
 }
 
 const URL_REGEX = /(https?:\/\/[^\s)]+)/;
@@ -85,18 +90,32 @@ function renderFormattedContent(content: string): ReactNode[] {
 export const MessageBubble = memo(function MessageBubble({
   role,
   content,
+  sources,
+  onSourceClick,
+  isSourceActive,
 }: MessageBubbleProps) {
   const isUser = role === "user";
 
   return (
-    <div
-      className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%] rounded-bubble px-4 py-2.5 text-sm leading-relaxed font-body ${
-        isUser
-          ? "bg-claudius-user-bg text-claudius-user-text rounded-br-sm"
-          : "bg-claudius-assistant-bg text-claudius-assistant-text dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
-      }`}
-    >
-      {renderFormattedContent(content)}
+    <div className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%]`}>
+      <div
+        className={`rounded-bubble px-4 py-2.5 text-sm leading-relaxed font-body ${
+          isUser
+            ? "bg-claudius-user-bg text-claudius-user-text rounded-br-sm"
+            : "bg-claudius-assistant-bg text-claudius-assistant-text dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
+        }`}
+      >
+        {renderFormattedContent(content)}
+      </div>
+      {!isUser && sources && sources.length > 0 && onSourceClick && (
+        <div className="mt-1">
+          <SourceIcon
+            count={sources.length}
+            isActive={isSourceActive ?? false}
+            onClick={onSourceClick}
+          />
+        </div>
+      )}
     </div>
   );
 });
