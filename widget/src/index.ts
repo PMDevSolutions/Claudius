@@ -9,6 +9,7 @@ export { ChatApiClient } from "./api/client";
 export type { ChatApiClientOptions } from "./api/client";
 export { ChatApiError, DebounceError } from "./api/errors";
 export type {
+  Source,
   ChatMessage,
   ChatRequest,
   ChatResponse,
