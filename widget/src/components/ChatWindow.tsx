@@ -1,13 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
+import { ChatSources } from "./ChatSources";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
+import type { Source } from "../api/types";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  sources?: Source[];
 }
 
 interface ChatWindowProps {
@@ -57,6 +60,7 @@ export function ChatWindow({
   translations,
 }: ChatWindowProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -108,36 +112,60 @@ export function ChatWindow({
         </button>
       </div>
 
-      {/* Messages */}
-      <div
-        ref={messagesContainerRef}
-        role="log"
-        aria-live="polite"
-        aria-label={messagesLabel}
-        className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
-      >
-        {messages.length === 0 && !error && (
-          <div className="mr-auto flex max-w-[85%]">
-            <div className="rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-claudius-dark dark:text-gray-200">
-              {welcomeMessage}
+      {/* Messages area */}
+      <div className="relative flex-1 overflow-hidden">
+        {/* Sources sidebar */}
+        {activeSources && (
+          <ChatSources
+            sources={activeSources.sources}
+            onClose={() => setActiveSources(null)}
+          />
+        )}
+
+        {/* Messages */}
+        <div
+          ref={messagesContainerRef}
+          role="log"
+          aria-live="polite"
+          aria-label={messagesLabel}
+          className="h-full space-y-3 overflow-y-auto px-4 py-4"
+        >
+          {messages.length === 0 && !error && (
+            <div className="mr-auto flex max-w-[85%]">
+              <div className="rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-claudius-dark dark:text-gray-200">
+                {welcomeMessage}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} role={msg.role} content={msg.content} />
-        ))}
+          {messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              role={msg.role}
+              content={msg.content}
+              sources={msg.sources}
+              isSourceActive={activeSources?.messageId === msg.id}
+              onSourceClick={() => {
+                if (activeSources?.messageId === msg.id) {
+                  setActiveSources(null);
+                } else if (msg.sources && msg.sources.length > 0) {
+                  setActiveSources({ messageId: msg.id, sources: msg.sources });
+                }
+              }}
+            />
+          ))}
 
-        {isLoading && <TypingIndicator />}
+          {isLoading && <TypingIndicator />}
 
-        {error && (
-          <div
-            role="alert"
-            className="mx-auto max-w-[90%] rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400"
-          >
-            {error}
-          </div>
-        )}
+          {error && (
+            <div
+              role="alert"
+              className="mx-auto max-w-[90%] rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400"
+            >
+              {error}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input */}
