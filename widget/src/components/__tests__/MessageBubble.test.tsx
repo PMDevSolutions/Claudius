@@ -1,20 +1,31 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi } from "vitest";
 import { MessageBubble } from "../MessageBubble";
+import type { Source } from "../../api/types";
+
+const mockSources: Source[] = [
+  { url: "https://pmds.info/blog/test", title: "Test Post", type: "blog" },
+  { url: "https://pmds.info/services", title: "Services", type: "page" },
+];
 
 describe("MessageBubble", () => {
   it("renders user message with correct styling", () => {
     render(<MessageBubble role="user" content="Hello!" />);
     const bubble = screen.getByText("Hello!");
     expect(bubble).toBeInTheDocument();
-    expect(bubble.closest("div")).toHaveClass("ml-auto");
+    // ml-auto is on the outer wrapper div (parent of the bubble div)
+    const innerDiv = bubble.closest("div");
+    expect(innerDiv?.parentElement).toHaveClass("ml-auto");
   });
 
   it("renders assistant message with correct styling", () => {
     render(<MessageBubble role="assistant" content="How can I help?" />);
     const bubble = screen.getByText("How can I help?");
     expect(bubble).toBeInTheDocument();
-    expect(bubble.closest("div")).toHaveClass("mr-auto");
+    // mr-auto is on the outer wrapper div (parent of the bubble div)
+    const innerDiv = bubble.closest("div");
+    expect(innerDiv?.parentElement).toHaveClass("mr-auto");
   });
 
   it("renders links as clickable anchors", () => {
@@ -28,5 +39,55 @@ describe("MessageBubble", () => {
     expect(link).toHaveAttribute("href", "https://pmds.info/contact");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("renders source icon for assistant messages with sources", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content="Here are resources."
+        sources={mockSources}
+        onSourceClick={vi.fn()}
+        isSourceActive={false}
+      />
+    );
+    expect(screen.getByRole("button", { name: /view sources/i })).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("does not render source icon for user messages", () => {
+    render(
+      <MessageBubble
+        role="user"
+        content="Hello"
+        sources={mockSources}
+        onSourceClick={vi.fn()}
+        isSourceActive={false}
+      />
+    );
+    expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
+  });
+
+  it("does not render source icon when no sources", () => {
+    render(
+      <MessageBubble role="assistant" content="No sources here." />
+    );
+    expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
+  });
+
+  it("calls onSourceClick when source icon is clicked", async () => {
+    const user = userEvent.setup();
+    const onSourceClick = vi.fn();
+    render(
+      <MessageBubble
+        role="assistant"
+        content="Resources."
+        sources={mockSources}
+        onSourceClick={onSourceClick}
+        isSourceActive={false}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /view sources/i }));
+    expect(onSourceClick).toHaveBeenCalledOnce();
   });
 });

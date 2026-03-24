@@ -132,6 +132,7 @@ export function useChat({
           id: nextId(),
           role: "assistant",
           content: data.reply,
+          sources: data.sources,
         };
         const withReply = [...updatedMessages, assistantMessage];
         messagesRef.current = withReply;

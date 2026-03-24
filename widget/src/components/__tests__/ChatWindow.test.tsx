@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { ChatWindow } from "../ChatWindow";
 
@@ -54,6 +55,84 @@ describe("ChatWindow", () => {
       />
     );
     expect(screen.getByText(/Connection failed/i)).toBeInTheDocument();
+  });
+
+  const messagesWithSources = [
+    { id: "msg-1", role: "user" as const, content: "Help me" },
+    {
+      id: "msg-2",
+      role: "assistant" as const,
+      content: "Here are resources.",
+      sources: [
+        { url: "https://pmds.info/blog/seo", title: "SEO Tips", type: "blog" as const },
+        { url: "https://pmds.info/services", title: "Services", type: "page" as const },
+      ],
+    },
+  ];
+
+  it("renders source icon on assistant messages with sources", () => {
+    render(
+      <ChatWindow
+        messages={messagesWithSources}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: /view sources/i })).toBeInTheDocument();
+  });
+
+  it("opens sources sidebar when source icon is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatWindow
+        messages={messagesWithSources}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /view sources/i }));
+    expect(screen.getByText("Sources")).toBeInTheDocument();
+    expect(screen.getByText("2 sources found")).toBeInTheDocument();
+    expect(screen.getByText("SEO Tips")).toBeInTheDocument();
+  });
+
+  it("closes sources sidebar when close button is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatWindow
+        messages={messagesWithSources}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /view sources/i }));
+    expect(screen.getByText("Sources")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /close sources/i }));
+    expect(screen.queryByText("Sources")).not.toBeInTheDocument();
+  });
+
+  it("toggles sidebar off when same source icon is clicked again", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatWindow
+        messages={messagesWithSources}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    const icon = screen.getByRole("button", { name: /view sources/i });
+    await user.click(icon);
+    expect(screen.getByText("Sources")).toBeInTheDocument();
+    await user.click(icon);
+    expect(screen.queryByText("Sources")).not.toBeInTheDocument();
   });
 
   it("renders header with title", () => {

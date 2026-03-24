@@ -100,6 +100,8 @@ pnpm test             # Run tests
 | `ChatInput` | Message input form with submit handling |
 | `ChatToggleButton` | Floating button to open/close chat |
 | `MessageBubble` | Renders individual messages with URL linking |
+| `ChatSources` | Slide-out sidebar displaying grouped source links |
+| `SourceIcon` | Icon button with badge count to trigger source sidebar |
 
 ### useChat Hook
 
@@ -139,7 +141,10 @@ Manages chat state:
 
 // Response
 {
-  reply: "How can I help you today?"
+  reply: "How can I help you today?",
+  sources?: [
+    { url: "https://...", title: "...", type: "blog" | "page" | "external" }
+  ]
 }
 ```
 

@@ -50,6 +50,36 @@ describe("useChat", () => {
     expect(result.current.messages[1].id).toBeDefined();
   });
 
+  it("includes sources from API response in assistant message", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({
+          reply: "Here are resources.",
+          sources: [
+            { url: "https://pmds.info/blog/test", title: "Test", type: "blog" },
+          ],
+        }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev" })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Help me");
+    });
+
+    const assistantMsg = result.current.messages.find(
+      (m) => m.role === "assistant"
+    );
+    expect(assistantMsg?.sources).toEqual([
+      { url: "https://pmds.info/blog/test", title: "Test", type: "blog" },
+    ]);
+  });
+
   it("sets error on failed fetch", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
