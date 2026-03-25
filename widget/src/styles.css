@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Bottom sheet slide-up animation */
+.claudius-bottom-sheet {
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.claudius-bottom-sheet[data-dragging="true"] {
+  transition: none;
+}
+
+/* Scrim fade */
+.claudius-scrim {
+  transition: opacity 300ms ease;
+}
+
+/* Reduced motion: replace slide with opacity, skip transforms */
+@media (prefers-reduced-motion: reduce) {
+  .claudius-bottom-sheet {
+    transition: opacity 200ms ease;
+    transform: none !important;
+  }
+
+  .claudius-scrim {
+    transition: opacity 150ms ease;
+  }
+}
