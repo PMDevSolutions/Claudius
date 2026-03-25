@@ -116,13 +116,15 @@ export function ChatWidget({
           isMobile={isMobile}
         />
       )}
-      <ChatToggleButton
-        ref={toggleRef}
-        isOpen={isOpen}
-        onClick={handleToggle}
-        position={position}
-        translations={translations}
-      />
+      {!(isOpen && isMobile) && (
+        <ChatToggleButton
+          ref={toggleRef}
+          isOpen={isOpen}
+          onClick={handleToggle}
+          position={position}
+          translations={translations}
+        />
+      )}
     </div>
   );
 }
