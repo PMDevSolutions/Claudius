@@ -147,3 +147,49 @@ describe("ChatWindow", () => {
     expect(screen.getByText("Chat")).toBeInTheDocument();
   });
 });
+
+describe("ChatWindow - mobile bottom sheet", () => {
+  it("renders with bottom sheet classes when isMobile is true", () => {
+    const { container } = render(
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        isMobile={true}
+      />
+    );
+    expect(container.querySelector(".claudius-bottom-sheet")).toBeInTheDocument();
+  });
+
+  it("does not render bottom sheet classes when isMobile is false", () => {
+    const { container } = render(
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        isMobile={false}
+      />
+    );
+    expect(container.querySelector(".claudius-bottom-sheet")).not.toBeInTheDocument();
+  });
+
+  it("renders drag handle when isMobile is true", () => {
+    const { container } = render(
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        isMobile={true}
+      />
+    );
+    // Drag handle is a small rounded bar
+    const handle = container.querySelector("[aria-hidden='true'] .rounded-full");
+    expect(handle).toBeInTheDocument();
+  });
+});
