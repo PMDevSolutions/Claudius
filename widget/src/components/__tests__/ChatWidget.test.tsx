@@ -63,3 +63,44 @@ describe("ChatWidget", () => {
     expect(screen.getByText("Hello!")).toBeInTheDocument();
   });
 });
+
+describe("ChatWidget - mobile bottom sheet", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn((query: string) => ({
+        matches: query === "(max-width: 639px)",
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+  });
+
+  it("renders scrim backdrop on mobile when open", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ChatWidget apiUrl="https://test.workers.dev" />
+    );
+    await user.click(screen.getByRole("button", { name: /open chat/i }));
+    expect(container.querySelector(".claudius-scrim")).toBeInTheDocument();
+  });
+
+  it("does not render scrim on desktop", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+    const user = userEvent.setup();
+    const { container } = render(
+      <ChatWidget apiUrl="https://test.workers.dev" />
+    );
+    await user.click(screen.getByRole("button", { name: /open chat/i }));
+    expect(container.querySelector(".claudius-scrim")).not.toBeInTheDocument();
+  });
+});

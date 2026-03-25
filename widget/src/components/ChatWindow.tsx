@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
 import type { Source } from "../api/types";
@@ -25,6 +26,7 @@ interface ChatWindowProps {
   placeholder?: string;
   position?: WidgetPosition;
   translations?: ClaudiusTranslations;
+  isMobile?: boolean;
 }
 
 function TypingIndicator() {
@@ -58,9 +60,17 @@ export function ChatWindow({
   placeholder,
   position = "bottom-right",
   translations,
+  isMobile = false,
 }: ChatWindowProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
+
+  const { offsetY } = useSwipeToDismiss(messagesContainerRef, onClose, isMobile);
+  const isDragging = offsetY !== 0;
+  const reducedMotion =
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -74,8 +84,24 @@ export function ChatWindow({
 
   return (
     <div
-      className={`fixed ${windowPositionClasses[position]} z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-card bg-white dark:bg-gray-900 shadow-2xl font-body`}
+      className={
+        isMobile
+          ? "claudius-bottom-sheet fixed inset-x-0 bottom-0 z-50 flex h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl font-body"
+          : `fixed ${windowPositionClasses[position]} z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-card bg-white dark:bg-gray-900 shadow-2xl font-body`
+      }
+      style={
+        isMobile && !reducedMotion
+          ? { transform: `translateY(${Math.max(0, offsetY)}px)` }
+          : undefined
+      }
+      data-dragging={isDragging || undefined}
     >
+      {isMobile && (
+        <div className="flex justify-center py-2" aria-hidden="true">
+          <div className="h-1 w-8 rounded-full bg-gray-300 dark:bg-gray-600" />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3 bg-claudius-primary px-5 py-4">
         <div

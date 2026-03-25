@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useChat } from "../hooks/useChat";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { ChatToggleButton } from "./ChatToggleButton";
 import { ChatWindow } from "./ChatWindow";
 import {
@@ -40,6 +41,7 @@ export function ChatWidget({
   translations: translationOverrides,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 639px)");
 
   const translations = useMemo(
     () => createTranslations(translationOverrides),
@@ -91,6 +93,13 @@ export function ChatWidget({
 
   return (
     <div data-claudius-dark={isDark ? "true" : "false"} style={wrapperStyle}>
+      {isOpen && isMobile && (
+        <div
+          className="claudius-scrim fixed inset-0 z-40 bg-black/50"
+          onClick={handleClose}
+          aria-hidden="true"
+        />
+      )}
       {isOpen && (
         <ChatWindow
           messages={messages}
@@ -104,15 +113,18 @@ export function ChatWidget({
           placeholder={placeholder ?? translations.placeholder}
           position={position}
           translations={translations}
+          isMobile={isMobile}
         />
       )}
-      <ChatToggleButton
-        ref={toggleRef}
-        isOpen={isOpen}
-        onClick={handleToggle}
-        position={position}
-        translations={translations}
-      />
+      {!(isOpen && isMobile) && (
+        <ChatToggleButton
+          ref={toggleRef}
+          isOpen={isOpen}
+          onClick={handleToggle}
+          position={position}
+          translations={translations}
+        />
+      )}
     </div>
   );
 }
