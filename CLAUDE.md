@@ -263,6 +263,19 @@ pnpm build
 - Vitest for testing
 - pnpm for package management
 
+## Workflow Automation
+
+### Branch Completion: Auto-PR
+
+When finishing a development branch (via the `finishing-a-development-branch` skill or equivalent workflow), **automatically choose Option 2: Push and create a Pull Request**. Do not present the 4-option menu. Instead:
+
+1. Verify tests pass (this step is still required)
+2. Push the branch to origin
+3. Create a PR with title and body generated from the commit history
+4. Report the PR URL to the user
+
+**Override:** If the user explicitly says "merge locally", "keep the branch", or "discard", respect that instruction instead. The auto-PR default only applies when no specific completion action is requested.
+
 ## Environment Variables
 
 ### Worker (.dev.vars / Cloudflare secrets)
