@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import { MessageBubble } from "../MessageBubble";
+import { ChatMessage } from "../ChatMessage";
 import type { Source } from "../../api/types";
 
 const mockSources: Source[] = [
@@ -9,9 +9,9 @@ const mockSources: Source[] = [
   { url: "https://pmds.info/services", title: "Services", type: "page" },
 ];
 
-describe("MessageBubble", () => {
+describe("ChatMessage", () => {
   it("renders user message with correct styling", () => {
-    render(<MessageBubble role="user" content="Hello!" />);
+    render(<ChatMessage role="user" content="Hello!" />);
     const bubble = screen.getByText("Hello!");
     expect(bubble).toBeInTheDocument();
     // ml-auto is on the outer wrapper div (parent of the bubble div)
@@ -20,7 +20,7 @@ describe("MessageBubble", () => {
   });
 
   it("renders assistant message with correct styling", () => {
-    render(<MessageBubble role="assistant" content="How can I help?" />);
+    render(<ChatMessage role="assistant" content="How can I help?" />);
     const bubble = screen.getByText("How can I help?");
     expect(bubble).toBeInTheDocument();
     // mr-auto is on the outer wrapper div (parent of the bubble div)
@@ -30,7 +30,7 @@ describe("MessageBubble", () => {
 
   it("renders links as clickable anchors", () => {
     render(
-      <MessageBubble
+      <ChatMessage
         role="assistant"
         content="Visit https://pmds.info/contact to get started!"
       />
@@ -43,7 +43,7 @@ describe("MessageBubble", () => {
 
   it("renders source icon for assistant messages with sources", () => {
     render(
-      <MessageBubble
+      <ChatMessage
         role="assistant"
         content="Here are resources."
         sources={mockSources}
@@ -57,7 +57,7 @@ describe("MessageBubble", () => {
 
   it("does not render source icon for user messages", () => {
     render(
-      <MessageBubble
+      <ChatMessage
         role="user"
         content="Hello"
         sources={mockSources}
@@ -70,7 +70,7 @@ describe("MessageBubble", () => {
 
   it("does not render source icon when no sources", () => {
     render(
-      <MessageBubble role="assistant" content="No sources here." />
+      <ChatMessage role="assistant" content="No sources here." />
     );
     expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
   });
@@ -79,7 +79,7 @@ describe("MessageBubble", () => {
     const user = userEvent.setup();
     const onSourceClick = vi.fn();
     render(
-      <MessageBubble
+      <ChatMessage
         role="assistant"
         content="Resources."
         sources={mockSources}

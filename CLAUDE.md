@@ -20,7 +20,7 @@ claudius/
 │   │   │   ├── ChatWindow.tsx       # Chat UI container
 │   │   │   ├── ChatInput.tsx        # Message input form
 │   │   │   ├── ChatToggleButton.tsx # Floating action button
-│   │   │   └── MessageBubble.tsx    # Individual message display
+│   │   │   └── ChatMessage.tsx      # Individual message display
 │   │   ├── hooks/
 │   │   │   └── useChat.ts           # Chat state management
 │   │   ├── index.ts                 # Public exports
@@ -99,7 +99,7 @@ pnpm test             # Run tests
 | `ChatWindow` | Chat UI container with message list and input |
 | `ChatInput` | Message input form with submit handling |
 | `ChatToggleButton` | Floating button to open/close chat |
-| `MessageBubble` | Renders individual messages with URL linking |
+| `ChatMessage` | Renders individual messages with URL linking |
 | `ChatSources` | Slide-out sidebar displaying grouped source links |
 | `SourceIcon` | Icon button with badge count to trigger source sidebar |
 

@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageBubble } from "./MessageBubble";
+import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
-import type { Source } from "../api/types";
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  sources?: Source[];
-}
+import type { ChatMessage as ChatMessageData, Source } from "../api/types";
 
 interface ChatWindowProps {
-  messages: ChatMessage[];
+  messages: ChatMessageData[];
   isLoading: boolean;
   error: string | null;
   onSend: (message: string) => void;
@@ -165,7 +158,7 @@ export function ChatWindow({
           )}
 
           {messages.map((msg) => (
-            <MessageBubble
+            <ChatMessage
               key={msg.id}
               role={msg.role}
               content={msg.content}
