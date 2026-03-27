@@ -2,7 +2,7 @@ import { memo, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
 import type { Source } from "../api/types";
 
-interface MessageBubbleProps {
+interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
@@ -87,13 +87,13 @@ function renderFormattedContent(content: string): ReactNode[] {
   ));
 }
 
-export const MessageBubble = memo(function MessageBubble({
+export const ChatMessage = memo(function ChatMessage({
   role,
   content,
   sources,
   onSourceClick,
   isSourceActive,
-}: MessageBubbleProps) {
+}: ChatMessageProps) {
   const isUser = role === "user";
 
   return (
