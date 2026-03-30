@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
 import type { Source } from "../api/types";
+import { sanitizeUrl } from "../utils/sanitize";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -20,16 +21,23 @@ function renderLink(rawUrl: string, key: string): ReactNode {
   const url = trailingPunct ? rawUrl.slice(0, -trailingPunct[0].length) : rawUrl;
   const suffix = trailingPunct ? trailingPunct[0] : "";
 
+  // Validate URL scheme to prevent javascript:, data:, vbscript: attacks
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) {
+    // If URL is not safe, render as plain text
+    return rawUrl;
+  }
+
   return (
     <>
       <a
         key={key}
-        href={url}
+        href={safeUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="underline font-medium hover:opacity-80 dark:text-blue-400"
       >
-        {url.replace(/^https?:\/\//, "")}
+        {safeUrl.replace(/^https?:\/\//, "")}
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
       {suffix}

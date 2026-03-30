@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { Source } from "../api/types";
+import { sanitizeUrl } from "../utils/sanitize";
 
 interface ChatSourcesProps {
   sources: Source[];
@@ -77,22 +78,30 @@ export const ChatSources = memo(function ChatSources({
               {group.label}
             </h4>
             <div className="space-y-2">
-              {group.items.map((source) => (
-                <a
-                  key={source.url}
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-[12px] border-2 border-claudius-border bg-claudius-light p-3 transition-colors hover:bg-claudius-border dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-                >
-                  <p className="truncate text-sm font-medium text-claudius-dark dark:text-gray-100">
-                    {source.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-claudius-gray">
-                    {extractDomain(source.url)}
-                  </p>
-                </a>
-              ))}
+              {group.items.map((source) => {
+                // Validate URL to prevent javascript:, data:, vbscript: attacks
+                const safeUrl = sanitizeUrl(source.url);
+                if (!safeUrl) {
+                  // Skip sources with unsafe URLs
+                  return null;
+                }
+                return (
+                  <a
+                    key={safeUrl}
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-[12px] border-2 border-claudius-border bg-claudius-light p-3 transition-colors hover:bg-claudius-border dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+                  >
+                    <p className="truncate text-sm font-medium text-claudius-dark dark:text-gray-100">
+                      {source.title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-claudius-gray">
+                      {extractDomain(safeUrl)}
+                    </p>
+                  </a>
+                );
+              })}
             </div>
           </div>
         ))}
