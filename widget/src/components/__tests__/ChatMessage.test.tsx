@@ -90,4 +90,60 @@ describe("ChatMessage", () => {
     await user.click(screen.getByRole("button", { name: /view sources/i }));
     expect(onSourceClick).toHaveBeenCalledOnce();
   });
+
+  describe("XSS prevention", () => {
+    it("renders script tags as plain text", () => {
+      render(
+        <ChatMessage
+          role="user"
+          content="<script>alert('xss')</script>"
+        />
+      );
+      // Script tag should be visible as text, not executed
+      expect(screen.getByText(/<script>alert\('xss'\)<\/script>/)).toBeInTheDocument();
+    });
+
+    it("renders HTML tags as plain text", () => {
+      render(
+        <ChatMessage
+          role="assistant"
+          content="<img src=x onerror=alert(1)>"
+        />
+      );
+      expect(screen.getByText(/<img src=x onerror=alert\(1\)>/)).toBeInTheDocument();
+    });
+
+    it("does not create links from javascript: URLs", () => {
+      render(
+        <ChatMessage
+          role="assistant"
+          content="Click javascript:alert('xss') for help"
+        />
+      );
+      // No links should be created for javascript: URLs
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    });
+
+    it("safely handles URL-like text with malicious schemes", () => {
+      render(
+        <ChatMessage
+          role="assistant"
+          content="data:text/html,<script>alert(1)</script>"
+        />
+      );
+      // Should render as plain text, not as a link
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    });
+
+    it("renders safe https URLs as clickable links", () => {
+      render(
+        <ChatMessage
+          role="assistant"
+          content="Visit https://safe-site.com for more info"
+        />
+      );
+      const link = screen.getByRole("link");
+      expect(link).toHaveAttribute("href", "https://safe-site.com");
+    });
+  });
 });
