@@ -2,6 +2,12 @@
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any website with a single script tag.
 
+## Demo
+
+![Claudius chat widget in light and dark mode](docs/images/demo.png)
+
+> Try it live at [pmds.info](https://pmds.info)
+
 ## Features
 
 - Floating chat bubble with toggle

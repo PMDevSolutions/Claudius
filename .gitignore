@@ -3,10 +3,8 @@
 !.claude/agents/
 !.claude/skills/
 !.claude/commands/
-!.claude/hooks/
 !.claude/*.md
 !.claude/settings.json
-!.claude/pipeline.config.json
 
 # Claude Code temporary/user-specific files
 .claude/logs/
@@ -22,16 +20,10 @@ node_modules/
 dist/
 build/
 out/
-.next/
-.nuxt/
-.output/
-.vercel/
-storybook-static/
 
 # Testing
 coverage/
 .coverage
-htmlcov/
 playwright-report/
 .playwright/
 test-results/
@@ -102,9 +94,6 @@ scratch/
 notes/
 sandbox/
 experiments/
-
-# Visual QA screenshots
-.claude/visual-qa/
 
 # Taskmaster Files
 .taskmaster/tasks/*.json.bak
