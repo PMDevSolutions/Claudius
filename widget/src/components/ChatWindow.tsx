@@ -89,6 +89,7 @@ export function ChatWindow({
 
   const closeLabel = translations?.closeChat ?? "Close chat";
   const messagesLabel = translations?.chatMessages ?? "Chat messages";
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
     <div
@@ -164,7 +165,6 @@ export function ChatWindow({
         <div
           ref={messagesContainerRef}
           role="log"
-          aria-live="polite"
           aria-label={messagesLabel}
           className="h-full space-y-3 overflow-y-auto px-4 py-4"
         >
@@ -204,6 +204,16 @@ export function ChatWindow({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Dedicated live region for new assistant messages */}
+      <div
+        data-claudius-live="assistant"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {lastAssistantMessage?.content ?? ""}
       </div>
 
       {/* Input */}

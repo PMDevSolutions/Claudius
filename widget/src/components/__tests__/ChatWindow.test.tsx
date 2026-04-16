@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { ChatWindow } from "../ChatWindow";
@@ -29,8 +29,9 @@ describe("ChatWindow", () => {
         onSend={vi.fn()} onClose={vi.fn()}
       />
     );
-    expect(screen.getByText("What are your prices?")).toBeInTheDocument();
-    expect(screen.getByText(/Prices start at \$1,000/)).toBeInTheDocument();
+    const log = screen.getByRole("log");
+    expect(within(log).getByText("What are your prices?")).toBeInTheDocument();
+    expect(within(log).getByText(/Prices start at \$1,000/)).toBeInTheDocument();
   });
 
   it("shows typing indicator when loading", () => {
@@ -145,6 +146,25 @@ describe("ChatWindow", () => {
       />
     );
     expect(screen.getByText("Chat")).toBeInTheDocument();
+  });
+
+  it("announces the latest assistant message via a polite live region", async () => {
+    const { rerender } = render(
+      <ChatWindow messages={[{ id: "m1", role: "user", content: "hi" }]}
+        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+    );
+    rerender(
+      <ChatWindow
+        messages={[
+          { id: "m1", role: "user", content: "hi" },
+          { id: "m2", role: "assistant", content: "Hello there!" },
+        ]}
+        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()}
+      />
+    );
+    const liveRegion = document.querySelector('[data-claudius-live="assistant"]');
+    expect(liveRegion).toHaveAttribute("aria-live", "polite");
+    expect(liveRegion?.textContent).toContain("Hello there!");
   });
 });
 
