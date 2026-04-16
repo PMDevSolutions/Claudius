@@ -216,3 +216,25 @@ describe("ChatWindow - dialog semantics", () => {
     expect(screen.getByRole("dialog", { name: "Support" })).toBeInTheDocument();
   });
 });
+
+describe("ChatWindow - keyboard", () => {
+  it("calls onClose when Escape is pressed", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+    );
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onClose for other keys", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+    );
+    await user.keyboard("a");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

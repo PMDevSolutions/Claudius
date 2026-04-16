@@ -73,6 +73,17 @@ export function ChatWindow({
     }
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   const closeLabel = translations?.closeChat ?? "Close chat";
   const messagesLabel = translations?.chatMessages ?? "Chat messages";
 
