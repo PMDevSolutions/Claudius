@@ -166,6 +166,20 @@ describe("ChatWindow", () => {
     expect(liveRegion).toHaveAttribute("aria-live", "polite");
     expect(liveRegion?.textContent).toContain("Hello there!");
   });
+
+  it("strips markdown markers from live-region announcements", () => {
+    const { rerender } = render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+    );
+    rerender(
+      <ChatWindow
+        messages={[{ id: "m1", role: "assistant", content: "Visit **pmds** at https://pmds.info/blog today" }]}
+        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()}
+      />
+    );
+    const liveRegion = document.querySelector('[data-claudius-live="assistant"]');
+    expect(liveRegion?.textContent).toBe("Visit pmds at pmds.info today");
+  });
 });
 
 describe("ChatWindow - mobile bottom sheet", () => {

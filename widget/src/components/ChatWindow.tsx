@@ -4,6 +4,7 @@ import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
 import type { ChatMessage as ChatMessageData, Source } from "../api/types";
@@ -206,14 +207,18 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Dedicated live region for new assistant messages */}
+      {/* Dedicated live region for new assistant messages.
+          Outside `role="log"` so typing indicator / sources panel mutations
+          don't trigger redundant announcements. aria-atomic forces the full
+          reply to be read; stripAnnouncementFormatting removes markdown
+          markers and collapses URLs to hostnames for SR-friendliness. */}
       <div
         data-claudius-live="assistant"
         aria-live="polite"
         aria-atomic="true"
         className="sr-only"
       >
-        {lastAssistantMessage?.content ?? ""}
+        {lastAssistantMessage ? stripAnnouncementFormatting(lastAssistantMessage.content) : ""}
       </div>
 
       {/* Input */}
