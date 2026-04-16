@@ -79,7 +79,7 @@ export function ChatWindow({
   return (
     <div
       role="dialog"
-      aria-modal="true"
+      aria-modal={isMobile ? "true" : undefined}
       aria-labelledby={titleId}
       className={
         isMobile

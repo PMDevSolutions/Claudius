@@ -195,12 +195,18 @@ describe("ChatWindow - mobile bottom sheet", () => {
 });
 
 describe("ChatWindow - dialog semantics", () => {
-  it("has role=dialog and aria-modal=true", () => {
+  it("sets aria-modal=true on mobile (scrim blocks background)", () => {
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} isMobile={true} />
     );
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+  });
+
+  it("omits aria-modal on desktop (background remains interactive)", () => {
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} isMobile={false} />
+    );
+    expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-modal");
   });
 
   it("is labelled by the title heading via aria-labelledby", () => {
