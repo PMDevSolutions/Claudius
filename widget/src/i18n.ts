@@ -19,6 +19,10 @@ export interface ClaudiusTranslations {
   errorConnection: string;
   errorRateLimitMinute: string;
   errorRateLimitHour: string;
+
+  // Dialog / a11y
+  dialogLabel: string;
+  newMessageAnnouncement: string;
 }
 
 export const defaultTranslations: ClaudiusTranslations = {
@@ -42,6 +46,10 @@ export const defaultTranslations: ClaudiusTranslations = {
   errorConnection: "Failed to connect. Please try again.",
   errorRateLimitMinute: "Too many requests. Please wait a minute.",
   errorRateLimitHour: "Hourly limit reached. Please try again later.",
+
+  // Dialog / a11y
+  dialogLabel: "Chat dialog",
+  newMessageAnnouncement: "New message from assistant",
 };
 
 export function createTranslations(
