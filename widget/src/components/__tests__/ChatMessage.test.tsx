@@ -11,6 +11,7 @@ const mockSources: Source[] = [
 
 describe("ChatMessage", () => {
   it("renders user message with correct styling", () => {
+    // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
     render(<ChatMessage role="user" content="Hello!" />);
     const bubble = screen.getByText("Hello!");
     expect(bubble).toBeInTheDocument();
@@ -20,6 +21,7 @@ describe("ChatMessage", () => {
   });
 
   it("renders assistant message with correct styling", () => {
+    // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
     render(<ChatMessage role="assistant" content="How can I help?" />);
     const bubble = screen.getByText("How can I help?");
     expect(bubble).toBeInTheDocument();
@@ -31,6 +33,7 @@ describe("ChatMessage", () => {
   it("renders links as clickable anchors", () => {
     render(
       <ChatMessage
+        // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
         role="assistant"
         content="Visit https://pmds.info/contact to get started!"
       />
@@ -44,6 +47,7 @@ describe("ChatMessage", () => {
   it("renders source icon for assistant messages with sources", () => {
     render(
       <ChatMessage
+        // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
         role="assistant"
         content="Here are resources."
         sources={mockSources}
@@ -58,6 +62,7 @@ describe("ChatMessage", () => {
   it("does not render source icon for user messages", () => {
     render(
       <ChatMessage
+        // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
         role="user"
         content="Hello"
         sources={mockSources}
@@ -70,6 +75,7 @@ describe("ChatMessage", () => {
 
   it("does not render source icon when no sources", () => {
     render(
+      // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
       <ChatMessage role="assistant" content="No sources here." />
     );
     expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
@@ -80,6 +86,7 @@ describe("ChatMessage", () => {
     const onSourceClick = vi.fn();
     render(
       <ChatMessage
+        // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
         role="assistant"
         content="Resources."
         sources={mockSources}
@@ -95,6 +102,7 @@ describe("ChatMessage", () => {
     it("renders script tags as plain text", () => {
       render(
         <ChatMessage
+          // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
           role="user"
           content="<script>alert('xss')</script>"
         />
@@ -106,6 +114,7 @@ describe("ChatMessage", () => {
     it("renders HTML tags as plain text", () => {
       render(
         <ChatMessage
+          // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
           role="assistant"
           content="<img src=x onerror=alert(1)>"
         />
@@ -116,6 +125,7 @@ describe("ChatMessage", () => {
     it("does not create links from javascript: URLs", () => {
       render(
         <ChatMessage
+          // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
           role="assistant"
           content="Click javascript:alert('xss') for help"
         />
@@ -127,6 +137,7 @@ describe("ChatMessage", () => {
     it("safely handles URL-like text with malicious schemes", () => {
       render(
         <ChatMessage
+          // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
           role="assistant"
           content="data:text/html,<script>alert(1)</script>"
         />
@@ -138,6 +149,7 @@ describe("ChatMessage", () => {
     it("renders safe https URLs as clickable links", () => {
       render(
         <ChatMessage
+          // eslint-disable-next-line jsx-a11y/aria-role -- `role` here is a ChatMessage component prop, not an ARIA role attribute
           role="assistant"
           content="Visit https://safe-site.com for more info"
         />
