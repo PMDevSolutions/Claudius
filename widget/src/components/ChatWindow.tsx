@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
 import type { ChatMessage as ChatMessageData, Source } from "../api/types";
@@ -55,8 +57,12 @@ export function ChatWindow({
   translations,
   isMobile = false,
 }: ChatWindowProps) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
+
+  useFocusTrap(dialogRef, true);
 
   const { offsetY } = useSwipeToDismiss(messagesContainerRef, onClose, isMobile);
   const isDragging = offsetY !== 0;
@@ -72,11 +78,26 @@ export function ChatWindow({
     }
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.isComposing) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   const closeLabel = translations?.closeChat ?? "Close chat";
   const messagesLabel = translations?.chatMessages ?? "Chat messages";
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={isMobile ? "true" : undefined}
+      aria-labelledby={titleId}
       className={
         isMobile
           ? "claudius-bottom-sheet fixed inset-x-0 bottom-0 z-50 flex h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl font-body"
@@ -104,10 +125,10 @@ export function ChatWindow({
           {title.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
-          <h2 className="text-sm font-heading font-semibold text-white">
+          <h2 id={titleId} className="text-sm font-heading font-semibold text-white">
             {title}
           </h2>
-          <p className="text-xs text-white/90">{subtitle}</p>
+          <p className="text-xs text-white">{subtitle}</p>
         </div>
         <button
           onClick={onClose}
@@ -145,7 +166,6 @@ export function ChatWindow({
         <div
           ref={messagesContainerRef}
           role="log"
-          aria-live="polite"
           aria-label={messagesLabel}
           className="h-full space-y-3 overflow-y-auto px-4 py-4"
         >
@@ -185,6 +205,20 @@ export function ChatWindow({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Dedicated live region for new assistant messages.
+          Outside `role="log"` so typing indicator / sources panel mutations
+          don't trigger redundant announcements. aria-atomic forces the full
+          reply to be read; stripAnnouncementFormatting removes markdown
+          markers and collapses URLs to hostnames for SR-friendliness. */}
+      <div
+        data-claudius-live="assistant"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {lastAssistantMessage ? stripAnnouncementFormatting(lastAssistantMessage.content) : ""}
       </div>
 
       {/* Input */}

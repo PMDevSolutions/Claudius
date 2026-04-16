@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { ChatWidget } from "../ChatWidget";
@@ -50,8 +50,9 @@ describe("ChatWidget", () => {
     const input = screen.getByPlaceholderText(/type your message/i);
     await user.type(input, "Hi{enter}");
 
-    // Wait for reply
-    expect(await screen.findByText("Hello!")).toBeInTheDocument();
+    // Wait for reply (scope to log to avoid matching sr-only live region)
+    await screen.findByRole("log");
+    expect(await within(screen.getByRole("log")).findByText("Hello!")).toBeInTheDocument();
 
     // Close via header button and reopen
     const closeButtons = screen.getAllByRole("button", { name: /close chat/i });
@@ -59,8 +60,9 @@ describe("ChatWidget", () => {
     await user.click(screen.getByRole("button", { name: /open chat/i }));
 
     // Messages should still be there
-    expect(screen.getByText("Hi")).toBeInTheDocument();
-    expect(screen.getByText("Hello!")).toBeInTheDocument();
+    const log = screen.getByRole("log");
+    expect(within(log).getByText("Hi")).toBeInTheDocument();
+    expect(within(log).getByText("Hello!")).toBeInTheDocument();
   });
 });
 
