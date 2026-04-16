@@ -63,13 +63,6 @@ export function ChatWindow({
 
   useFocusTrap(dialogRef, true);
 
-  useEffect(() => {
-    const input = dialogRef.current?.querySelector<HTMLInputElement>(
-      'input[type="text"]'
-    );
-    input?.focus();
-  }, []);
-
   const { offsetY } = useSwipeToDismiss(messagesContainerRef, onClose, isMobile);
   const isDragging = offsetY !== 0;
   const reducedMotion =
