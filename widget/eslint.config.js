@@ -25,7 +25,7 @@ export default tseslint.config(
       "jsx-a11y/click-events-have-key-events": "error",
       "jsx-a11y/no-static-element-interactions": "error",
       "jsx-a11y/label-has-associated-control": "error",
-      "jsx-a11y/aria-role": "error",
+      "jsx-a11y/aria-role": ["error", { ignoreNonDOM: true }],
       "jsx-a11y/role-supports-aria-props": "error",
     },
   },
