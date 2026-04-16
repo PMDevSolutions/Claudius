@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
@@ -55,6 +55,7 @@ export function ChatWindow({
   translations,
   isMobile = false,
 }: ChatWindowProps) {
+  const titleId = useId();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
 
@@ -77,6 +78,9 @@ export function ChatWindow({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
       className={
         isMobile
           ? "claudius-bottom-sheet fixed inset-x-0 bottom-0 z-50 flex h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl font-body"
@@ -104,7 +108,7 @@ export function ChatWindow({
           {title.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
-          <h2 className="text-sm font-heading font-semibold text-white">
+          <h2 id={titleId} className="text-sm font-heading font-semibold text-white">
             {title}
           </h2>
           <p className="text-xs text-white/90">{subtitle}</p>

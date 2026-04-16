@@ -193,3 +193,20 @@ describe("ChatWindow - mobile bottom sheet", () => {
     expect(handle).toBeInTheDocument();
   });
 });
+
+describe("ChatWindow - dialog semantics", () => {
+  it("has role=dialog and aria-modal=true", () => {
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+  });
+
+  it("is labelled by the title heading via aria-labelledby", () => {
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} title="Support" />
+    );
+    expect(screen.getByRole("dialog", { name: "Support" })).toBeInTheDocument();
+  });
+});
