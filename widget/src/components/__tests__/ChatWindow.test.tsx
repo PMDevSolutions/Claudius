@@ -237,4 +237,16 @@ describe("ChatWindow - keyboard", () => {
     await user.keyboard("a");
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("does not call onClose when Escape is pressed during IME composition", () => {
+    const onClose = vi.fn();
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+    );
+    // Dispatch a keydown with isComposing: true — user is mid-IME, Escape should cancel the composition, not close the widget
+    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true });
+    Object.defineProperty(event, "isComposing", { value: true });
+    document.dispatchEvent(event);
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

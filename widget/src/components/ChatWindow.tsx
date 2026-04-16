@@ -75,8 +75,7 @@ export function ChatWindow({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
+      if (e.key === "Escape" && !e.isComposing) {
         onClose();
       }
     };
