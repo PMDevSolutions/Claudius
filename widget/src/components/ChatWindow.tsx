@@ -3,6 +3,7 @@ import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
 import type { ChatMessage as ChatMessageData, Source } from "../api/types";
@@ -56,8 +57,18 @@ export function ChatWindow({
   isMobile = false,
 }: ChatWindowProps) {
   const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
+
+  useFocusTrap(dialogRef, true);
+
+  useEffect(() => {
+    const input = dialogRef.current?.querySelector<HTMLInputElement>(
+      'input[type="text"]'
+    );
+    input?.focus();
+  }, []);
 
   const { offsetY } = useSwipeToDismiss(messagesContainerRef, onClose, isMobile);
   const isDragging = offsetY !== 0;
@@ -88,6 +99,7 @@ export function ChatWindow({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal={isMobile ? "true" : undefined}
       aria-labelledby={titleId}

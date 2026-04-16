@@ -249,4 +249,26 @@ describe("ChatWindow - keyboard", () => {
     document.dispatchEvent(event);
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("focuses the message input on mount", async () => {
+    render(
+      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+    );
+    expect(await screen.findByLabelText(/type your message/i)).toHaveFocus();
+  });
+
+  it("traps tab within the dialog", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button>outside-before</button>
+        <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+        <button>outside-after</button>
+      </>
+    );
+    // Tab several times and confirm focus stays inside the dialog
+    for (let i = 0; i < 8; i++) await user.tab();
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
 });
