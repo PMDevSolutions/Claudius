@@ -128,7 +128,7 @@ export function ChatWindow({
           <h2 id={titleId} className="text-sm font-heading font-semibold text-white">
             {title}
           </h2>
-          <p className="text-xs text-white/90">{subtitle}</p>
+          <p className="text-xs text-white">{subtitle}</p>
         </div>
         <button
           onClick={onClose}
