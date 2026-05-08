@@ -144,6 +144,19 @@ Output: `dist/claudius.iife.js` and `dist/claudius.css`
 
 Host these files on your site or a CDN, then add the embed snippet to your HTML.
 
+## Testing
+
+```bash
+cd widget
+pnpm test                # Unit + integration (Vitest)
+pnpm test:coverage       # Coverage report (target: 80%+)
+pnpm e2e:install         # One-time: download Chromium for Playwright
+pnpm e2e                 # End-to-end (Playwright, against `pnpm dev`)
+pnpm e2e:ui              # Playwright UI mode
+```
+
+The E2E suite mocks `**/api/chat` via `page.route()` so the worker doesn't need to be running, and builds the embed bundle once in `globalSetup` to exercise it via `<script src>` and `<claudius-chat>` web component.
+
 ## Tech Stack
 
 - **Widget:** React 18, TypeScript, Tailwind CSS, Vite
