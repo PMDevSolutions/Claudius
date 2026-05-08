@@ -8,7 +8,7 @@ globalThis.fetch = mockFetch;
 describe("useChat", () => {
   beforeEach(() => {
     mockFetch.mockReset();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it("starts with empty messages and not loading", () => {
@@ -138,10 +138,11 @@ describe("conversation persistence", () => {
 
   beforeEach(() => {
     mockFetch.mockReset();
+    sessionStorage.clear();
     localStorage.clear();
   });
 
-  it("saves messages to localStorage after receiving a reply", async () => {
+  it("saves messages to sessionStorage after receiving a reply", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -157,7 +158,7 @@ describe("conversation persistence", () => {
       await result.current.sendMessage("Hi there");
     });
 
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY)!);
     expect(stored).toHaveLength(2);
     expect(stored[0]).toMatchObject({ role: "user", content: "Hi there" });
     expect(stored[1]).toMatchObject({
@@ -166,12 +167,31 @@ describe("conversation persistence", () => {
     });
   });
 
-  it("restores messages from localStorage on mount", () => {
+  it("does not write to localStorage", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => Promise.resolve({ reply: "Hello!" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev" })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hi");
+    });
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("restores messages from sessionStorage on mount", () => {
     const savedMessages = [
       { id: "msg-1", role: "user", content: "Hello" },
       { id: "msg-2", role: "assistant", content: "Hi there!" },
     ];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
 
     const { result } = renderHook(() =>
       useChat({ apiUrl: "https://test.workers.dev" })
@@ -188,12 +208,12 @@ describe("conversation persistence", () => {
     });
   });
 
-  it("clears localStorage when clearMessages is called", () => {
+  it("clears sessionStorage when clearMessages is called", () => {
     const savedMessages = [
       { id: "msg-1", role: "user", content: "Hello" },
       { id: "msg-2", role: "assistant", content: "Hi there!" },
     ];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
 
     const { result } = renderHook(() =>
       useChat({ apiUrl: "https://test.workers.dev" })
@@ -203,7 +223,7 @@ describe("conversation persistence", () => {
       result.current.clearMessages();
     });
 
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
     expect(result.current.messages).toEqual([]);
   });
 
@@ -223,7 +243,72 @@ describe("conversation persistence", () => {
       await result.current.sendMessage("Hi");
     });
 
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
     expect(result.current.messages).toHaveLength(2);
+  });
+});
+
+describe("storage key prefix", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    sessionStorage.clear();
+  });
+
+  it("uses a custom prefix when provided", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => Promise.resolve({ reply: "Hi!" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        storageKeyPrefix: "myapp:widget-a",
+      })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hello");
+    });
+
+    expect(
+      sessionStorage.getItem("myapp:widget-a:test.workers.dev")
+    ).not.toBeNull();
+    expect(
+      sessionStorage.getItem("claudius:messages:test.workers.dev")
+    ).toBeNull();
+  });
+
+  it("isolates history between widgets with different prefixes on the same apiUrl", () => {
+    sessionStorage.setItem(
+      "myapp:widget-a:test.workers.dev",
+      JSON.stringify([{ id: "a-1", role: "user", content: "from A" }])
+    );
+    sessionStorage.setItem(
+      "myapp:widget-b:test.workers.dev",
+      JSON.stringify([{ id: "b-1", role: "user", content: "from B" }])
+    );
+
+    const a = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        storageKeyPrefix: "myapp:widget-a",
+      })
+    );
+    const b = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        storageKeyPrefix: "myapp:widget-b",
+      })
+    );
+
+    expect(a.result.current.messages).toEqual([
+      { id: "a-1", role: "user", content: "from A" },
+    ]);
+    expect(b.result.current.messages).toEqual([
+      { id: "b-1", role: "user", content: "from B" },
+    ]);
   });
 });

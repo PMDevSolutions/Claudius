@@ -7,6 +7,7 @@ import { ChatApiError, DebounceError } from "../api/errors";
 interface UseChatOptions {
   apiUrl: string;
   persistMessages?: boolean;
+  storageKeyPrefix?: string;
   translations?: ClaudiusTranslations;
 }
 
@@ -19,20 +20,31 @@ interface UseChatReturn {
 }
 
 const MAX_PERSISTED_MESSAGES = 200;
+const DEFAULT_STORAGE_KEY_PREFIX = "claudius:messages";
 
-function getStorageKey(apiUrl: string): string {
+function getStorageKey(prefix: string, apiUrl: string): string {
   let host: string;
   try {
     host = new URL(apiUrl).host;
   } catch {
     host = apiUrl;
   }
-  return `claudius:messages:${host}`;
+  return `${prefix}:${host}`;
+}
+
+function getSessionStorage(): Storage | null {
+  try {
+    return typeof sessionStorage !== "undefined" ? sessionStorage : null;
+  } catch {
+    return null;
+  }
 }
 
 function loadMessages(storageKey: string): ChatMessage[] {
+  const storage = getSessionStorage();
+  if (!storage) return [];
   try {
-    const raw = localStorage.getItem(storageKey);
+    const raw = storage.getItem(storageKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -45,6 +57,7 @@ function loadMessages(storageKey: string): ChatMessage[] {
 export function useChat({
   apiUrl,
   persistMessages = true,
+  storageKeyPrefix = DEFAULT_STORAGE_KEY_PREFIX,
   translations,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
@@ -52,7 +65,7 @@ export function useChat({
     [apiUrl],
   );
 
-  const storageKey = getStorageKey(apiUrl);
+  const storageKey = getStorageKey(storageKeyPrefix, apiUrl);
 
   const initialMessages = persistMessages ? loadMessages(storageKey) : [];
 
@@ -67,11 +80,13 @@ export function useChat({
   const saveMessages = useCallback(
     (msgs: ChatMessage[]) => {
       if (!persistMessages) return;
+      const storage = getSessionStorage();
+      if (!storage) return;
       try {
         const toSave = msgs.slice(-MAX_PERSISTED_MESSAGES);
-        localStorage.setItem(storageKey, JSON.stringify(toSave));
+        storage.setItem(storageKey, JSON.stringify(toSave));
       } catch {
-        // localStorage may be unavailable in private browsing
+        // sessionStorage may be unavailable or quota-exceeded
       }
     },
     [persistMessages, storageKey]
@@ -161,10 +176,12 @@ export function useChat({
     setMessages([]);
     setError(null);
     if (persistMessages) {
+      const storage = getSessionStorage();
+      if (!storage) return;
       try {
-        localStorage.removeItem(storageKey);
+        storage.removeItem(storageKey);
       } catch {
-        // localStorage may be unavailable
+        // sessionStorage may be unavailable
       }
     }
   }, [persistMessages, storageKey]);

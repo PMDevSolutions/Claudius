@@ -22,6 +22,7 @@ export interface ChatWidgetProps {
   welcomeMessage?: string;
   placeholder?: string;
   persistMessages?: boolean;
+  storageKeyPrefix?: string;
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
@@ -35,6 +36,7 @@ export function ChatWidget({
   welcomeMessage,
   placeholder,
   persistMessages,
+  storageKeyPrefix,
   theme = "light",
   accentColor,
   position = "bottom-right",
@@ -51,6 +53,7 @@ export function ChatWidget({
   const { messages, isLoading, error, sendMessage } = useChat({
     apiUrl,
     persistMessages,
+    storageKeyPrefix,
     translations,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);

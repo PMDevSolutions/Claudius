@@ -9,6 +9,7 @@ interface ClaudiusConfig {
   welcomeMessage?: string;
   placeholder?: string;
   persistMessages?: boolean;
+  storageKeyPrefix?: string;
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
@@ -40,6 +41,7 @@ function init() {
       welcomeMessage={config.welcomeMessage}
       placeholder={config.placeholder}
       persistMessages={config.persistMessages}
+      storageKeyPrefix={config.storageKeyPrefix}
       theme={config.theme}
       accentColor={config.accentColor}
       position={config.position}
@@ -60,6 +62,7 @@ class ClaudiusChat extends HTMLElement {
       "welcome-message",
       "placeholder",
       "persist-messages",
+      "storage-key-prefix",
       "theme",
       "accent-color",
       "position",
@@ -109,6 +112,9 @@ class ClaudiusChat extends HTMLElement {
         welcomeMessage={this.getAttribute("welcome-message") ?? undefined}
         placeholder={this.getAttribute("placeholder") ?? undefined}
         persistMessages={persistMessages}
+        storageKeyPrefix={
+          this.getAttribute("storage-key-prefix") ?? undefined
+        }
         theme={
           (this.getAttribute("theme") as "light" | "dark" | "auto") ?? undefined
         }

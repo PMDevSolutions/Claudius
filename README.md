@@ -52,7 +52,8 @@ Configure the widget via `window.ClaudiusConfig`:
 | `subtitle` | `"Ask me anything"` | Header subtitle |
 | `welcomeMessage` | `"Hi! How can I help you today?"` | First message shown |
 | `placeholder` | `"Type your message..."` | Input placeholder |
-| `persistMessages` | `true` | Save chat history to localStorage |
+| `persistMessages` | `true` | Save chat history to `sessionStorage` (survives page navigation, clears on tab close) |
+| `storageKeyPrefix` | `"claudius:messages"` | Storage key prefix; set to a unique value per widget when embedding multiple widgets on one page |
 | `theme` | `"light"` | Color scheme: `"light"`, `"dark"`, or `"auto"` |
 | `accentColor` | `"#2563eb"` | Primary brand color override |
 
