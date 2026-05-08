@@ -23,6 +23,7 @@ export interface ChatWidgetProps {
   placeholder?: string;
   persistMessages?: boolean;
   storageKeyPrefix?: string;
+  requestTimeoutMs?: number;
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
@@ -37,6 +38,7 @@ export function ChatWidget({
   placeholder,
   persistMessages,
   storageKeyPrefix,
+  requestTimeoutMs,
   theme = "light",
   accentColor,
   position = "bottom-right",
@@ -50,10 +52,11 @@ export function ChatWidget({
     [translationOverrides]
   );
 
-  const { messages, isLoading, error, sendMessage } = useChat({
+  const { messages, isLoading, error, canRetry, sendMessage, retry } = useChat({
     apiUrl,
     persistMessages,
     storageKeyPrefix,
+    timeoutMs: requestTimeoutMs,
     translations,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -108,7 +111,9 @@ export function ChatWidget({
           messages={messages}
           isLoading={isLoading}
           error={error}
+          canRetry={canRetry}
           onSend={sendMessage}
+          onRetry={retry}
           onClose={handleClose}
           title={title ?? translations.title}
           subtitle={subtitle ?? translations.subtitle}

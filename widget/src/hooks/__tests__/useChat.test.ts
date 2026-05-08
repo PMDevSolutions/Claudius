@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useChat } from "../useChat";
 
 const mockFetch = vi.fn();
@@ -310,5 +310,131 @@ describe("storage key prefix", () => {
     expect(b.result.current.messages).toEqual([
       { id: "b-1", role: "user", content: "from B" },
     ]);
+  });
+});
+
+describe("retry on failure", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("sets canRetry on network error and resends the same messages on retry", async () => {
+    vi.useFakeTimers();
+
+    // Every attempt rejects — the client retries internally (initial + 2),
+    // backing off 1s and 3s between attempts before giving up.
+    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        // Disable timeout so AbortController doesn't interfere with the mock.
+        timeoutMs: 0,
+      })
+    );
+
+    let sendPromise!: Promise<void>;
+    act(() => {
+      sendPromise = result.current.sendMessage("Hello");
+    });
+
+    // Drain the client's two backoffs so the failure surfaces.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(3000);
+      await sendPromise;
+    });
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.canRetry).toBe(true);
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0]).toMatchObject({
+      role: "user",
+      content: "Hello",
+    });
+
+    // Network recovers — retry should succeed without re-appending the user message.
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => Promise.resolve({ reply: "Welcome back!" }),
+    });
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.canRetry).toBe(false);
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[0]).toMatchObject({ role: "user", content: "Hello" });
+    expect(result.current.messages[1]).toMatchObject({
+      role: "assistant",
+      content: "Welcome back!",
+    });
+
+    // The retried request must contain only the original user message —
+    // not a second copy.
+    const lastCallBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(lastCallBody.messages).toHaveLength(1);
+    expect(lastCallBody.messages[0]).toMatchObject({
+      role: "user",
+      content: "Hello",
+    });
+  });
+
+  it("does not set canRetry on validation errors", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({ error: "Invalid input", code: "VALIDATION_ERROR" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hi");
+    });
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.canRetry).toBe(false);
+  });
+
+  it("retry is a no-op when last message is not from the user", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => Promise.resolve({ reply: "Hi!" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Hello");
+    });
+
+    expect(result.current.messages).toHaveLength(2);
+    mockFetch.mockReset();
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.messages).toHaveLength(2);
   });
 });

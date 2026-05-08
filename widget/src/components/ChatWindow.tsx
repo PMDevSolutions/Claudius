@@ -13,7 +13,9 @@ interface ChatWindowProps {
   messages: ChatMessageData[];
   isLoading: boolean;
   error: string | null;
+  canRetry?: boolean;
   onSend: (message: string) => void;
+  onRetry?: () => void;
   onClose: () => void;
   title?: string;
   subtitle?: string;
@@ -24,13 +26,15 @@ interface ChatWindowProps {
   isMobile?: boolean;
 }
 
-function TypingIndicator() {
+function TypingIndicator({ label }: { label: string }) {
+  // motion-safe: variant disables the bounce when prefers-reduced-motion is
+  // set; the dots remain visible as a static status pill.
   return (
-    <div role="status" aria-live="polite" className="mr-auto flex max-w-[85%]">
+    <div role="status" aria-live="polite" aria-label={label} className="mr-auto flex max-w-[85%]">
       <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-3">
-        <span className="h-2 w-2 animate-bounce rounded-full bg-claudius-gray [animation-delay:0ms]" />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-claudius-gray [animation-delay:150ms]" />
-        <span className="h-2 w-2 animate-bounce rounded-full bg-claudius-gray [animation-delay:300ms]" />
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:0ms]" />
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:150ms]" />
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:300ms]" />
       </div>
     </div>
   );
@@ -47,7 +51,9 @@ export function ChatWindow({
   messages,
   isLoading,
   error,
+  canRetry = false,
   onSend,
+  onRetry,
   onClose,
   title = "Chat",
   subtitle = "Ask me anything",
@@ -194,14 +200,27 @@ export function ChatWindow({
             />
           ))}
 
-          {isLoading && <TypingIndicator />}
+          {isLoading && (
+            <TypingIndicator
+              label={translations?.typingIndicator ?? "Assistant is typing"}
+            />
+          )}
 
           {error && (
             <div
               role="alert"
-              className="mx-auto max-w-[90%] rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400"
+              className="mx-auto flex max-w-[90%] flex-col items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400"
             >
-              {error}
+              <span>{error}</span>
+              {canRetry && onRetry && !isLoading && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="rounded-button bg-red-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
+                >
+                  {translations?.errorRetry ?? "Retry"}
+                </button>
+              )}
             </div>
           )}
         </div>
