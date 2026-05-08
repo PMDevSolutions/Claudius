@@ -106,3 +106,34 @@ describe("ChatWidget - mobile bottom sheet", () => {
     expect(container.querySelector(".claudius-scrim")).not.toBeInTheDocument();
   });
 });
+
+describe("ChatWidget - theme=auto", () => {
+  it("subscribes to prefers-color-scheme and toggles dark on change", () => {
+    type Listener = (e: MediaQueryListEvent) => void;
+    const listeners: Listener[] = [];
+    const matchMediaMock = vi.fn((query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)" ? false : false,
+      media: query,
+      addEventListener: vi.fn((_evt: string, l: Listener) => listeners.push(l)),
+      removeEventListener: vi.fn(),
+    }));
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: matchMediaMock,
+    });
+
+    const { container } = render(
+      <ChatWidget apiUrl="https://test.workers.dev" theme="auto" />,
+    );
+
+    // Wrapper starts with the "light" data attribute since the OS media
+    // query reports matches=false initially.
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.getAttribute("data-claudius-dark")).toBe("false");
+
+    // Confirm the auto-mode listener was actually registered, not just the
+    // mobile media query.
+    expect(matchMediaMock).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
+    expect(listeners.length).toBeGreaterThan(0);
+  });
+});

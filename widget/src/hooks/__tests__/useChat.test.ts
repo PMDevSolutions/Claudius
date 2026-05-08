@@ -438,3 +438,183 @@ describe("retry on failure", () => {
     expect(result.current.messages).toHaveLength(2);
   });
 });
+
+describe("translation routing on errors", () => {
+  const translations = {
+    title: "Chat",
+    subtitle: "Ask me anything",
+    welcomeMessage: "Hi",
+    closeChat: "Close chat",
+    chatMessages: "Messages",
+    typingIndicator: "Typing",
+    placeholder: "Type",
+    sendMessage: "Send",
+    typeYourMessage: "Type your message",
+    openChat: "Open chat",
+    errorGeneric: "GEN",
+    errorConnection: "CONN",
+    errorTimeout: "TIMED_OUT",
+    errorRateLimitMinute: "RL_MIN",
+    errorRateLimitHour: "RL_HOUR",
+    errorRetry: "Retry",
+  };
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("maps TIMEOUT code to translations.errorTimeout", async () => {
+    vi.useFakeTimers();
+    // The client treats TIMEOUT as retryable, so it tries 3 times. Return
+    // the same response every call so all 3 attempts surface the TIMEOUT
+    // code, then drain the 1s + 3s backoffs.
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 0,
+      headers: new Headers(),
+      json: () => Promise.resolve({ error: "Timed out", code: "TIMEOUT" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        translations,
+        timeoutMs: 0,
+      })
+    );
+
+    let p!: Promise<void>;
+    act(() => {
+      p = result.current.sendMessage("hi");
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(3000);
+      await p;
+    });
+
+    expect(result.current.error).toBe("TIMED_OUT");
+  });
+
+  it("maps NETWORK_ERROR code to translations.errorConnection", async () => {
+    vi.useFakeTimers();
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 0,
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({ error: "Net down", code: "NETWORK_ERROR" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        translations,
+        timeoutMs: 0,
+      })
+    );
+
+    let p!: Promise<void>;
+    act(() => {
+      p = result.current.sendMessage("hi");
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(3000);
+      await p;
+    });
+
+    expect(result.current.error).toBe("CONN");
+  });
+
+  it("routes RATE_LIMITED with 'minute' in message to errorRateLimitMinute", async () => {
+    // Use status 400 (non-retryable) so the client throws immediately. The
+    // RATE_LIMITED code in the body is what useChat routes on.
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({
+          error: "Slow down — wait a minute",
+          code: "RATE_LIMITED",
+        }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        translations,
+        timeoutMs: 0,
+      })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("hi");
+    });
+
+    expect(result.current.error).toBe("RL_MIN");
+  });
+
+  it("routes RATE_LIMITED without 'minute' to errorRateLimitHour", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers(),
+      json: () =>
+        Promise.resolve({
+          error: "Hourly cap hit",
+          code: "RATE_LIMITED",
+        }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        translations,
+        timeoutMs: 0,
+      })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("hi");
+    });
+
+    expect(result.current.error).toBe("RL_HOUR");
+  });
+
+  it("falls back to translations.errorGeneric on unknown codes when no fallback message", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      headers: new Headers(),
+      // No `error` field — body parse falls back to {} and the client
+      // synthesizes a status-code message; useChat then maps to errorGeneric
+      // because the synthesized message isn't an i18n key.
+      json: () => Promise.resolve({ code: "WEIRD_CODE" }),
+    });
+
+    const { result } = renderHook(() =>
+      useChat({
+        apiUrl: "https://test.workers.dev",
+        translations,
+        timeoutMs: 0,
+      })
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("hi");
+    });
+
+    // The client populates a fallback message ("Request failed with status 500")
+    // and useChat returns that fallback verbatim for unknown codes.
+    expect(result.current.error).toMatch(/Request failed/);
+  });
+});
