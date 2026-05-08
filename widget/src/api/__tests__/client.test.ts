@@ -49,11 +49,14 @@ describe("ChatApiClient", () => {
       const client = new ChatApiClient(BASE_URL, { debounceMs: 0 });
       await client.sendMessage(mockMessages);
 
-      expect(mockFetch).toHaveBeenCalledWith(`${BASE_URL}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: mockMessages }),
-      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${BASE_URL}/api/chat`,
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: mockMessages }),
+        }),
+      );
     });
 
     it("returns typed ChatResponse on success", async () => {
@@ -288,6 +291,106 @@ describe("ChatApiClient", () => {
       const result = await promise;
       expect(result).toEqual({ reply: "OK" });
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("timeout", () => {
+    it("aborts and throws ChatApiError(code=TIMEOUT) when the request exceeds timeoutMs", async () => {
+      vi.useFakeTimers();
+
+      // Fetch never resolves on its own; the client aborts via AbortSignal.
+      mockFetch.mockImplementation(
+        (_input: RequestInfo, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              const err = new Error("aborted");
+              err.name = "AbortError";
+              reject(err);
+            });
+          }),
+      );
+
+      const client = new ChatApiClient(BASE_URL, {
+        debounceMs: 0,
+        maxRetries: 0,
+        timeoutMs: 5_000,
+      });
+
+      const promise = client.sendMessage(mockMessages).catch((e: unknown) => e);
+
+      // Trigger the timeout AbortController.
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      const error = await promise;
+      expect(error).toBeInstanceOf(ChatApiError);
+      expect(error).toMatchObject({ status: 0, code: "TIMEOUT" });
+    });
+
+    it("treats TIMEOUT as retryable and recovers on the next attempt", async () => {
+      vi.useFakeTimers();
+
+      let callCount = 0;
+      mockFetch.mockImplementation(
+        (_input: RequestInfo, init?: RequestInit) => {
+          callCount += 1;
+          if (callCount === 1) {
+            // First call: hang until aborted by the client's timeout.
+            return new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () => {
+                const err = new Error("aborted");
+                err.name = "AbortError";
+                reject(err);
+              });
+            });
+          }
+          // Second call: succeed.
+          return Promise.resolve(
+            createMockResponse({
+              ok: true,
+              status: 200,
+              body: { reply: "OK" },
+            }),
+          );
+        },
+      );
+
+      const client = new ChatApiClient(BASE_URL, {
+        debounceMs: 0,
+        maxRetries: 1,
+        timeoutMs: 1_000,
+      });
+
+      const promise = client.sendMessage(mockMessages);
+
+      // Advance past the timeout to abort attempt 1.
+      await vi.advanceTimersByTimeAsync(1_000);
+      // Advance past the network-error backoff (1s for first retry).
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      const result = await promise;
+      expect(result).toEqual({ reply: "OK" });
+      expect(callCount).toBe(2);
+    });
+
+    it("does not abort when timeoutMs is 0", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          ok: true,
+          status: 200,
+          body: { reply: "OK" },
+        }),
+      );
+
+      const client = new ChatApiClient(BASE_URL, {
+        debounceMs: 0,
+        timeoutMs: 0,
+      });
+
+      const result = await client.sendMessage(mockMessages);
+      expect(result).toEqual({ reply: "OK" });
+      // When timeoutMs is 0, fetch is called without a signal.
+      const call = mockFetch.mock.calls[0];
+      expect(call[1].signal).toBeUndefined();
     });
   });
 

@@ -58,6 +58,70 @@ describe("ChatWindow", () => {
     expect(screen.getByText(/Connection failed/i)).toBeInTheDocument();
   });
 
+  it("renders a retry button when canRetry is true and onRetry is provided", () => {
+    const onRetry = vi.fn();
+    render(
+      <ChatWindow
+        messages={[{ id: "m1", role: "user", content: "Hi" }]}
+        isLoading={false}
+        error="Connection failed"
+        canRetry={true}
+        onRetry={onRetry}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it("calls onRetry when the retry button is clicked", async () => {
+    const onRetry = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ChatWindow
+        messages={[{ id: "m1", role: "user", content: "Hi" }]}
+        isLoading={false}
+        error="Connection failed"
+        canRetry={true}
+        onRetry={onRetry}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /retry/i }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not render retry button when canRetry is false", () => {
+    render(
+      <ChatWindow
+        messages={[{ id: "m1", role: "user", content: "Hi" }]}
+        isLoading={false}
+        error="Invalid input"
+        canRetry={false}
+        onRetry={vi.fn()}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+  });
+
+  it("hides retry button while loading", () => {
+    render(
+      <ChatWindow
+        messages={[{ id: "m1", role: "user", content: "Hi" }]}
+        isLoading={true}
+        error="Connection failed"
+        canRetry={true}
+        onRetry={vi.fn()}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+  });
+
   const messagesWithSources = [
     { id: "msg-1", role: "user" as const, content: "Help me" },
     {

@@ -10,6 +10,7 @@ interface ClaudiusConfig {
   placeholder?: string;
   persistMessages?: boolean;
   storageKeyPrefix?: string;
+  requestTimeoutMs?: number;
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
@@ -42,6 +43,7 @@ function init() {
       placeholder={config.placeholder}
       persistMessages={config.persistMessages}
       storageKeyPrefix={config.storageKeyPrefix}
+      requestTimeoutMs={config.requestTimeoutMs}
       theme={config.theme}
       accentColor={config.accentColor}
       position={config.position}
@@ -63,6 +65,7 @@ class ClaudiusChat extends HTMLElement {
       "placeholder",
       "persist-messages",
       "storage-key-prefix",
+      "request-timeout-ms",
       "theme",
       "accent-color",
       "position",
@@ -104,6 +107,10 @@ class ClaudiusChat extends HTMLElement {
     const persistMessages =
       persistAttr === null ? undefined : persistAttr !== "false";
 
+    const timeoutAttr = this.getAttribute("request-timeout-ms");
+    const requestTimeoutMs =
+      timeoutAttr === null ? undefined : Number(timeoutAttr);
+
     this.root.render(
       <ChatWidget
         apiUrl={apiUrl}
@@ -114,6 +121,11 @@ class ClaudiusChat extends HTMLElement {
         persistMessages={persistMessages}
         storageKeyPrefix={
           this.getAttribute("storage-key-prefix") ?? undefined
+        }
+        requestTimeoutMs={
+          requestTimeoutMs !== undefined && Number.isFinite(requestTimeoutMs)
+            ? requestTimeoutMs
+            : undefined
         }
         theme={
           (this.getAttribute("theme") as "light" | "dark" | "auto") ?? undefined

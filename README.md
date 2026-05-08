@@ -54,6 +54,7 @@ Configure the widget via `window.ClaudiusConfig`:
 | `placeholder` | `"Type your message..."` | Input placeholder |
 | `persistMessages` | `true` | Save chat history to `sessionStorage` (survives page navigation, clears on tab close) |
 | `storageKeyPrefix` | `"claudius:messages"` | Storage key prefix; set to a unique value per widget when embedding multiple widgets on one page |
+| `requestTimeoutMs` | `30000` | Per-attempt request timeout in ms. The widget aborts and surfaces a retryable timeout error. Set to `0` to disable. |
 | `theme` | `"light"` | Color scheme: `"light"`, `"dark"`, or `"auto"` |
 | `accentColor` | `"#2563eb"` | Primary brand color override |
 

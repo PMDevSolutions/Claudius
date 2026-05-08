@@ -8,6 +8,7 @@ interface UseChatOptions {
   apiUrl: string;
   persistMessages?: boolean;
   storageKeyPrefix?: string;
+  timeoutMs?: number;
   translations?: ClaudiusTranslations;
 }
 
@@ -15,7 +16,9 @@ interface UseChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
   error: string | null;
+  canRetry: boolean;
   sendMessage: (content: string) => Promise<void>;
+  retry: () => Promise<void>;
   clearMessages: () => void;
 }
 
@@ -58,11 +61,12 @@ export function useChat({
   apiUrl,
   persistMessages = true,
   storageKeyPrefix = DEFAULT_STORAGE_KEY_PREFIX,
+  timeoutMs,
   translations,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
-    () => new ChatApiClient(apiUrl, { debounceMs: 0 }),
-    [apiUrl],
+    () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs }),
+    [apiUrl, timeoutMs],
   );
 
   const storageKey = getStorageKey(storageKeyPrefix, apiUrl);
@@ -72,6 +76,7 @@ export function useChat({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
 
   const idCounterRef = useRef(initialMessages.length);
   const isLoadingRef = useRef(false);
@@ -97,29 +102,92 @@ export function useChat({
     return `msg-${idCounterRef.current}`;
   };
 
-  const getErrorMessage = (
-    code?: string,
-    fallback?: string
-  ): string => {
-    if (!translations) {
-      return fallback ?? "Something went wrong. Please try again.";
-    }
+  const getErrorMessage = useCallback(
+    (code?: string, fallback?: string): string => {
+      if (!translations) {
+        return fallback ?? "Something went wrong. Please try again.";
+      }
 
-    switch (code) {
-      case "RATE_LIMITED":
-        // Check the message to determine minute vs hour
-        if (fallback?.includes("minute")) {
-          return translations.errorRateLimitMinute;
+      switch (code) {
+        case "TIMEOUT":
+          return translations.errorTimeout;
+        case "NETWORK_ERROR":
+          return translations.errorConnection;
+        case "RATE_LIMITED":
+          if (fallback?.includes("minute")) {
+            return translations.errorRateLimitMinute;
+          }
+          return translations.errorRateLimitHour;
+        case "VALIDATION_ERROR":
+        case "CONFIG_ERROR":
+        case "SERVICE_ERROR":
+        case "UNKNOWN_ERROR":
+        default:
+          return fallback ?? translations.errorGeneric;
+      }
+    },
+    [translations]
+  );
+
+  // Recoverable codes — show the retry button on failures the user can retry.
+  // Validation/config errors aren't retryable: the input or server config
+  // would need to change first.
+  const isRetryableError = useCallback(
+    (err: unknown): boolean => {
+      if (!(err instanceof ChatApiError)) return true; // unknown failure → allow retry
+      if (
+        err.code === "TIMEOUT" ||
+        err.code === "NETWORK_ERROR" ||
+        err.code === "RATE_LIMITED" ||
+        err.code === "SERVICE_ERROR" ||
+        err.code === "UNKNOWN_ERROR"
+      ) {
+        return true;
+      }
+      if (err.status >= 500 || err.status === 0) return true;
+      return false;
+    },
+    []
+  );
+
+  const submit = useCallback(
+    async (msgsToSend: ChatMessage[]) => {
+      setIsLoading(true);
+      isLoadingRef.current = true;
+      setError(null);
+      setCanRetry(false);
+
+      try {
+        const data = await client.sendMessage(msgsToSend);
+
+        const assistantMessage: ChatMessage = {
+          id: nextId(),
+          role: "assistant",
+          content: data.reply,
+          sources: data.sources,
+        };
+        const withReply = [...msgsToSend, assistantMessage];
+        messagesRef.current = withReply;
+        setMessages(withReply);
+        saveMessages(withReply);
+      } catch (err) {
+        if (err instanceof DebounceError) return;
+        if (err instanceof ChatApiError) {
+          setError(getErrorMessage(err.code, err.message));
+        } else {
+          setError(
+            translations?.errorConnection ??
+              "Failed to connect. Please try again.",
+          );
         }
-        return translations.errorRateLimitHour;
-      case "VALIDATION_ERROR":
-      case "CONFIG_ERROR":
-      case "SERVICE_ERROR":
-      case "UNKNOWN_ERROR":
-      default:
-        return fallback ?? translations.errorGeneric;
-    }
-  };
+        setCanRetry(isRetryableError(err));
+      } finally {
+        setIsLoading(false);
+        isLoadingRef.current = false;
+      }
+    },
+    [client, getErrorMessage, isRetryableError, saveMessages, translations]
+  );
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -136,45 +204,24 @@ export function useChat({
       messagesRef.current = updatedMessages;
       setMessages(updatedMessages);
       saveMessages(updatedMessages);
-      setIsLoading(true);
-      isLoadingRef.current = true;
-      setError(null);
 
-      try {
-        const data = await client.sendMessage(updatedMessages);
-
-        const assistantMessage: ChatMessage = {
-          id: nextId(),
-          role: "assistant",
-          content: data.reply,
-          sources: data.sources,
-        };
-        const withReply = [...updatedMessages, assistantMessage];
-        messagesRef.current = withReply;
-        setMessages(withReply);
-        saveMessages(withReply);
-      } catch (err) {
-        if (err instanceof DebounceError) return;
-        if (err instanceof ChatApiError) {
-          setError(getErrorMessage(err.code, err.message));
-        } else {
-          setError(
-            translations?.errorConnection ??
-              "Failed to connect. Please try again.",
-          );
-        }
-      } finally {
-        setIsLoading(false);
-        isLoadingRef.current = false;
-      }
+      await submit(updatedMessages);
     },
-    [client, saveMessages, translations]
+    [saveMessages, submit]
   );
+
+  const retry = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    const last = messagesRef.current[messagesRef.current.length - 1];
+    if (!last || last.role !== "user") return;
+    await submit(messagesRef.current);
+  }, [submit]);
 
   const clearMessages = useCallback(() => {
     messagesRef.current = [];
     setMessages([]);
     setError(null);
+    setCanRetry(false);
     if (persistMessages) {
       const storage = getSessionStorage();
       if (!storage) return;
@@ -186,7 +233,15 @@ export function useChat({
     }
   }, [persistMessages, storageKey]);
 
-  return { messages, isLoading, error, sendMessage, clearMessages };
+  return {
+    messages,
+    isLoading,
+    error,
+    canRetry,
+    sendMessage,
+    retry,
+    clearMessages,
+  };
 }
 
 export type { ChatMessage };
