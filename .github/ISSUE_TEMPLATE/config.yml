@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions & Discussions
-      url: https://github.com/PMDevSolutions/Claudius/discussions
-          about: Ask questions and discuss ideas in GitHub Discussions
+    url: https://github.com/PMDevSolutions/Claudius/discussions
+    about: Ask questions, share ideas, or show what you've built in GitHub Discussions.
+  - name: Security Vulnerability
+    url: https://github.com/PMDevSolutions/Claudius/security/policy
+    about: Please report security issues privately following SECURITY.md.
