@@ -106,6 +106,57 @@ Both the React component and embed script accept these options:
 | `accentColor` | `"#2563eb"` | Primary brand color override |
 | `position` | `"bottom-right"` | Widget position: `"bottom-right"`, `"bottom-left"`, `"top-right"`, `"top-left"` |
 | `translations` | (built-in) | Custom UI strings (React component only) |
+| `triggers` | `undefined` | Proactive triggers that auto-open the widget or show a greeting bubble. See [Proactive Triggers](#proactive-triggers) below. |
+
+## Proactive Triggers
+
+Configure the widget to auto-open or pop a greeting bubble when a visitor hits a condition. The widget remembers a dismissal in `sessionStorage`, so once the visitor closes the auto-opened chat or dismisses the bubble, no further triggers fire that session.
+
+```tsx
+<ChatWidget
+  apiUrl="..."
+  triggers={[
+    // Pop a greeting bubble after 30s on any page
+    { on: "time", seconds: 30, action: { greeting: "Need a hand?" } },
+
+    // Auto-open after the visitor scrolls 80% down the pricing page
+    {
+      on: "scroll",
+      percent: 80,
+      matchUrl: "/pricing",
+      action: "open",
+    },
+
+    // Exit-intent greeting only on the contact page
+    {
+      on: "exit-intent",
+      matchUrl: /\/contact/,
+      action: { greeting: "Have a quick question before you go?" },
+    },
+
+    // Greet immediately when someone lands on /docs
+    {
+      on: "url",
+      pattern: "/docs",
+      action: { greeting: "Looking for something specific in the docs?" },
+    },
+  ]}
+/>
+```
+
+Each trigger has an `on` type, an `action`, and an optional `matchUrl` to scope to specific pages. `matchUrl` (and `url`-trigger `pattern`) accepts a substring string (case-insensitive) or a `RegExp`.
+
+| `on` | Extra fields | When it fires |
+|------|--------------|---------------|
+| `"time"` | `seconds: number` | After N seconds on the page |
+| `"scroll"` | `percent: number` (0--100) | Once the visitor scrolls past N% of the page |
+| `"exit-intent"` | -- | When the mouse leaves the viewport via the top edge |
+| `"url"` | `pattern: string \| RegExp` | Immediately on mount if the current URL matches |
+
+| `action` | Behavior |
+|----------|----------|
+| `"open"` | Auto-opens the chat window |
+| `{ greeting: string }` | Pops a dismissable greeting bubble next to the toggle button |
 
 ## Customization
 
