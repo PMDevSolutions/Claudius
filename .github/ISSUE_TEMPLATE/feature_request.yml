@@ -4,42 +4,64 @@ title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
-      attributes:
-            value: |
-                    Thanks for suggesting a feature! Please fill out the form below.
+    attributes:
+      value: |
+        Thanks for suggesting a feature. Please fill out the form below so we can understand the use case and weigh trade-offs.
 
-                      - type: textarea
-                          id: description
-                              attributes:
-                                    label: Description
-                                          description: A clear and concise description of the feature you'd like.
-                                                placeholder: Describe the feature...
-                                                    validations:
-                                                          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the feature you'd like.
+      placeholder: Describe the feature...
+    validations:
+      required: true
 
-                                                            - type: textarea
-                                                                id: use-case
-                                                                    attributes:
-                                                                          label: Use Case
-                                                                                description: Describe the problem this feature would solve or the use case it enables.
-                                                                                      placeholder: I want this feature because...
-                                                                                          validations:
-                                                                                                required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: What problem does this feature solve, or what use case does it enable?
+      placeholder: I want this feature because...
+    validations:
+      required: true
 
-                                                                                                  - type: textarea
-                                                                                                      id: proposed-solution
-                                                                                                          attributes:
-                                                                                                                label: Proposed Solution
-                                                                                                                      description: Describe how you'd like this feature to work.
-                                                                                                                            placeholder: The feature should...
-                                                                                                                                validations:
-                                                                                                                                      required: true
-                                                                                                                                      
-                                                                                                                                        - type: textarea
-                                                                                                                                            id: alternatives
-                                                                                                                                                attributes:
-                                                                                                                                                      label: Alternatives Considered
-                                                                                                                                                            description: Describe any alternative solutions or workarounds you've considered.
-                                                                                                                                                                  placeholder: I've also considered...
-                                                                                                                                                                      validations:
-                                                                                                                                                                            required: false
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe how you'd like this feature to work.
+      placeholder: The feature should...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+      placeholder: I've also considered...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package?
+      description: Where would this feature live?
+      options:
+        - Widget (React component / embed)
+        - Worker (Cloudflare Worker backend)
+        - CLI / scripts
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contributing
+    attributes:
+      label: Would you be willing to contribute?
+      options:
+        - label: I'd be willing to open a PR for this
+          required: false
