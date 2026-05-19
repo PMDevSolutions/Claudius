@@ -21,11 +21,11 @@ export const ChatToggleButton = forwardRef<
   ChatToggleButtonProps
 >(function ChatToggleButton(
   { isOpen, onClick, position = "bottom-right", translations },
-  ref
+  ref,
 ) {
   const label = isOpen
-    ? translations?.closeChat ?? "Close chat"
-    : translations?.openChat ?? "Open chat";
+    ? (translations?.closeChat ?? "Close chat")
+    : (translations?.openChat ?? "Open chat");
 
   return (
     <button

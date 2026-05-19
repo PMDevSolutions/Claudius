@@ -13,7 +13,7 @@ describe("useChat", () => {
 
   it("starts with empty messages and not loading", () => {
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     expect(result.current.messages).toEqual([]);
@@ -30,7 +30,7 @@ describe("useChat", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     await act(async () => {
@@ -65,7 +65,7 @@ describe("useChat", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     await act(async () => {
@@ -73,7 +73,7 @@ describe("useChat", () => {
     });
 
     const assistantMsg = result.current.messages.find(
-      (m) => m.role === "assistant"
+      (m) => m.role === "assistant",
     );
     expect(assistantMsg?.sources).toEqual([
       { url: "https://pmds.info/blog/test", title: "Test", type: "blog" },
@@ -85,11 +85,12 @@ describe("useChat", () => {
       ok: false,
       status: 500,
       headers: new Headers(),
-      json: () => Promise.resolve({ error: "Server error", code: "UNKNOWN_ERROR" }),
+      json: () =>
+        Promise.resolve({ error: "Server error", code: "UNKNOWN_ERROR" }),
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     await act(async () => {
@@ -105,11 +106,11 @@ describe("useChat", () => {
     mockFetch.mockReturnValueOnce(
       new Promise((resolve) => {
         resolvePromise = resolve;
-      })
+      }),
     );
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     let sendPromise: Promise<void>;
@@ -151,7 +152,7 @@ describe("conversation persistence", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     await act(async () => {
@@ -176,7 +177,7 @@ describe("conversation persistence", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     await act(async () => {
@@ -194,7 +195,7 @@ describe("conversation persistence", () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     expect(result.current.messages).toHaveLength(2);
@@ -216,7 +217,7 @@ describe("conversation persistence", () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(savedMessages));
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev" })
+      useChat({ apiUrl: "https://test.workers.dev" }),
     );
 
     act(() => {
@@ -236,7 +237,7 @@ describe("conversation persistence", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev", persistMessages: false })
+      useChat({ apiUrl: "https://test.workers.dev", persistMessages: false }),
     );
 
     await act(async () => {
@@ -266,7 +267,7 @@ describe("storage key prefix", () => {
       useChat({
         apiUrl: "https://test.workers.dev",
         storageKeyPrefix: "myapp:widget-a",
-      })
+      }),
     );
 
     await act(async () => {
@@ -274,34 +275,34 @@ describe("storage key prefix", () => {
     });
 
     expect(
-      sessionStorage.getItem("myapp:widget-a:test.workers.dev")
+      sessionStorage.getItem("myapp:widget-a:test.workers.dev"),
     ).not.toBeNull();
     expect(
-      sessionStorage.getItem("claudius:messages:test.workers.dev")
+      sessionStorage.getItem("claudius:messages:test.workers.dev"),
     ).toBeNull();
   });
 
   it("isolates history between widgets with different prefixes on the same apiUrl", () => {
     sessionStorage.setItem(
       "myapp:widget-a:test.workers.dev",
-      JSON.stringify([{ id: "a-1", role: "user", content: "from A" }])
+      JSON.stringify([{ id: "a-1", role: "user", content: "from A" }]),
     );
     sessionStorage.setItem(
       "myapp:widget-b:test.workers.dev",
-      JSON.stringify([{ id: "b-1", role: "user", content: "from B" }])
+      JSON.stringify([{ id: "b-1", role: "user", content: "from B" }]),
     );
 
     const a = renderHook(() =>
       useChat({
         apiUrl: "https://test.workers.dev",
         storageKeyPrefix: "myapp:widget-a",
-      })
+      }),
     );
     const b = renderHook(() =>
       useChat({
         apiUrl: "https://test.workers.dev",
         storageKeyPrefix: "myapp:widget-b",
-      })
+      }),
     );
 
     expect(a.result.current.messages).toEqual([
@@ -335,7 +336,7 @@ describe("retry on failure", () => {
         apiUrl: "https://test.workers.dev",
         // Disable timeout so AbortController doesn't interfere with the mock.
         timeoutMs: 0,
-      })
+      }),
     );
 
     let sendPromise!: Promise<void>;
@@ -374,7 +375,10 @@ describe("retry on failure", () => {
     expect(result.current.error).toBeNull();
     expect(result.current.canRetry).toBe(false);
     expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0]).toMatchObject({ role: "user", content: "Hello" });
+    expect(result.current.messages[0]).toMatchObject({
+      role: "user",
+      content: "Hello",
+    });
     expect(result.current.messages[1]).toMatchObject({
       role: "assistant",
       content: "Welcome back!",
@@ -400,7 +404,7 @@ describe("retry on failure", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 })
+      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 }),
     );
 
     await act(async () => {
@@ -420,7 +424,7 @@ describe("retry on failure", () => {
     });
 
     const { result } = renderHook(() =>
-      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 })
+      useChat({ apiUrl: "https://test.workers.dev", timeoutMs: 0 }),
     );
 
     await act(async () => {
@@ -485,7 +489,7 @@ describe("translation routing on errors", () => {
         apiUrl: "https://test.workers.dev",
         translations,
         timeoutMs: 0,
-      })
+      }),
     );
 
     let p!: Promise<void>;
@@ -508,8 +512,7 @@ describe("translation routing on errors", () => {
       ok: false,
       status: 0,
       headers: new Headers(),
-      json: () =>
-        Promise.resolve({ error: "Net down", code: "NETWORK_ERROR" }),
+      json: () => Promise.resolve({ error: "Net down", code: "NETWORK_ERROR" }),
     });
 
     const { result } = renderHook(() =>
@@ -517,7 +520,7 @@ describe("translation routing on errors", () => {
         apiUrl: "https://test.workers.dev",
         translations,
         timeoutMs: 0,
-      })
+      }),
     );
 
     let p!: Promise<void>;
@@ -553,7 +556,7 @@ describe("translation routing on errors", () => {
         apiUrl: "https://test.workers.dev",
         translations,
         timeoutMs: 0,
-      })
+      }),
     );
 
     await act(async () => {
@@ -580,7 +583,7 @@ describe("translation routing on errors", () => {
         apiUrl: "https://test.workers.dev",
         translations,
         timeoutMs: 0,
-      })
+      }),
     );
 
     await act(async () => {
@@ -606,7 +609,7 @@ describe("translation routing on errors", () => {
         apiUrl: "https://test.workers.dev",
         translations,
         timeoutMs: 0,
-      })
+      }),
     );
 
     await act(async () => {

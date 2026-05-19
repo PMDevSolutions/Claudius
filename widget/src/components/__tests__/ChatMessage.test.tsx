@@ -33,7 +33,7 @@ describe("ChatMessage", () => {
       <ChatMessage
         role="assistant"
         content="Visit https://pmds.info/contact to get started!"
-      />
+      />,
     );
     const link = screen.getByRole("link", { name: /pmds\.info\/contact/i });
     expect(link).toHaveAttribute("href", "https://pmds.info/contact");
@@ -49,9 +49,11 @@ describe("ChatMessage", () => {
         sources={mockSources}
         onSourceClick={vi.fn()}
         isSourceActive={false}
-      />
+      />,
     );
-    expect(screen.getByRole("button", { name: /view sources/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /view sources/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
@@ -63,16 +65,18 @@ describe("ChatMessage", () => {
         sources={mockSources}
         onSourceClick={vi.fn()}
         isSourceActive={false}
-      />
+      />,
     );
-    expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /view sources/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not render source icon when no sources", () => {
-    render(
-      <ChatMessage role="assistant" content="No sources here." />
-    );
-    expect(screen.queryByRole("button", { name: /view sources/i })).not.toBeInTheDocument();
+    render(<ChatMessage role="assistant" content="No sources here." />);
+    expect(
+      screen.queryByRole("button", { name: /view sources/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("calls onSourceClick when source icon is clicked", async () => {
@@ -85,7 +89,7 @@ describe("ChatMessage", () => {
         sources={mockSources}
         onSourceClick={onSourceClick}
         isSourceActive={false}
-      />
+      />,
     );
     await user.click(screen.getByRole("button", { name: /view sources/i }));
     expect(onSourceClick).toHaveBeenCalledOnce();
@@ -94,23 +98,21 @@ describe("ChatMessage", () => {
   describe("XSS prevention", () => {
     it("renders script tags as plain text", () => {
       render(
-        <ChatMessage
-          role="user"
-          content="<script>alert('xss')</script>"
-        />
+        <ChatMessage role="user" content="<script>alert('xss')</script>" />,
       );
       // Script tag should be visible as text, not executed
-      expect(screen.getByText(/<script>alert\('xss'\)<\/script>/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/<script>alert\('xss'\)<\/script>/),
+      ).toBeInTheDocument();
     });
 
     it("renders HTML tags as plain text", () => {
       render(
-        <ChatMessage
-          role="assistant"
-          content="<img src=x onerror=alert(1)>"
-        />
+        <ChatMessage role="assistant" content="<img src=x onerror=alert(1)>" />,
       );
-      expect(screen.getByText(/<img src=x onerror=alert\(1\)>/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/<img src=x onerror=alert\(1\)>/),
+      ).toBeInTheDocument();
     });
 
     it("does not create links from javascript: URLs", () => {
@@ -118,7 +120,7 @@ describe("ChatMessage", () => {
         <ChatMessage
           role="assistant"
           content="Click javascript:alert('xss') for help"
-        />
+        />,
       );
       // No links should be created for javascript: URLs
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -129,7 +131,7 @@ describe("ChatMessage", () => {
         <ChatMessage
           role="assistant"
           content="data:text/html,<script>alert(1)</script>"
-        />
+        />,
       );
       // Should render as plain text, not as a link
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -140,7 +142,7 @@ describe("ChatMessage", () => {
         <ChatMessage
           role="assistant"
           content="Visit https://safe-site.com for more info"
-        />
+        />,
       );
       const link = screen.getByRole("link");
       expect(link).toHaveAttribute("href", "https://safe-site.com");

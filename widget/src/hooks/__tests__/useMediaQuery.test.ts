@@ -12,7 +12,10 @@ describe("useMediaQuery", () => {
       value: vi.fn((query: string) => ({
         matches: false,
         media: query,
-        addEventListener: (_: string, cb: (e: { matches: boolean }) => void) => {
+        addEventListener: (
+          _: string,
+          cb: (e: { matches: boolean }) => void,
+        ) => {
           listeners.push(cb);
         },
         removeEventListener: vi.fn(),

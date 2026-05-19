@@ -34,9 +34,7 @@ export const ChatSources = memo(function ChatSources({
   })).filter((group) => group.items.length > 0);
 
   const countText =
-    sources.length === 1
-      ? "1 source found"
-      : `${sources.length} sources found`;
+    sources.length === 1 ? "1 source found" : `${sources.length} sources found`;
 
   return (
     <div className="absolute inset-y-0 left-0 z-10 flex w-[280px] flex-col border-r-2 border-claudius-border bg-white dark:bg-gray-900 rounded-r-card transition-transform duration-200 ease-out">

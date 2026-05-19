@@ -6,63 +6,69 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
-    name: Validate Framework
+  widget:
+    name: Validate Widget
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check shell scripts syntax
-        run: |
-          errors=0
-          for f in scripts/*.sh; do
-            if [ -f "$f" ]; then
-              echo "Checking $f..."
-              bash -n "$f" || errors=$((errors + 1))
-            fi
-          done
-          exit $errors
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
-      - name: Validate JSON configs
-        run: |
-          errors=0
-          for f in package.json; do
-            if [ -f "$f" ]; then
-              echo "Checking $f..."
-              python3 -m json.tool "$f" > /dev/null || errors=$((errors + 1))
-            fi
-          done
-          exit $errors
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
 
-      - name: Check required files exist
-        run: |
-          exit_code=0
-          required_files=(
-            "CLAUDE.md"
-            "package.json"
-            "scripts/lint-and-format.sh"
-            "scripts/run-tests.sh"
-            "scripts/check-types.sh"
-          )
-          for f in "${required_files[@]}"; do
-            if [ -f "$f" ]; then
-              echo "  $f: OK"
-            else
-              echo "  $f: MISSING"
-              exit_code=1
-            fi
-          done
-          exit $exit_code
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Check scripts are executable
-        run: |
-          for f in scripts/*.sh; do
-            if [ -f "$f" ]; then
-              if [ ! -x "$f" ]; then
-                echo "WARNING: $f is not executable"
-              else
-                echo "  $f: OK"
-              fi
-            fi
-          done
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Format check (Prettier)
+        run: pnpm format:check
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Test (Vitest)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  worker:
+    name: Validate Worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: worker/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test (Vitest)
+        run: pnpm test

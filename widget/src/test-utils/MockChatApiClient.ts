@@ -61,7 +61,10 @@ export class MockChatApiClient {
    * later to settle the in-flight request — useful for asserting the
    * loading state mid-flight.
    */
-  mockPending(): { resolve: (response: ChatResponse) => void; reject: (err: unknown) => void } {
+  mockPending(): {
+    resolve: (response: ChatResponse) => void;
+    reject: (err: unknown) => void;
+  } {
     let resolve!: (response: ChatResponse) => void;
     let reject!: (err: unknown) => void;
     const promise = new Promise<ChatResponse>((res, rej) => {
@@ -101,7 +104,11 @@ export class MockChatApiClient {
       case "error":
         throw next.error;
       case "timeout":
-        throw new ChatApiError("Request timed out. Please try again.", 0, "TIMEOUT");
+        throw new ChatApiError(
+          "Request timed out. Please try again.",
+          0,
+          "TIMEOUT",
+        );
       case "pending":
         return next.promise;
     }
@@ -123,10 +130,13 @@ export async function installChatApiClientMock(
   const { ChatApiClient } = (await import("../api/client")) as {
     ChatApiClient: ReturnType<typeof vi.fn>;
   };
-  if (typeof ChatApiClient !== "function" || !("mockImplementation" in ChatApiClient)) {
+  if (
+    typeof ChatApiClient !== "function" ||
+    !("mockImplementation" in ChatApiClient)
+  ) {
     throw new Error(
       "installChatApiClientMock: ChatApiClient is not a vi.fn(). " +
-        "Add `vi.mock(\"../api/client\")` at the top of the test file.",
+        'Add `vi.mock("../api/client")` at the top of the test file.',
     );
   }
   (ChatApiClient as unknown as ReturnType<typeof vi.fn>).mockImplementation(

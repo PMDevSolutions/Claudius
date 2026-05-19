@@ -49,7 +49,7 @@ export function ChatWidget({
 
   const translations = useMemo(
     () => createTranslations(translationOverrides),
-    [translationOverrides]
+    [translationOverrides],
   );
 
   const { messages, isLoading, error, canRetry, sendMessage, retry } = useChat({

@@ -19,24 +19,26 @@ describe("sanitizeUrl", () => {
 
     it("allows URLs with paths", () => {
       expect(sanitizeUrl("https://example.com/path/to/page")).toBe(
-        "https://example.com/path/to/page"
+        "https://example.com/path/to/page",
       );
     });
 
     it("allows URLs with query strings", () => {
       expect(sanitizeUrl("https://example.com?foo=bar&baz=qux")).toBe(
-        "https://example.com?foo=bar&baz=qux"
+        "https://example.com?foo=bar&baz=qux",
       );
     });
 
     it("allows URLs with fragments", () => {
       expect(sanitizeUrl("https://example.com#section")).toBe(
-        "https://example.com#section"
+        "https://example.com#section",
       );
     });
 
     it("trims whitespace", () => {
-      expect(sanitizeUrl("  https://example.com  ")).toBe("https://example.com");
+      expect(sanitizeUrl("  https://example.com  ")).toBe(
+        "https://example.com",
+      );
     });
   });
 
@@ -50,11 +52,17 @@ describe("sanitizeUrl", () => {
     });
 
     it("blocks data: URLs", () => {
-      expect(sanitizeUrl("data:text/html,<script>alert(1)</script>")).toBeNull();
+      expect(
+        sanitizeUrl("data:text/html,<script>alert(1)</script>"),
+      ).toBeNull();
     });
 
     it("blocks data: URLs with base64", () => {
-      expect(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==")).toBeNull();
+      expect(
+        sanitizeUrl(
+          "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+        ),
+      ).toBeNull();
     });
 
     it("blocks vbscript: URLs", () => {

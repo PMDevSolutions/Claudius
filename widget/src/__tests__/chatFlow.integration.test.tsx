@@ -6,9 +6,8 @@ import { MockChatApiClient } from "../test-utils/MockChatApiClient";
 import { ChatApiError } from "../api/errors";
 
 vi.mock("../api/client", async () => {
-  const actual = await vi.importActual<typeof import("../api/client")>(
-    "../api/client",
-  );
+  const actual =
+    await vi.importActual<typeof import("../api/client")>("../api/client");
   return {
     ...actual,
     ChatApiClient: vi.fn(),
@@ -41,7 +40,9 @@ describe("ChatWidget integration: send → receive → display", () => {
     const user = await openWidget();
 
     const log = await screen.findByRole("log");
-    expect(within(log).getByText(/How can I help you today/i)).toBeInTheDocument();
+    expect(
+      within(log).getByText(/How can I help you today/i),
+    ).toBeInTheDocument();
 
     const input = screen.getByLabelText(/type your message/i);
     await user.type(input, "What are your prices?");
@@ -65,7 +66,9 @@ describe("ChatWidget integration: send → receive → display", () => {
 
     // Assistant reply renders and the typing indicator disappears.
     await waitFor(() => {
-      expect(within(log).getByText(/Plans start at \$1,000/)).toBeInTheDocument();
+      expect(
+        within(log).getByText(/Plans start at \$1,000/),
+      ).toBeInTheDocument();
     });
     expect(
       screen.queryByRole("status", { name: /assistant is typing/i }),
@@ -81,12 +84,17 @@ describe("ChatWidget integration: send → receive → display", () => {
     });
 
     const user = await openWidget();
-    await user.type(screen.getByLabelText(/type your message/i), "Tell me more");
+    await user.type(
+      screen.getByLabelText(/type your message/i),
+      "Tell me more",
+    );
     await user.click(screen.getByRole("button", { name: /send message/i }));
 
     const log = await screen.findByRole("log");
     await waitFor(() => {
-      expect(within(log).getByText(/Here are some resources/)).toBeInTheDocument();
+      expect(
+        within(log).getByText(/Here are some resources/),
+      ).toBeInTheDocument();
     });
     expect(
       screen.getByRole("button", { name: /view sources/i }),
@@ -106,7 +114,9 @@ describe("ChatWidget integration: send → receive → display", () => {
     const retryBtn = await screen.findByRole("button", { name: /retry/i });
 
     // The user's message is preserved during the failure.
-    expect(within(screen.getByRole("log")).getByText("Hello")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("log")).getByText("Hello"),
+    ).toBeInTheDocument();
 
     // Network recovers; clicking Retry re-sends without duplicating the user turn.
     mock.mockReply({ reply: "Welcome back!" });
@@ -131,9 +141,7 @@ describe("ChatWidget integration: send → receive → display", () => {
   });
 
   it("does not show Retry on validation errors (non-recoverable)", async () => {
-    mock.mockError(
-      new ChatApiError("Invalid input", 400, "VALIDATION_ERROR"),
-    );
+    mock.mockError(new ChatApiError("Invalid input", 400, "VALIDATION_ERROR"));
 
     const user = await openWidget();
     await user.type(screen.getByLabelText(/type your message/i), "...");
@@ -149,7 +157,9 @@ describe("ChatWidget integration: send → receive → display", () => {
     mock.mockReply({ reply: "Hello!" });
 
     const user = userEvent.setup();
-    const { unmount } = render(<ChatWidget apiUrl="https://test.workers.dev" />);
+    const { unmount } = render(
+      <ChatWidget apiUrl="https://test.workers.dev" />,
+    );
     await user.click(screen.getByRole("button", { name: /open chat/i }));
     await user.type(screen.getByLabelText(/type your message/i), "Hi there");
     await user.click(screen.getByRole("button", { name: /send message/i }));

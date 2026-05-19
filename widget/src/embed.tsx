@@ -47,7 +47,7 @@ function init() {
       theme={config.theme}
       accentColor={config.accentColor}
       position={config.position}
-    />
+    />,
   );
 }
 
@@ -119,9 +119,7 @@ class ClaudiusChat extends HTMLElement {
         welcomeMessage={this.getAttribute("welcome-message") ?? undefined}
         placeholder={this.getAttribute("placeholder") ?? undefined}
         persistMessages={persistMessages}
-        storageKeyPrefix={
-          this.getAttribute("storage-key-prefix") ?? undefined
-        }
+        storageKeyPrefix={this.getAttribute("storage-key-prefix") ?? undefined}
         requestTimeoutMs={
           requestTimeoutMs !== undefined && Number.isFinite(requestTimeoutMs)
             ? requestTimeoutMs
@@ -134,7 +132,7 @@ class ClaudiusChat extends HTMLElement {
         position={
           (this.getAttribute("position") as WidgetPosition) ?? undefined
         }
-      />
+      />,
     );
   }
 }

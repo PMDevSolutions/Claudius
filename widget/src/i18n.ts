@@ -51,7 +51,7 @@ export const defaultTranslations: ClaudiusTranslations = {
 };
 
 export function createTranslations(
-  overrides?: Partial<ClaudiusTranslations>
+  overrides?: Partial<ClaudiusTranslations>,
 ): ClaudiusTranslations {
   return { ...defaultTranslations, ...overrides };
 }

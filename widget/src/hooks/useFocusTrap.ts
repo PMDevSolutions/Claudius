@@ -5,7 +5,7 @@ const FOCUSABLE =
 
 export function useFocusTrap(
   containerRef: RefObject<HTMLElement>,
-  active: boolean
+  active: boolean,
 ) {
   useEffect(() => {
     if (!active) return;
@@ -15,7 +15,7 @@ export function useFocusTrap(
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
       const focusables = Array.from(
-        container.querySelectorAll<HTMLElement>(FOCUSABLE)
+        container.querySelectorAll<HTMLElement>(FOCUSABLE),
       ).filter((el) => !el.hasAttribute("aria-hidden"));
       if (focusables.length === 0) return;
       const first = focusables[0];

@@ -10,7 +10,7 @@ describe("ChatWidget", () => {
   it("renders toggle button initially (chat closed)", () => {
     render(<ChatWidget apiUrl="https://test.workers.dev" />);
     expect(
-      screen.getByRole("button", { name: /open chat/i })
+      screen.getByRole("button", { name: /open chat/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Chat")).not.toBeInTheDocument();
   });
@@ -52,7 +52,9 @@ describe("ChatWidget", () => {
 
     // Wait for reply (scope to log to avoid matching sr-only live region)
     await screen.findByRole("log");
-    expect(await within(screen.getByRole("log")).findByText("Hello!")).toBeInTheDocument();
+    expect(
+      await within(screen.getByRole("log")).findByText("Hello!"),
+    ).toBeInTheDocument();
 
     // Close via header button and reopen
     const closeButtons = screen.getAllByRole("button", { name: /close chat/i });
@@ -82,7 +84,7 @@ describe("ChatWidget - mobile bottom sheet", () => {
   it("renders scrim backdrop on mobile when open", async () => {
     const user = userEvent.setup();
     const { container } = render(
-      <ChatWidget apiUrl="https://test.workers.dev" />
+      <ChatWidget apiUrl="https://test.workers.dev" />,
     );
     await user.click(screen.getByRole("button", { name: /open chat/i }));
     expect(container.querySelector(".claudius-scrim")).toBeInTheDocument();
@@ -100,7 +102,7 @@ describe("ChatWidget - mobile bottom sheet", () => {
     });
     const user = userEvent.setup();
     const { container } = render(
-      <ChatWidget apiUrl="https://test.workers.dev" />
+      <ChatWidget apiUrl="https://test.workers.dev" />,
     );
     await user.click(screen.getByRole("button", { name: /open chat/i }));
     expect(container.querySelector(".claudius-scrim")).not.toBeInTheDocument();
