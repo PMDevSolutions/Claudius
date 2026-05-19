@@ -15,6 +15,9 @@ export interface ClaudiusTranslations {
   // ChatToggleButton
   openChat: string;
 
+  // GreetingBubble
+  dismissGreeting: string;
+
   // Errors
   errorGeneric: string;
   errorConnection: string;
@@ -40,6 +43,9 @@ export const defaultTranslations: ClaudiusTranslations = {
 
   // ChatToggleButton
   openChat: "Open chat",
+
+  // GreetingBubble
+  dismissGreeting: "Dismiss greeting",
 
   // Errors
   errorGeneric: "Something went wrong. Please try again.",

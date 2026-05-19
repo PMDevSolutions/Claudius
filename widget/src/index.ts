@@ -5,6 +5,7 @@ export type {
   ClaudiusTranslations,
 } from "./components/ChatWidget";
 export { defaultTranslations, createTranslations } from "./i18n";
+export type { Trigger, TriggerAction, UrlPattern } from "./hooks/useTriggers";
 export { ChatApiClient } from "./api/client";
 export type { ChatApiClientOptions } from "./api/client";
 export { ChatApiError, DebounceError } from "./api/errors";

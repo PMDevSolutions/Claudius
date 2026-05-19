@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useChat } from "../hooks/useChat";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useTriggers, type Trigger } from "../hooks/useTriggers";
 import { ChatToggleButton } from "./ChatToggleButton";
 import { ChatWindow } from "./ChatWindow";
+import { GreetingBubble } from "./GreetingBubble";
 import {
   ClaudiusTranslations,
   defaultTranslations,
@@ -14,6 +16,8 @@ export type WidgetPosition =
   | "bottom-left"
   | "top-right"
   | "top-left";
+
+const DISMISS_STORAGE_KEY = "claudius:triggers:dismissed";
 
 export interface ChatWidgetProps {
   apiUrl: string;
@@ -28,6 +32,25 @@ export interface ChatWidgetProps {
   accentColor?: string;
   position?: WidgetPosition;
   translations?: Partial<ClaudiusTranslations>;
+  triggers?: Trigger[];
+}
+
+function readDismissed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeDismissed(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(DISMISS_STORAGE_KEY, "1");
+  } catch {
+    // sessionStorage may be unavailable (e.g. Safari private mode pre-iOS 17)
+  }
 }
 
 export function ChatWidget({
@@ -43,8 +66,12 @@ export function ChatWidget({
   accentColor,
   position = "bottom-right",
   translations: translationOverrides,
+  triggers,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [greeting, setGreeting] = useState<string | null>(null);
+  const [triggersDismissed, setTriggersDismissed] = useState(readDismissed);
+  const openedByTriggerRef = useRef(false);
   const isMobile = useMediaQuery("(max-width: 639px)");
 
   const translations = useMemo(
@@ -83,13 +110,49 @@ export function ChatWidget({
     prevOpenRef.current = isOpen;
   }, [isOpen]);
 
+  const dismissTriggers = useCallback(() => {
+    setTriggersDismissed(true);
+    writeDismissed();
+  }, []);
+
   const handleClose = useCallback(() => {
     setIsOpen(false);
-  }, []);
+    if (openedByTriggerRef.current) {
+      openedByTriggerRef.current = false;
+      dismissTriggers();
+    }
+  }, [dismissTriggers]);
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev);
   }, []);
+
+  const handleTriggerOpen = useCallback(() => {
+    openedByTriggerRef.current = true;
+    setGreeting(null);
+    setIsOpen(true);
+  }, []);
+
+  const handleTriggerGreeting = useCallback((message: string) => {
+    setGreeting(message);
+  }, []);
+
+  const handleGreetingOpen = useCallback(() => {
+    setGreeting(null);
+    handleTriggerOpen();
+  }, [handleTriggerOpen]);
+
+  const handleGreetingDismiss = useCallback(() => {
+    setGreeting(null);
+    dismissTriggers();
+  }, [dismissTriggers]);
+
+  useTriggers({
+    triggers,
+    enabled: !triggersDismissed && !isOpen,
+    onOpen: handleTriggerOpen,
+    onGreeting: handleTriggerGreeting,
+  });
 
   const isDark = theme === "dark" || (theme === "auto" && osDark);
 
@@ -131,6 +194,15 @@ export function ChatWidget({
           onClick={handleToggle}
           position={position}
           translations={translations}
+        />
+      )}
+      {!isOpen && greeting && (
+        <GreetingBubble
+          message={greeting}
+          position={position}
+          onOpen={handleGreetingOpen}
+          onDismiss={handleGreetingDismiss}
+          dismissLabel={translations.dismissGreeting}
         />
       )}
     </div>
