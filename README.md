@@ -180,6 +180,21 @@ Host these files on your site or a CDN, then add the embed snippet to your HTML.
 - **Worker:** Cloudflare Workers, Hono, Anthropic SDK, KV
 - **AI Model:** Claude Haiku 4.5
 
+## Contributing
+
+Contributions are welcome. Before opening a pull request, please read:
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) -- setup, branch naming, PR process, and code style
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) -- community expectations
+- [SECURITY.md](./SECURITY.md) -- how to report security issues responsibly
+
+Quick checklist before submitting a PR:
+
+1. Branch from `main` using a `feat/`, `fix/`, `docs/`, or `chore/` prefix
+2. Add tests for new functionality
+3. Run `pnpm test` in both `widget/` and `worker/`
+4. Write a clear PR title (under 70 chars) and description
+
 ## License
 
-MIT
+Released under the [MIT License](./LICENSE).
