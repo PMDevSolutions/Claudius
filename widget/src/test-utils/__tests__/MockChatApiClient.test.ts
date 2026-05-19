@@ -7,8 +7,12 @@ describe("MockChatApiClient", () => {
     const mock = new MockChatApiClient();
     mock.mockReply({ reply: "first" }).mockReply({ reply: "second" });
 
-    const r1 = await mock.sendMessage([{ id: "1", role: "user", content: "a" }]);
-    const r2 = await mock.sendMessage([{ id: "2", role: "user", content: "b" }]);
+    const r1 = await mock.sendMessage([
+      { id: "1", role: "user", content: "a" },
+    ]);
+    const r2 = await mock.sendMessage([
+      { id: "2", role: "user", content: "b" },
+    ]);
 
     expect(r1.reply).toBe("first");
     expect(r2.reply).toBe("second");

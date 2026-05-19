@@ -18,7 +18,9 @@ const ITALIC_REGEX = /(\*[^*]+\*)/;
 function renderLink(rawUrl: string, key: string): ReactNode {
   // Strip trailing punctuation that's likely not part of the URL
   const trailingPunct = rawUrl.match(/[.,;:!?'"]+$/);
-  const url = trailingPunct ? rawUrl.slice(0, -trailingPunct[0].length) : rawUrl;
+  const url = trailingPunct
+    ? rawUrl.slice(0, -trailingPunct[0].length)
+    : rawUrl;
   const suffix = trailingPunct ? trailingPunct[0] : "";
 
   // Validate URL scheme to prevent javascript:, data:, vbscript: attacks
@@ -61,16 +63,14 @@ function renderInlineFormatting(text: string, keyPrefix: string): ReactNode[] {
       italicParts.forEach((iPart, iIdx) => {
         if (ITALIC_REGEX.test(iPart)) {
           const inner = iPart.slice(1, -1);
-          result.push(
-            <em key={`${keyPrefix}-b${bIdx}-i${iIdx}`}>{inner}</em>
-          );
+          result.push(<em key={`${keyPrefix}-b${bIdx}-i${iIdx}`}>{inner}</em>);
         } else {
           // Within non-formatted segments, handle URLs
           const urlParts = iPart.split(URL_REGEX);
           urlParts.forEach((uPart, uIdx) => {
             if (URL_REGEX.test(uPart)) {
               result.push(
-                renderLink(uPart, `${keyPrefix}-b${bIdx}-i${iIdx}-u${uIdx}`)
+                renderLink(uPart, `${keyPrefix}-b${bIdx}-i${iIdx}-u${uIdx}`),
               );
             } else if (uPart) {
               result.push(uPart);

@@ -94,7 +94,7 @@ export function useChat({
         // sessionStorage may be unavailable or quota-exceeded
       }
     },
-    [persistMessages, storageKey]
+    [persistMessages, storageKey],
   );
 
   const nextId = () => {
@@ -126,29 +126,26 @@ export function useChat({
           return fallback ?? translations.errorGeneric;
       }
     },
-    [translations]
+    [translations],
   );
 
   // Recoverable codes — show the retry button on failures the user can retry.
   // Validation/config errors aren't retryable: the input or server config
   // would need to change first.
-  const isRetryableError = useCallback(
-    (err: unknown): boolean => {
-      if (!(err instanceof ChatApiError)) return true; // unknown failure → allow retry
-      if (
-        err.code === "TIMEOUT" ||
-        err.code === "NETWORK_ERROR" ||
-        err.code === "RATE_LIMITED" ||
-        err.code === "SERVICE_ERROR" ||
-        err.code === "UNKNOWN_ERROR"
-      ) {
-        return true;
-      }
-      if (err.status >= 500 || err.status === 0) return true;
-      return false;
-    },
-    []
-  );
+  const isRetryableError = useCallback((err: unknown): boolean => {
+    if (!(err instanceof ChatApiError)) return true; // unknown failure → allow retry
+    if (
+      err.code === "TIMEOUT" ||
+      err.code === "NETWORK_ERROR" ||
+      err.code === "RATE_LIMITED" ||
+      err.code === "SERVICE_ERROR" ||
+      err.code === "UNKNOWN_ERROR"
+    ) {
+      return true;
+    }
+    if (err.status >= 500 || err.status === 0) return true;
+    return false;
+  }, []);
 
   const submit = useCallback(
     async (msgsToSend: ChatMessage[]) => {
@@ -186,7 +183,7 @@ export function useChat({
         isLoadingRef.current = false;
       }
     },
-    [client, getErrorMessage, isRetryableError, saveMessages, translations]
+    [client, getErrorMessage, isRetryableError, saveMessages, translations],
   );
 
   const sendMessage = useCallback(
@@ -207,7 +204,7 @@ export function useChat({
 
       await submit(updatedMessages);
     },
-    [saveMessages, submit]
+    [saveMessages, submit],
   );
 
   const retry = useCallback(async () => {

@@ -6,9 +6,17 @@ import type { Source } from "../../api/types";
 
 const mockSources: Source[] = [
   { url: "https://pmds.info/blog/seo-tips", title: "SEO Tips", type: "blog" },
-  { url: "https://pmds.info/blog/web-design", title: "Web Design Guide", type: "blog" },
+  {
+    url: "https://pmds.info/blog/web-design",
+    title: "Web Design Guide",
+    type: "blog",
+  },
   { url: "https://pmds.info/services", title: "Our Services", type: "page" },
-  { url: "https://example.com/resource", title: "External Resource", type: "external" },
+  {
+    url: "https://example.com/resource",
+    title: "External Resource",
+    type: "external",
+  },
 ];
 
 describe("ChatSources", () => {
@@ -64,19 +72,31 @@ describe("ChatSources", () => {
   describe("XSS prevention", () => {
     it("does not render sources with javascript: URLs", () => {
       const maliciousSources: Source[] = [
-        { url: "javascript:alert('xss')", title: "Malicious Link", type: "blog" },
+        {
+          url: "javascript:alert('xss')",
+          title: "Malicious Link",
+          type: "blog",
+        },
       ];
       render(<ChatSources sources={maliciousSources} onClose={vi.fn()} />);
       // The malicious source should not be rendered as a link
-      expect(screen.queryByRole("link", { name: /Malicious Link/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: /Malicious Link/i }),
+      ).not.toBeInTheDocument();
     });
 
     it("does not render sources with data: URLs", () => {
       const maliciousSources: Source[] = [
-        { url: "data:text/html,<script>alert(1)</script>", title: "Data URL", type: "external" },
+        {
+          url: "data:text/html,<script>alert(1)</script>",
+          title: "Data URL",
+          type: "external",
+        },
       ];
       render(<ChatSources sources={maliciousSources} onClose={vi.fn()} />);
-      expect(screen.queryByRole("link", { name: /Data URL/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: /Data URL/i }),
+      ).not.toBeInTheDocument();
     });
 
     it("renders safe https sources normally", () => {
@@ -92,12 +112,22 @@ describe("ChatSources", () => {
       const mixedSources: Source[] = [
         { url: "https://good-site.com", title: "Good Site", type: "page" },
         { url: "javascript:alert(1)", title: "Bad Site", type: "external" },
-        { url: "https://another-good.com", title: "Another Good", type: "blog" },
+        {
+          url: "https://another-good.com",
+          title: "Another Good",
+          type: "blog",
+        },
       ];
       render(<ChatSources sources={mixedSources} onClose={vi.fn()} />);
-      expect(screen.getByRole("link", { name: /Good Site/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /Another Good/i })).toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /Bad Site/i })).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /Good Site/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /Another Good/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: /Bad Site/i }),
+      ).not.toBeInTheDocument();
     });
 
     it("updates source count when malicious sources are filtered", () => {

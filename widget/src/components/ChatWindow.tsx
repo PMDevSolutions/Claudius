@@ -30,7 +30,12 @@ function TypingIndicator({ label }: { label: string }) {
   // motion-safe: variant disables the bounce when prefers-reduced-motion is
   // set; the dots remain visible as a static status pill.
   return (
-    <div role="status" aria-live="polite" aria-label={label} className="mr-auto flex max-w-[85%]">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+      className="mr-auto flex max-w-[85%]"
+    >
       <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-3">
         <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:0ms]" />
         <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:150ms]" />
@@ -66,11 +71,18 @@ export function ChatWindow({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [activeSources, setActiveSources] = useState<{ messageId: string; sources: Source[] } | null>(null);
+  const [activeSources, setActiveSources] = useState<{
+    messageId: string;
+    sources: Source[];
+  } | null>(null);
 
   useFocusTrap(dialogRef, true);
 
-  const { offsetY } = useSwipeToDismiss(messagesContainerRef, onClose, isMobile);
+  const { offsetY } = useSwipeToDismiss(
+    messagesContainerRef,
+    onClose,
+    isMobile,
+  );
   const isDragging = offsetY !== 0;
   const reducedMotion =
     typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -96,7 +108,9 @@ export function ChatWindow({
 
   const closeLabel = translations?.closeChat ?? "Close chat";
   const messagesLabel = translations?.chatMessages ?? "Chat messages";
-  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
+  const lastAssistantMessage = [...messages]
+    .reverse()
+    .find((m) => m.role === "assistant");
 
   return (
     <div
@@ -131,7 +145,10 @@ export function ChatWindow({
           {title.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
-          <h2 id={titleId} className="text-sm font-heading font-semibold text-white">
+          <h2
+            id={titleId}
+            className="text-sm font-heading font-semibold text-white"
+          >
             {title}
           </h2>
           <p className="text-xs text-white">{subtitle}</p>
@@ -237,7 +254,9 @@ export function ChatWindow({
         aria-atomic="true"
         className="sr-only"
       >
-        {lastAssistantMessage ? stripAnnouncementFormatting(lastAssistantMessage.content) : ""}
+        {lastAssistantMessage
+          ? stripAnnouncementFormatting(lastAssistantMessage.content)
+          : ""}
       </div>
 
       {/* Input */}

@@ -3,7 +3,7 @@ import { RefObject, useEffect, useRef, useState } from "react";
 export function useSwipeToDismiss(
   sheetRef: RefObject<HTMLElement | null>,
   onDismiss: () => void,
-  enabled: boolean
+  enabled: boolean,
 ): { offsetY: number } {
   const [offsetY, setOffsetY] = useState(0);
   const offsetYRef = useRef(0);

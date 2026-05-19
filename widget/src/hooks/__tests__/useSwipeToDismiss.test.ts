@@ -14,7 +14,7 @@ const createRef = (scrollTop = 0) => {
 const fireTouch = (
   el: HTMLElement,
   type: "touchstart" | "touchmove" | "touchend",
-  clientY: number
+  clientY: number,
 ) => {
   const event = new TouchEvent(type, {
     touches: type === "touchend" ? [] : [{ clientY } as Touch],
@@ -33,7 +33,7 @@ describe("useSwipeToDismiss", () => {
   it("returns offsetY of 0 initially", () => {
     const ref = createRef();
     const { result } = renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, true)
+      useSwipeToDismiss(ref, onDismiss, true),
     );
 
     expect(result.current.offsetY).toBe(0);
@@ -43,9 +43,7 @@ describe("useSwipeToDismiss", () => {
     const ref = createRef();
     const addSpy = vi.spyOn(ref.current, "addEventListener");
 
-    renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, false)
-    );
+    renderHook(() => useSwipeToDismiss(ref, onDismiss, false));
 
     expect(addSpy).not.toHaveBeenCalled();
   });
@@ -53,7 +51,7 @@ describe("useSwipeToDismiss", () => {
   it("tracks vertical drag distance", () => {
     const ref = createRef();
     const { result } = renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, true)
+      useSwipeToDismiss(ref, onDismiss, true),
     );
 
     act(() => {
@@ -66,9 +64,7 @@ describe("useSwipeToDismiss", () => {
 
   it("calls onDismiss when dragged past 30% threshold", () => {
     const ref = createRef();
-    renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, true)
-    );
+    renderHook(() => useSwipeToDismiss(ref, onDismiss, true));
 
     // 30% of 600 = 180, so dragging 200 should exceed threshold
     act(() => {
@@ -83,7 +79,7 @@ describe("useSwipeToDismiss", () => {
   it("snaps back when drag is below threshold", () => {
     const ref = createRef();
     const { result } = renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, true)
+      useSwipeToDismiss(ref, onDismiss, true),
     );
 
     // 30% of 600 = 180, so dragging 100 should snap back
@@ -100,7 +96,7 @@ describe("useSwipeToDismiss", () => {
   it("does not activate swipe when scrollTop > 0", () => {
     const ref = createRef(50);
     const { result } = renderHook(() =>
-      useSwipeToDismiss(ref, onDismiss, true)
+      useSwipeToDismiss(ref, onDismiss, true),
     );
 
     act(() => {

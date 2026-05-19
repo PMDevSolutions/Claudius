@@ -6,7 +6,9 @@ import { ChatInput } from "../ChatInput";
 describe("ChatInput", () => {
   it("renders input and submit button", () => {
     render(<ChatInput onSend={vi.fn()} isLoading={false} />);
-    expect(screen.getByPlaceholderText(/type your message/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/type your message/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
   });
 

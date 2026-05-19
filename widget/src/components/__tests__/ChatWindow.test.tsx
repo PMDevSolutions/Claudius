@@ -10,8 +10,9 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error={null}
-        onSend={vi.fn()} onClose={vi.fn()}
-      />
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     expect(screen.getByText(/How can I help you today/i)).toBeInTheDocument();
   });
@@ -19,19 +20,26 @@ describe("ChatWindow", () => {
   it("renders messages", () => {
     const messages = [
       { id: "msg-1", role: "user" as const, content: "What are your prices?" },
-      { id: "msg-2", role: "assistant" as const, content: "Prices start at $1,000." },
+      {
+        id: "msg-2",
+        role: "assistant" as const,
+        content: "Prices start at $1,000.",
+      },
     ];
     render(
       <ChatWindow
         messages={messages}
         isLoading={false}
         error={null}
-        onSend={vi.fn()} onClose={vi.fn()}
-      />
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     const log = screen.getByRole("log");
     expect(within(log).getByText("What are your prices?")).toBeInTheDocument();
-    expect(within(log).getByText(/Prices start at \$1,000/)).toBeInTheDocument();
+    expect(
+      within(log).getByText(/Prices start at \$1,000/),
+    ).toBeInTheDocument();
   });
 
   it("shows typing indicator when loading", () => {
@@ -40,8 +48,9 @@ describe("ChatWindow", () => {
         messages={[{ id: "msg-1", role: "user", content: "Hi" }]}
         isLoading={true}
         error={null}
-        onSend={vi.fn()} onClose={vi.fn()}
-      />
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
@@ -52,8 +61,9 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error="Connection failed"
-        onSend={vi.fn()} onClose={vi.fn()}
-      />
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     expect(screen.getByText(/Connection failed/i)).toBeInTheDocument();
   });
@@ -69,7 +79,7 @@ describe("ChatWindow", () => {
         onRetry={onRetry}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
   });
@@ -86,7 +96,7 @@ describe("ChatWindow", () => {
         onRetry={onRetry}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByRole("button", { name: /retry/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
@@ -102,9 +112,11 @@ describe("ChatWindow", () => {
         onRetry={vi.fn()}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
-    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /retry/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("hides retry button while loading", () => {
@@ -117,9 +129,11 @@ describe("ChatWindow", () => {
         onRetry={vi.fn()}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
-    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /retry/i }),
+    ).not.toBeInTheDocument();
   });
 
   const messagesWithSources = [
@@ -129,8 +143,16 @@ describe("ChatWindow", () => {
       role: "assistant" as const,
       content: "Here are resources.",
       sources: [
-        { url: "https://pmds.info/blog/seo", title: "SEO Tips", type: "blog" as const },
-        { url: "https://pmds.info/services", title: "Services", type: "page" as const },
+        {
+          url: "https://pmds.info/blog/seo",
+          title: "SEO Tips",
+          type: "blog" as const,
+        },
+        {
+          url: "https://pmds.info/services",
+          title: "Services",
+          type: "page" as const,
+        },
       ],
     },
   ];
@@ -143,9 +165,11 @@ describe("ChatWindow", () => {
         error={null}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
-    expect(screen.getByRole("button", { name: /view sources/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /view sources/i }),
+    ).toBeInTheDocument();
   });
 
   it("opens sources sidebar when source icon is clicked", async () => {
@@ -157,7 +181,7 @@ describe("ChatWindow", () => {
         error={null}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByRole("button", { name: /view sources/i }));
     expect(screen.getByText("Sources")).toBeInTheDocument();
@@ -174,7 +198,7 @@ describe("ChatWindow", () => {
         error={null}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByRole("button", { name: /view sources/i }));
     expect(screen.getByText("Sources")).toBeInTheDocument();
@@ -191,7 +215,7 @@ describe("ChatWindow", () => {
         error={null}
         onSend={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
     const icon = screen.getByRole("button", { name: /view sources/i });
     await user.click(icon);
@@ -206,16 +230,22 @@ describe("ChatWindow", () => {
         messages={[]}
         isLoading={false}
         error={null}
-        onSend={vi.fn()} onClose={vi.fn()}
-      />
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     expect(screen.getByText("Chat")).toBeInTheDocument();
   });
 
   it("announces the latest assistant message via a polite live region", async () => {
     const { rerender } = render(
-      <ChatWindow messages={[{ id: "m1", role: "user", content: "hi" }]}
-        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+      <ChatWindow
+        messages={[{ id: "m1", role: "user", content: "hi" }]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     rerender(
       <ChatWindow
@@ -223,25 +253,47 @@ describe("ChatWindow", () => {
           { id: "m1", role: "user", content: "hi" },
           { id: "m2", role: "assistant", content: "Hello there!" },
         ]}
-        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()}
-      />
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
-    const liveRegion = document.querySelector('[data-claudius-live="assistant"]');
+    const liveRegion = document.querySelector(
+      '[data-claudius-live="assistant"]',
+    );
     expect(liveRegion).toHaveAttribute("aria-live", "polite");
     expect(liveRegion?.textContent).toContain("Hello there!");
   });
 
   it("strips markdown markers from live-region announcements", () => {
     const { rerender } = render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     rerender(
       <ChatWindow
-        messages={[{ id: "m1", role: "assistant", content: "Visit **pmds** at https://pmds.info/blog today" }]}
-        isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()}
-      />
+        messages={[
+          {
+            id: "m1",
+            role: "assistant",
+            content: "Visit **pmds** at https://pmds.info/blog today",
+          },
+        ]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
-    const liveRegion = document.querySelector('[data-claudius-live="assistant"]');
+    const liveRegion = document.querySelector(
+      '[data-claudius-live="assistant"]',
+    );
     expect(liveRegion?.textContent).toBe("Visit pmds at pmds.info today");
   });
 });
@@ -256,9 +308,11 @@ describe("ChatWindow - mobile bottom sheet", () => {
         onSend={vi.fn()}
         onClose={vi.fn()}
         isMobile={true}
-      />
+      />,
     );
-    expect(container.querySelector(".claudius-bottom-sheet")).toBeInTheDocument();
+    expect(
+      container.querySelector(".claudius-bottom-sheet"),
+    ).toBeInTheDocument();
   });
 
   it("does not render bottom sheet classes when isMobile is false", () => {
@@ -270,9 +324,11 @@ describe("ChatWindow - mobile bottom sheet", () => {
         onSend={vi.fn()}
         onClose={vi.fn()}
         isMobile={false}
-      />
+      />,
     );
-    expect(container.querySelector(".claudius-bottom-sheet")).not.toBeInTheDocument();
+    expect(
+      container.querySelector(".claudius-bottom-sheet"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders drag handle when isMobile is true", () => {
@@ -284,10 +340,12 @@ describe("ChatWindow - mobile bottom sheet", () => {
         onSend={vi.fn()}
         onClose={vi.fn()}
         isMobile={true}
-      />
+      />,
     );
     // Drag handle is a small rounded bar
-    const handle = container.querySelector("[aria-hidden='true'] .rounded-full");
+    const handle = container.querySelector(
+      "[aria-hidden='true'] .rounded-full",
+    );
     expect(handle).toBeInTheDocument();
   });
 });
@@ -295,21 +353,42 @@ describe("ChatWindow - mobile bottom sheet", () => {
 describe("ChatWindow - dialog semantics", () => {
   it("sets aria-modal=true on mobile (scrim blocks background)", () => {
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} isMobile={true} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        isMobile={true}
+      />,
     );
     expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
   });
 
   it("omits aria-modal on desktop (background remains interactive)", () => {
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} isMobile={false} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        isMobile={false}
+      />,
     );
     expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-modal");
   });
 
   it("is labelled by the title heading via aria-labelledby", () => {
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} title="Support" />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+        title="Support"
+      />,
     );
     expect(screen.getByRole("dialog", { name: "Support" })).toBeInTheDocument();
   });
@@ -320,7 +399,13 @@ describe("ChatWindow - keyboard", () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={onClose}
+      />,
     );
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -330,7 +415,13 @@ describe("ChatWindow - keyboard", () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={onClose}
+      />,
     );
     await user.keyboard("a");
     expect(onClose).not.toHaveBeenCalled();
@@ -339,10 +430,19 @@ describe("ChatWindow - keyboard", () => {
   it("does not call onClose when Escape is pressed during IME composition", () => {
     const onClose = vi.fn();
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={onClose} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={onClose}
+      />,
     );
     // Dispatch a keydown with isComposing: true — user is mid-IME, Escape should cancel the composition, not close the widget
-    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true });
+    const event = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+    });
     Object.defineProperty(event, "isComposing", { value: true });
     document.dispatchEvent(event);
     expect(onClose).not.toHaveBeenCalled();
@@ -350,7 +450,13 @@ describe("ChatWindow - keyboard", () => {
 
   it("focuses the message input on mount", async () => {
     render(
-      <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+      <ChatWindow
+        messages={[]}
+        isLoading={false}
+        error={null}
+        onSend={vi.fn()}
+        onClose={vi.fn()}
+      />,
     );
     expect(await screen.findByLabelText(/type your message/i)).toHaveFocus();
   });
@@ -360,9 +466,15 @@ describe("ChatWindow - keyboard", () => {
     render(
       <>
         <button>outside-before</button>
-        <ChatWindow messages={[]} isLoading={false} error={null} onSend={vi.fn()} onClose={vi.fn()} />
+        <ChatWindow
+          messages={[]}
+          isLoading={false}
+          error={null}
+          onSend={vi.fn()}
+          onClose={vi.fn()}
+        />
         <button>outside-after</button>
-      </>
+      </>,
     );
     // Tab several times and confirm focus stays inside the dialog
     for (let i = 0; i < 8; i++) await user.tab();

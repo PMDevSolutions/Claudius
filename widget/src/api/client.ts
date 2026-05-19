@@ -1,8 +1,4 @@
-import type {
-  ChatMessage,
-  ChatResponse,
-  ChatErrorResponse,
-} from "./types";
+import type { ChatMessage, ChatResponse, ChatErrorResponse } from "./types";
 import { ChatApiError, DebounceError } from "./errors";
 
 export interface ChatApiClientOptions {
