@@ -16,3 +16,12 @@ ALLOWED_ORIGIN = "http://localhost:5173"
 binding = "RATE_LIMIT"
 id = "placeholder"
 preview_id = "placeholder"
+
+# D1 database for analytics events. Optional: if omitted, the chat
+# endpoint still works but no events are recorded. See DEPLOY.md for
+# the wrangler commands to create the DB and run migrations, then
+# uncomment this block and paste in the real database_id.
+# [[d1_databases]]
+# binding = "ANALYTICS_DB"
+# database_name = "claudius-analytics"
+# database_id = "your-d1-database-id"

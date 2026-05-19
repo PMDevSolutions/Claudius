@@ -21,6 +21,32 @@ npx wrangler deploy
 #    ALLOWED_ORIGIN = https://pmds.info
 ```
 
+## Set up Analytics (D1) -- optional
+
+The chat endpoint records metadata-only analytics events (timing, token
+counts, error codes -- no message contents) to a D1 database when the
+`ANALYTICS_DB` binding is configured. If the binding is absent, the
+endpoint still works and just skips the insert.
+
+```bash
+cd worker
+
+# 1. Create the D1 database
+npx wrangler d1 create claudius-analytics
+
+# 2. Copy the database_id from the output into wrangler.toml:
+#    [[d1_databases]]
+#    binding = "ANALYTICS_DB"
+#    database_name = "claudius-analytics"
+#    database_id = "your-id-here"
+
+# 3. Run the migration against production
+npx wrangler d1 execute claudius-analytics --remote --file=./migrations/0001_create_events.sql
+
+# 4. For local development, run the same migration against the local D1 store
+npx wrangler d1 execute claudius-analytics --local --file=./migrations/0001_create_events.sql
+```
+
 ## Deploy PMDS System Prompt
 
 The repo's `worker/src/system-prompt.ts` is generic (open source template).

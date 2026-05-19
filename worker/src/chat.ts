@@ -8,10 +8,22 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   messages: ChatMessage[];
+  conversationId?: string;
 }
 
 export interface ChatResponse {
   reply: string;
+}
+
+export interface ChatTelemetry {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface ChatResult {
+  response: ChatResponse;
+  telemetry: ChatTelemetry;
 }
 
 export interface ChatConfig {
@@ -28,7 +40,7 @@ export async function handleChat(
   request: ChatRequest,
   apiKey: string,
   config: ChatConfig = {}
-): Promise<ChatResponse> {
+): Promise<ChatResult> {
   if (!request.messages || request.messages.length === 0) {
     throw new Error("Messages array is required");
   }
@@ -50,9 +62,10 @@ export async function handleChat(
   });
 
   const client = new Anthropic({ apiKey });
+  const model = config.model ?? DEFAULT_MODEL;
 
   const response = await client.messages.create({
-    model: config.model ?? DEFAULT_MODEL,
+    model,
     max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: sanitizedMessages,
@@ -63,5 +76,12 @@ export async function handleChat(
     throw new Error("No text response from model");
   }
 
-  return { reply: textBlock.text };
+  return {
+    response: { reply: textBlock.text },
+    telemetry: {
+      model,
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+    },
+  };
 }
