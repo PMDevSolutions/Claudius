@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { handleChat, ChatRequest } from "./chat";
+import { handleChat, ChatRequest, ChatTelemetry } from "./chat";
 import { checkRateLimit } from "./rate-limit";
+import { recordEvent } from "./analytics";
 
 interface Env {
   ANTHROPIC_API_KEY: string;
   ALLOWED_ORIGIN: string;
   RATE_LIMIT: KVNamespace;
+  ANALYTICS_DB?: D1Database;
   // Optional configuration
   CLAUDE_MODEL?: string;
   MAX_TOKENS?: string;
@@ -38,6 +40,12 @@ app.use(
 );
 
 app.post("/api/chat", async (c) => {
+  const startedAt = Date.now();
+  let body: ChatRequest | undefined;
+  let telemetry: ChatTelemetry | undefined;
+  let statusCode = 200;
+  let errorCode: string | undefined;
+
   try {
     const clientIp =
       c.req.header("cf-connecting-ip") ||
@@ -65,8 +73,10 @@ app.post("/api/chat", async (c) => {
           ? "Too many requests. Please wait a minute before trying again."
           : "Hourly limit reached. Please try again later.";
 
+      statusCode = 429;
+      errorCode = "RATE_LIMITED";
       return c.json<ErrorResponse>(
-        { error: errorMessage, code: "RATE_LIMITED" },
+        { error: errorMessage, code: errorCode },
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfter) },
@@ -74,7 +84,7 @@ app.post("/api/chat", async (c) => {
       );
     }
 
-    const body = await c.req.json<ChatRequest>();
+    body = await c.req.json<ChatRequest>();
 
     const chatConfig = {
       model: c.env.CLAUDE_MODEL,
@@ -82,7 +92,8 @@ app.post("/api/chat", async (c) => {
     };
 
     const result = await handleChat(body, c.env.ANTHROPIC_API_KEY, chatConfig);
-    return c.json(result);
+    telemetry = result.telemetry;
+    return c.json(result.response);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
 
@@ -92,32 +103,61 @@ app.post("/api/chat", async (c) => {
       message.includes("Too many") ||
       message.includes("Invalid message role")
     ) {
-      return c.json<ErrorResponse>(
-        { error: message, code: "VALIDATION_ERROR" },
-        400
-      );
+      statusCode = 400;
+      errorCode = "VALIDATION_ERROR";
+      return c.json<ErrorResponse>({ error: message, code: errorCode }, 400);
     }
 
     // API key issues
     if (message.includes("authentication") || message.includes("api_key")) {
+      statusCode = 500;
+      errorCode = "CONFIG_ERROR";
       return c.json<ErrorResponse>(
-        { error: "Service configuration error. Please try again later.", code: "CONFIG_ERROR" },
+        {
+          error: "Service configuration error. Please try again later.",
+          code: errorCode,
+        },
         500
       );
     }
 
     // Model/API errors
     if (message.includes("model") || message.includes("overloaded")) {
+      statusCode = 503;
+      errorCode = "SERVICE_ERROR";
       return c.json<ErrorResponse>(
-        { error: "AI service temporarily unavailable. Please try again.", code: "SERVICE_ERROR" },
+        {
+          error: "AI service temporarily unavailable. Please try again.",
+          code: errorCode,
+        },
         503
       );
     }
 
     // Generic fallback
+    statusCode = 500;
+    errorCode = "UNKNOWN_ERROR";
     return c.json<ErrorResponse>(
-      { error: "Something went wrong. Please try again.", code: "UNKNOWN_ERROR" },
+      { error: "Something went wrong. Please try again.", code: errorCode },
       500
+    );
+  } finally {
+    const lastUserMsg = body?.messages
+      ?.slice()
+      .reverse()
+      .find((m) => m.role === "user");
+    c.executionCtx.waitUntil(
+      recordEvent(c.env.ANALYTICS_DB, {
+        conversationId: body?.conversationId,
+        messageCount: body?.messages?.length ?? 0,
+        lastUserMsgLength: lastUserMsg?.content.length ?? 0,
+        model: telemetry?.model,
+        inputTokens: telemetry?.inputTokens,
+        outputTokens: telemetry?.outputTokens,
+        latencyMs: Date.now() - startedAt,
+        statusCode,
+        errorCode,
+      })
     );
   }
 });
