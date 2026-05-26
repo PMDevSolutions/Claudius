@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { mockChatApi } from "./helpers";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const IIFE_PATH = resolve(__dirname, "..", "dist", "claudius-embed.iife.js");
-const CSS_PATH = resolve(__dirname, "..", "dist", "claudius-embed.css");
+const IIFE_PATH = resolve(__dirname, "..", "dist", "claudius.iife.js");
+const CSS_PATH = resolve(__dirname, "..", "dist", "claudius.css");
 
 const FAKE_API = "https://test.example/api";
 
