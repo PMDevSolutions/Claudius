@@ -10,6 +10,7 @@ import {
   defaultTranslations,
   createTranslations,
 } from "../i18n";
+import { resolveTranslations, type LocaleCode } from "../locales";
 
 export type WidgetPosition =
   | "bottom-right"
@@ -31,6 +32,7 @@ export interface ChatWidgetProps {
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
+  locale?: LocaleCode;
   translations?: Partial<ClaudiusTranslations>;
   triggers?: Trigger[];
 }
@@ -65,6 +67,7 @@ export function ChatWidget({
   theme = "light",
   accentColor,
   position = "bottom-right",
+  locale,
   translations: translationOverrides,
   triggers,
 }: ChatWidgetProps) {
@@ -75,8 +78,8 @@ export function ChatWidget({
   const isMobile = useMediaQuery("(max-width: 639px)");
 
   const translations = useMemo(
-    () => createTranslations(translationOverrides),
-    [translationOverrides],
+    () => resolveTranslations({ locale, translations: translationOverrides }),
+    [locale, translationOverrides],
   );
 
   const { messages, isLoading, error, canRetry, sendMessage, retry } = useChat({

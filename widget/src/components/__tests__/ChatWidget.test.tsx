@@ -109,6 +109,53 @@ describe("ChatWidget - mobile bottom sheet", () => {
   });
 });
 
+describe("ChatWidget - localization", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    document.documentElement.lang = "";
+  });
+
+  it("applies the locale prop to control labels", () => {
+    render(<ChatWidget apiUrl="https://test.workers.dev" locale="es" />);
+    expect(
+      screen.getByRole("button", { name: /abrir chat/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the localized welcome message for the locale prop", async () => {
+    const user = userEvent.setup();
+    render(<ChatWidget apiUrl="https://test.workers.dev" locale="es" />);
+    await user.click(screen.getByRole("button", { name: /abrir chat/i }));
+    expect(
+      screen.getByText("¡Hola! ¿En qué puedo ayudarte hoy?"),
+    ).toBeInTheDocument();
+  });
+
+  it("auto-detects the locale from <html lang>", () => {
+    document.documentElement.lang = "fr";
+    render(<ChatWidget apiUrl="https://test.workers.dev" />);
+    expect(
+      screen.getByRole("button", { name: /ouvrir le chat/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("lets the translations prop override the resolved locale", () => {
+    render(
+      <ChatWidget
+        apiUrl="https://test.workers.dev"
+        locale="es"
+        translations={{ openChat: "Abrir asistente" }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /abrir asistente/i }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("ChatWidget - theme=auto", () => {
   it("subscribes to prefers-color-scheme and toggles dark on change", () => {
     type Listener = (e: MediaQueryListEvent) => void;

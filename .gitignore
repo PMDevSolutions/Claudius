@@ -20,12 +20,14 @@ node_modules/
 dist/
 build/
 out/
+storybook-static/
 
 # Testing
 coverage/
 .coverage
 playwright-report/
 .playwright/
+.playwright-mcp/
 test-results/
 scripts/__tests__/fixtures/
 
