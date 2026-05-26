@@ -5,6 +5,12 @@ import type { LocaleCode } from "./locales";
 import type { ClaudiusTranslations } from "./i18n";
 import "./styles.css";
 
+// Injected at build time by vite.config.embed.ts; undefined under unit tests.
+declare const __CLAUDIUS_VERSION__: string | undefined;
+
+const CLAUDIUS_VERSION =
+  typeof __CLAUDIUS_VERSION__ !== "undefined" ? __CLAUDIUS_VERSION__ : "dev";
+
 interface ClaudiusConfig {
   apiUrl: string;
   title?: string;
@@ -25,7 +31,12 @@ interface ClaudiusConfig {
 declare global {
   interface Window {
     ClaudiusConfig?: ClaudiusConfig;
+    ClaudiusWidgetVersion?: string;
   }
+}
+
+if (typeof window !== "undefined") {
+  window.ClaudiusWidgetVersion = CLAUDIUS_VERSION;
 }
 
 // Script-based initialization (existing method)
