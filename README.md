@@ -88,6 +88,18 @@ For non-React sites, use the IIFE bundle with `window.ClaudiusConfig`:
 <script src="/path/to/claudius.iife.js"></script>
 ```
 
+To auto-update instead of self-hosting, load the version-pinned CDN channel
+(`@1` resolves the latest `v1.x` release; requires allowing `cdn.jsdelivr.net`
+in your CSP). See [DEPLOY.md](DEPLOY.md#embed-via-cdn-recommended-auto-updating).
+
+```html
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+/>
+<script src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"></script>
+```
+
 ## Configuration
 
 Both the React component and embed script accept these options:
