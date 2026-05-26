@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1](https://github.com/PMDevSolutions/Claudius/compare/v1.2.0...v1.2.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** guard fromJSON against empty release PR output ([5f47613](https://github.com/PMDevSolutions/Claudius/commit/5f47613bfa6309be5d6bf3fc5db2608529d44786))
+* **ci:** guard fromJSON against empty release PR output ([0c00839](https://github.com/PMDevSolutions/Claudius/commit/0c008395866eb1e25a87aa7a67f78e7ca45c64a3))
+
 ## [1.2.0](https://github.com/PMDevSolutions/Claudius/compare/v1.1.0...v1.2.0) (2026-05-26)
 
 
