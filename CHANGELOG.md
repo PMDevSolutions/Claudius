@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/PMDevSolutions/Claudius/compare/v1.1.0...v1.2.0) (2026-05-26)
+
+
+### Features
+
+* serve embed via versioned CDN with auto-update ([1f72de8](https://github.com/PMDevSolutions/Claudius/commit/1f72de87741b3995cf4d4dac50ad3bce1888d5c4))
+* versioned CDN auto-update for embedding sites ([ce180f0](https://github.com/PMDevSolutions/Claudius/commit/ce180f04605ffbb0c31812746de914a78bcf60b8))
+
 ## [Unreleased]
 
 ## [1.1.0] - 2026-05-26
