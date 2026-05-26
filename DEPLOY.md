@@ -70,7 +70,31 @@ pnpm build:embed
 # Output: dist/claudius.iife.js + dist/claudius.css
 ```
 
-## Embed on pmds.info (Replit)
+## Embed via CDN (recommended, auto-updating)
+
+Point the site at the version-pinned jsDelivr channel. `@1` always resolves the
+latest `v1.x` release, so patches and minor versions roll out automatically; a
+new major (`v2`) never lands without an explicit bump. (jsDelivr caches the
+range resolution for ~12h.)
+
+```html
+<script>
+  window.ClaudiusConfig = {
+    /* ...your config... */
+  };
+</script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+/>
+<script src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"></script>
+```
+
+Pin to an exact release with `@1.2.0` when you need it. Embedding sites must
+allow `cdn.jsdelivr.net` in their CSP `script-src` and `style-src`. Check what a
+page is running via `window.ClaudiusWidgetVersion` in the browser console.
+
+## Embed self-hosted (alternative)
 
 Upload `claudius.iife.js` and `claudius.css` to the Replit project, then add before `</body>`:
 

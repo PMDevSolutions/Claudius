@@ -17,8 +17,60 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # While a release PR is open, rebuild the embed bundle and commit the
+      # fresh artifacts onto the PR branch, so the tagged release commit carries
+      # the exact bytes jsDelivr serves at gh@<major>/cdn/.
+      - name: Checkout release PR branch
+        if: ${{ steps.release.outputs.pr }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+
+      - name: Setup pnpm
+        if: ${{ steps.release.outputs.pr }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        if: ${{ steps.release.outputs.pr }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+
+      - name: Rebuild and commit cdn/ bundle
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          PR_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          pnpm --dir widget install --frozen-lockfile
+          pnpm --dir widget run build:embed
+          mkdir -p cdn
+          cp widget/dist/claudius.iife.js cdn/claudius.iife.js
+          cp widget/dist/claudius.css cdn/claudius.css
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- cdn/; then
+            git add cdn/claudius.iife.js cdn/claudius.css
+            git commit -m "chore: rebuild cdn bundle for release"
+            git push origin "HEAD:${PR_BRANCH}"
+          fi
+
+      # On merge, attach the same bundle to the GitHub Release.
+      - name: Upload bundle to release
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.release.outputs.tag_name }}" \
+            cdn/claudius.iife.js cdn/claudius.css --clobber
