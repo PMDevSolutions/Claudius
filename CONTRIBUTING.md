@@ -70,6 +70,50 @@ All tests must pass before a pull request will be reviewed.
 
 ---
 
+## Adding a New Locale
+
+Claudius ships first-party translations for English, Spanish, French, and German. Every UI string lives in `widget/src/locales/`, and `en.ts` is the single source of truth for the set of keys. Adding a language is welcome and self-contained.
+
+### Steps
+
+1. **Copy the English file.** Use `widget/src/locales/en.ts` as your starting point so you have the complete, correctly typed key set:
+
+   ```bash
+   cp widget/src/locales/en.ts widget/src/locales/pt.ts
+   ```
+
+2. **Translate every value.** Rename the exported constant (e.g. `export const pt`) and translate each string. Keep the `: ClaudiusTranslations` type annotation, it makes any missing key a compile error.
+
+3. **Register the locale** in `widget/src/locales/index.ts`:
+   - Add the code to the `LocaleCode` union (e.g. `"pt"`).
+   - Add the imported constant to the `locales` registry.
+
+   Detection matches on the primary subtag, so registering `pt` automatically covers `pt-BR`, `pt-PT`, and so on from `<html lang>` or `navigator.language`.
+
+4. **Add it to the Storybook switcher** in `widget/.storybook/preview.ts` by appending an entry to `LOCALE_ITEMS`. This lets reviewers eyeball your translation across every component via the **Locale** toolbar:
+
+   ```bash
+   cd widget && pnpm storybook
+   ```
+
+5. **Verify** from the `widget/` directory:
+
+   ```bash
+   pnpm test        # the key-parity test fails if any key is missing or extra
+   pnpm typecheck
+   ```
+
+### Strings that need cultural review
+
+Translate these for tone and register, not word-for-word. A literal translation often reads as cold or robotic, and formality conventions differ by language:
+
+- **`welcomeMessage` and `subtitle`** — the greeting sets the bot's warmth. Choose the register your audience expects: informal (Spanish *tú*, German *du*) reads friendlier, while formal (Spanish *usted*, French *vous*, German *Sie*) reads more professional. The shipped locales use informal Spanish and formal French/German; stay internally consistent with whichever you pick.
+- **`error*` strings** — error tone varies by culture between apologetic and matter-of-fact. Keep them reassuring and actionable rather than blunt, and match the formality you chose for the greetings.
+
+If you are unsure about register, note it in your pull request so a native speaker can weigh in during review.
+
+---
+
 ## Branch Naming Conventions
 
 Use the following prefixes when creating branches:
