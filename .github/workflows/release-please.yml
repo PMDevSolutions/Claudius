@@ -51,7 +51,7 @@ jobs:
       - name: Rebuild and commit cdn/ bundle
         if: ${{ steps.release.outputs.pr }}
         env:
-          PR_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          PR_BRANCH: ${{ steps.release.outputs.pr && fromJSON(steps.release.outputs.pr).headBranchName || '' }}
         run: |
           pnpm --dir widget install --frozen-lockfile
           pnpm --dir widget run build:embed
