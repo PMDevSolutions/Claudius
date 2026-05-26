@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * exist on disk before tests start.
  */
 export default async function globalSetup(): Promise<void> {
-  const iifePath = resolve(__dirname, "..", "dist", "claudius-embed.iife.js");
+  const iifePath = resolve(__dirname, "..", "dist", "claudius.iife.js");
 
   if (process.env.E2E_SKIP_BUILD === "1" && existsSync(iifePath)) {
     return;

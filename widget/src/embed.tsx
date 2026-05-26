@@ -1,5 +1,8 @@
 import { createRoot, Root } from "react-dom/client";
 import { ChatWidget, WidgetPosition } from "./components/ChatWidget";
+import type { Trigger } from "./hooks/useTriggers";
+import type { LocaleCode } from "./locales";
+import type { ClaudiusTranslations } from "./i18n";
 import "./styles.css";
 
 interface ClaudiusConfig {
@@ -14,6 +17,9 @@ interface ClaudiusConfig {
   theme?: "light" | "dark" | "auto";
   accentColor?: string;
   position?: WidgetPosition;
+  locale?: LocaleCode;
+  translations?: Partial<ClaudiusTranslations>;
+  triggers?: Trigger[];
 }
 
 declare global {
@@ -47,6 +53,9 @@ function init() {
       theme={config.theme}
       accentColor={config.accentColor}
       position={config.position}
+      locale={config.locale}
+      translations={config.translations}
+      triggers={config.triggers}
     />,
   );
 }
@@ -138,7 +147,10 @@ class ClaudiusChat extends HTMLElement {
 }
 
 // Register web component
-if (typeof customElements !== "undefined") {
+if (
+  typeof customElements !== "undefined" &&
+  !customElements.get("claudius-chat")
+) {
   customElements.define("claudius-chat", ClaudiusChat);
 }
 

@@ -14,12 +14,12 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, "src/embed.tsx"),
       name: "Claudius",
-      fileName: "claudius-embed",
+      fileName: "claudius",
       formats: ["iife"],
     },
     rollupOptions: {
       output: {
-        assetFileNames: "claudius-embed.[ext]",
+        assetFileNames: "claudius.[ext]",
       },
     },
     cssCodeSplit: false,
