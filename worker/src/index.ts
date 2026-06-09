@@ -19,6 +19,7 @@ interface Env {
 export interface ErrorResponse {
   error: string;
   code?: string;
+  limitType?: "minute" | "hour";
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -76,7 +77,7 @@ app.post("/api/chat", async (c) => {
       statusCode = 429;
       errorCode = "RATE_LIMITED";
       return c.json<ErrorResponse>(
-        { error: errorMessage, code: errorCode },
+        { error: errorMessage, code: errorCode, limitType: rateLimit.limitType },
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfter) },
