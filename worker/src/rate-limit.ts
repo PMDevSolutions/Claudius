@@ -14,6 +14,14 @@ export interface RateLimitResult {
   limitType?: "minute" | "hour";
 }
 
+/**
+ * Fixed-window rate limiter backed by Workers KV. Tracks two independent
+ * windows per IP (per-minute and per-hour) and rejects as soon as either
+ * cap is reached, checking the tighter minute window first. On rejection,
+ * `retryAfter` is set to the offending window's TTL so callers can emit an
+ * accurate HTTP 429 `Retry-After` header. Counters auto-expire via KV TTL,
+ * so no explicit reset/cleanup is required.
+ */
 export async function checkRateLimit(
   kv: KVNamespace,
   ip: string,
