@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/PMDevSolutions/Claudius/compare/v1.2.1...v1.3.0) (2026-06-09)
+
+
+### Features
+
+* **worker:** expose limitType in chat route 429 response ([aef6fb6](https://github.com/PMDevSolutions/Claudius/commit/aef6fb6f8d7c549918327028a1c14637b8ae5d1f))
+* **worker:** return 429 with Retry-After and limitType on chat route rate limit ([2863ee2](https://github.com/PMDevSolutions/Claudius/commit/2863ee28a1e40fac9534a74f3d2187c89b6cbbc7))
+
 ## [1.2.1](https://github.com/PMDevSolutions/Claudius/compare/v1.2.0...v1.2.1) (2026-05-26)
 
 
