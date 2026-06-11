@@ -11,6 +11,8 @@ import {
   createTranslations,
 } from "../i18n";
 import { resolveTranslations, type LocaleCode } from "../locales";
+import { useTheme } from "../theme/useTheme";
+import type { ClaudiusThemeInput } from "../theme/types";
 
 export type WidgetPosition =
   | "bottom-right"
@@ -29,7 +31,12 @@ export interface ChatWidgetProps {
   persistMessages?: boolean;
   storageKeyPrefix?: string;
   requestTimeoutMs?: number;
-  theme?: "light" | "dark" | "auto";
+  /**
+   * Color-scheme mode ("light" | "dark" | "auto"), a built-in theme name
+   * ("default" | "minimal" | "playful" | "corporate"), an inline
+   * ClaudiusTheme object, or a URL to a theme JSON file.
+   */
+  theme?: ClaudiusThemeInput;
   accentColor?: string;
   position?: WidgetPosition;
   locale?: LocaleCode;
@@ -92,10 +99,12 @@ export function ChatWidget({
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
 
+  const { mode, cssVars } = useTheme(theme);
+
   const [osDark, setOsDark] = useState(false);
 
   useEffect(() => {
-    if (theme !== "auto") return;
+    if (mode !== "auto") return;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setOsDark(mq.matches);
@@ -103,7 +112,7 @@ export function ChatWidget({
     const handler = (e: MediaQueryListEvent) => setOsDark(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [theme]);
+  }, [mode]);
 
   useEffect(() => {
     // Return focus to toggle button when chat closes
@@ -157,57 +166,74 @@ export function ChatWidget({
     onGreeting: handleTriggerGreeting,
   });
 
-  const isDark = theme === "dark" || (theme === "auto" && osDark);
+  const isDark = mode === "dark" || (mode === "auto" && osDark);
 
-  const wrapperStyle: React.CSSProperties | undefined = accentColor
-    ? ({ "--claudius-primary": accentColor } as React.CSSProperties)
-    : undefined;
+  // accentColor (the v1 API) wins over the theme's accent; it also overrides
+  // the dark mirror so the override holds in dark mode.
+  const tokenVars: Record<string, string> = {
+    ...cssVars,
+    ...(accentColor
+      ? {
+          "--cl-color-accent": accentColor,
+          "--cl-color-accent-dark": accentColor,
+        }
+      : {}),
+  };
+  const wrapperStyle: React.CSSProperties | undefined =
+    Object.keys(tokenVars).length > 0
+      ? (tokenVars as React.CSSProperties)
+      : undefined;
 
   return (
-    <div data-claudius-dark={isDark ? "true" : "false"} style={wrapperStyle}>
-      {isOpen && isMobile && (
-        <div
-          className="claudius-scrim fixed inset-0 z-40 bg-black/50"
-          onClick={handleClose}
-          aria-hidden="true"
-        />
-      )}
-      {isOpen && (
-        <ChatWindow
-          messages={messages}
-          isLoading={isLoading}
-          error={error}
-          canRetry={canRetry}
-          onSend={sendMessage}
-          onRetry={retry}
-          onClose={handleClose}
-          title={title ?? translations.title}
-          subtitle={subtitle ?? translations.subtitle}
-          welcomeMessage={welcomeMessage ?? translations.welcomeMessage}
-          placeholder={placeholder ?? translations.placeholder}
-          position={position}
-          translations={translations}
-          isMobile={isMobile}
-        />
-      )}
-      {!(isOpen && isMobile) && (
-        <ChatToggleButton
-          ref={toggleRef}
-          isOpen={isOpen}
-          onClick={handleToggle}
-          position={position}
-          translations={translations}
-        />
-      )}
-      {!isOpen && greeting && (
-        <GreetingBubble
-          message={greeting}
-          position={position}
-          onOpen={handleGreetingOpen}
-          onDismiss={handleGreetingDismiss}
-          dismissLabel={translations.dismissGreeting}
-        />
-      )}
+    // Outer div carries theme token vars; the inner div carries the dark-mode
+    // attribute so the [data-claudius-dark] token reassignments in styles.css
+    // beat inherited (inline) light values.
+    <div className="claudius-root" style={wrapperStyle}>
+      <div data-claudius-dark={isDark ? "true" : "false"}>
+        {isOpen && isMobile && (
+          <div
+            className="claudius-scrim fixed inset-0 z-40 bg-claudius-scrim"
+            onClick={handleClose}
+            aria-hidden="true"
+          />
+        )}
+        {isOpen && (
+          <ChatWindow
+            messages={messages}
+            isLoading={isLoading}
+            error={error}
+            canRetry={canRetry}
+            onSend={sendMessage}
+            onRetry={retry}
+            onClose={handleClose}
+            title={title ?? translations.title}
+            subtitle={subtitle ?? translations.subtitle}
+            welcomeMessage={welcomeMessage ?? translations.welcomeMessage}
+            placeholder={placeholder ?? translations.placeholder}
+            position={position}
+            translations={translations}
+            isMobile={isMobile}
+          />
+        )}
+        {!(isOpen && isMobile) && (
+          <ChatToggleButton
+            ref={toggleRef}
+            isOpen={isOpen}
+            onClick={handleToggle}
+            position={position}
+            translations={translations}
+          />
+        )}
+        {!isOpen && greeting && (
+          <GreetingBubble
+            message={greeting}
+            position={position}
+            onOpen={handleGreetingOpen}
+            onDismiss={handleGreetingDismiss}
+            dismissLabel={translations.dismissGreeting}
+          />
+        )}
+      </div>
     </div>
   );
 }

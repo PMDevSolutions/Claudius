@@ -177,7 +177,9 @@ describe("ChatWidget - theme=auto", () => {
 
     // Wrapper starts with the "light" data attribute since the OS media
     // query reports matches=false initially.
-    const wrapper = container.firstChild as HTMLElement;
+    const wrapper = container.querySelector(
+      "[data-claudius-dark]",
+    ) as HTMLElement;
     expect(wrapper.getAttribute("data-claudius-dark")).toBe("false");
 
     // Confirm the auto-mode listener was actually registered, not just the

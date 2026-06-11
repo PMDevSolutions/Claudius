@@ -8,6 +8,16 @@ export { defaultTranslations, createTranslations } from "./i18n";
 export { locales, detectLocale, resolveTranslations } from "./locales";
 export type { LocaleCode } from "./locales";
 export type { Trigger, TriggerAction, UrlPattern } from "./hooks/useTriggers";
+export { builtinThemes } from "./theme";
+export type {
+  ClaudiusTheme,
+  ClaudiusThemeInput,
+  BuiltinThemeName,
+  ThemeColorToken,
+  ThemeRadiusToken,
+  ThemeShadowToken,
+  ThemeFontToken,
+} from "./theme";
 export { ChatApiClient } from "./api/client";
 export type { ChatApiClientOptions } from "./api/client";
 export { ChatApiError, DebounceError } from "./api/errors";

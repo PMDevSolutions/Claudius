@@ -37,7 +37,7 @@ function renderLink(rawUrl: string, key: string): ReactNode {
         href={safeUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline font-medium hover:opacity-80 dark:text-blue-400"
+        className="underline font-medium hover:opacity-80 text-claudius-link"
       >
         {safeUrl.replace(/^https?:\/\//, "")}
         <span className="sr-only"> (opens in a new tab)</span>
@@ -107,10 +107,10 @@ export const ChatMessage = memo(function ChatMessage({
   return (
     <div className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%]`}>
       <div
-        className={`rounded-bubble px-4 py-2.5 text-sm leading-relaxed font-body ${
+        className={`rounded-claudius-bubble px-4 py-2.5 text-sm leading-relaxed font-body ${
           isUser
-            ? "bg-claudius-user-bg text-claudius-user-text rounded-br-sm"
-            : "bg-claudius-assistant-bg text-claudius-assistant-text dark:bg-gray-800 dark:text-gray-200 rounded-bl-sm"
+            ? "bg-claudius-user-bubble text-claudius-user-bubble-text rounded-br-claudius-tail"
+            : "bg-claudius-assistant-bubble text-claudius-assistant-bubble-text rounded-bl-claudius-tail"
         }`}
       >
         {renderFormattedContent(content)}

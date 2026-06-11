@@ -37,19 +37,19 @@ export const ChatSources = memo(function ChatSources({
     sources.length === 1 ? "1 source found" : `${sources.length} sources found`;
 
   return (
-    <div className="absolute inset-y-0 left-0 z-10 flex w-[280px] flex-col border-r-2 border-claudius-border bg-white dark:bg-gray-900 rounded-r-card transition-transform duration-200 ease-out">
+    <div className="absolute inset-y-0 left-0 z-10 flex w-[280px] flex-col border-r-2 border-claudius-border bg-claudius-surface rounded-r-claudius-lg transition-transform duration-200 ease-out">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-claudius-border px-4 py-3">
         <div>
-          <h3 className="text-sm font-heading font-semibold text-claudius-dark dark:text-gray-100">
+          <h3 className="text-sm font-heading font-semibold text-claudius-text">
             Sources
           </h3>
-          <p className="text-xs text-claudius-gray">{countText}</p>
+          <p className="text-xs text-claudius-text-muted">{countText}</p>
         </div>
         <button
           onClick={onClose}
           aria-label="Close sources"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-claudius-gray transition-colors hover:bg-claudius-light hover:text-claudius-dark dark:hover:bg-gray-700"
+          className="flex h-7 w-7 items-center justify-center rounded-claudius-full text-claudius-text-muted transition-colors hover:bg-claudius-surface-muted hover:text-claudius-text"
         >
           <svg
             width="14"
@@ -72,7 +72,7 @@ export const ChatSources = memo(function ChatSources({
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {grouped.map((group) => (
           <div key={group.type}>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-claudius-gray">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-claudius-text-muted">
               {group.label}
             </h4>
             <div className="space-y-2">
@@ -89,12 +89,12 @@ export const ChatSources = memo(function ChatSources({
                     href={safeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-[12px] border-2 border-claudius-border bg-claudius-light p-3 transition-colors hover:bg-claudius-border dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    className="block rounded-claudius-md border-2 border-claudius-border bg-claudius-surface-muted p-3 transition-colors hover:bg-claudius-border"
                   >
-                    <p className="truncate text-sm font-medium text-claudius-dark dark:text-gray-100">
+                    <p className="truncate text-sm font-medium text-claudius-text">
                       {source.title}
                     </p>
-                    <p className="mt-0.5 text-xs text-claudius-gray">
+                    <p className="mt-0.5 text-xs text-claudius-text-muted">
                       {extractDomain(safeUrl)}
                     </p>
                   </a>

@@ -14,7 +14,9 @@ test.describe("mobile responsive layout", () => {
     await expect(dialog).toHaveAttribute("aria-modal", "true");
 
     // Drag handle: the small rounded bar inside the aria-hidden wrapper.
-    const dragHandle = dialog.locator('[aria-hidden="true"] .rounded-full').first();
+    const dragHandle = dialog
+      .locator('[aria-hidden="true"] .rounded-claudius-full')
+      .first();
     await expect(dragHandle).toBeVisible();
 
     // Scrim is rendered as a sibling of the dialog with the dedicated class.

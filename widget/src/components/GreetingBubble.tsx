@@ -30,7 +30,7 @@ export function GreetingBubble({
       <button
         type="button"
         onClick={onOpen}
-        className="block w-full rounded-2xl bg-white p-4 pr-8 text-left text-sm text-slate-900 shadow-lg ring-1 ring-slate-200 transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[var(--claudius-primary,#2563eb)] dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700"
+        className="block w-full rounded-claudius-lg bg-claudius-surface p-4 pr-8 text-left text-sm font-body text-claudius-text shadow-claudius-floating ring-1 ring-claudius-border transition hover:shadow-claudius-floating-hover focus:outline-none focus:ring-2 focus:ring-claudius-accent"
       >
         {message}
       </button>
@@ -41,7 +41,7 @@ export function GreetingBubble({
           onDismiss();
         }}
         aria-label={dismissLabel}
-        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--claudius-primary,#2563eb)] dark:text-slate-300 dark:hover:bg-slate-700"
+        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-claudius-full text-claudius-text-muted hover:bg-claudius-surface-muted focus:outline-none focus:ring-2 focus:ring-claudius-accent"
       >
         <span aria-hidden="true">×</span>
       </button>

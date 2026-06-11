@@ -40,7 +40,10 @@ export default defineConfig({
         },
         {
           label: "Configuration",
-          items: [{ autogenerate: { directory: "configuration" } }],
+          items: [
+            { autogenerate: { directory: "configuration" } },
+            { label: "Theme editor", link: "/theme-editor/" },
+          ],
         },
         {
           label: "Deployment",

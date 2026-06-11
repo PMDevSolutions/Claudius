@@ -344,7 +344,7 @@ describe("ChatWindow - mobile bottom sheet", () => {
     );
     // Drag handle is a small rounded bar
     const handle = container.querySelector(
-      "[aria-hidden='true'] .rounded-full",
+      "[aria-hidden='true'] .rounded-claudius-full",
     );
     expect(handle).toBeInTheDocument();
   });

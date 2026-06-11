@@ -3,6 +3,7 @@ import { ChatWidget, WidgetPosition } from "./components/ChatWidget";
 import type { Trigger } from "./hooks/useTriggers";
 import type { LocaleCode } from "./locales";
 import type { ClaudiusTranslations } from "./i18n";
+import type { ClaudiusThemeInput } from "./theme/types";
 import "./styles.css";
 
 // Injected at build time by vite.config.embed.ts; undefined under unit tests.
@@ -20,7 +21,7 @@ interface ClaudiusConfig {
   persistMessages?: boolean;
   storageKeyPrefix?: string;
   requestTimeoutMs?: number;
-  theme?: "light" | "dark" | "auto";
+  theme?: ClaudiusThemeInput;
   accentColor?: string;
   position?: WidgetPosition;
   locale?: LocaleCode;
@@ -145,9 +146,9 @@ class ClaudiusChat extends HTMLElement {
             ? requestTimeoutMs
             : undefined
         }
-        theme={
-          (this.getAttribute("theme") as "light" | "dark" | "auto") ?? undefined
-        }
+        // Mode strings, built-in theme names, and theme URLs all work as an
+        // attribute; inline theme objects need ClaudiusConfig or React.
+        theme={this.getAttribute("theme") ?? undefined}
         accentColor={this.getAttribute("accent-color") ?? undefined}
         position={
           (this.getAttribute("position") as WidgetPosition) ?? undefined

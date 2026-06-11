@@ -1,0 +1,354 @@
+---
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Theme editor",
+    description:
+      "Build a Claudius theme visually and export it as a schema-validated JSON file.",
+    tableOfContents: false,
+  }}
+>
+  <p>
+    Adjust tokens, watch the preview, then export a JSON file that validates
+    against
+    <a href="https://claudius-docs.pages.dev/schema/theme.v1.json"
+      >theme.v1.json</a
+    >. Host it anywhere and point the widget at it:
+    <code>theme: "https://your-site.example/claudius-theme.json"</code>. See
+    the
+    <a href="/configuration/theming/">theming reference</a> for what each token
+    controls. The preview is a simplified replica driven by the exact same
+    tokens as the real widget.
+  </p>
+
+  <div class="editor">
+    <div class="controls">
+      <div class="row">
+        <label for="preset">Start from</label>
+        <select id="preset">
+          <option value="default">default</option>
+          <option value="minimal">minimal</option>
+          <option value="playful">playful</option>
+          <option value="corporate">corporate</option>
+        </select>
+        <label for="scheme">colorScheme</label>
+        <select id="scheme">
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+          <option value="auto">auto</option>
+        </select>
+        <label for="theme-name">name</label>
+        <input id="theme-name" type="text" placeholder="my-theme" />
+      </div>
+      <div id="groups"></div>
+      <h3>Export</h3>
+      <pre id="json-out" class="json-out"></pre>
+      <div class="row">
+        <button id="download" class="action">Download theme.json</button>
+        <button id="copy" class="action">Copy JSON</button>
+        <span id="copied" hidden>Copied.</span>
+      </div>
+    </div>
+
+    <div class="preview-pane">
+      <label class="row"
+        ><input type="checkbox" id="dark-preview" /> Preview dark mode</label
+      >
+      <div id="preview-root" class="clp-stage">
+        <div class="clp-window">
+          <div class="clp-header">
+            <span class="clp-avatar">S</span>
+            <span>
+              <strong class="clp-title">Support</strong>
+              <span class="clp-subtitle">Ask me anything</span>
+            </span>
+            <span class="clp-close">×</span>
+          </div>
+          <div class="clp-messages">
+            <div class="clp-bubble clp-assistant">
+              Hi! How can I help you today?
+            </div>
+            <div class="clp-bubble clp-user">What are your opening hours?</div>
+            <div class="clp-bubble clp-assistant">
+              We're available Monday to Friday, 9am to 5pm. Details on our
+              <a class="clp-link" href="#" onclick="return false">contact</a>
+              page.
+            </div>
+            <div class="clp-error">
+              Something went wrong. <span class="clp-retry">Retry</span>
+            </div>
+          </div>
+          <div class="clp-inputrow">
+            <span class="clp-field">Type your message...</span>
+            <span class="clp-send">➤</span>
+          </div>
+        </div>
+        <div class="clp-toggle">💬</div>
+      </div>
+    </div>
+  </div>
+</StarlightPage>
+
+<script>
+  // Mirrors the widget's token defaults (tailwind.config.ts fallbacks and the
+  // dark block in widget/src/styles.css) and the built-in themes
+  // (widget/src/theme/themes.ts). Keep in sync when tokens change.
+  type Dict = Record<string, string>;
+
+  const COLOR_TOKENS = [
+    "accent","accentText","accentSoft","accentTextMuted","surface",
+    "surfaceMuted","text","textMuted","border","userBubble","userBubbleText",
+    "assistantBubble","assistantBubbleText","field","error","errorSurface",
+    "errorText","link","scrim",
+  ];
+  const RADIUS_TOKENS = ["sm", "md", "lg", "full", "tail"];
+  const SHADOW_TOKENS = ["elevated", "floating", "floatingHover"];
+  const FONT_TOKENS = ["heading", "body"];
+
+  const LIGHT: Dict = {
+    accent: "#2563eb", accentText: "#ffffff",
+    accentSoft: "rgb(255 255 255 / 0.2)",
+    accentTextMuted: "rgb(255 255 255 / 0.7)",
+    surface: "#ffffff", surfaceMuted: "#f1f5f9", text: "#1e293b",
+    textMuted: "#64748b", border: "#e2e8f0", userBubbleText: "#ffffff",
+    assistantBubbleText: "#1e293b", field: "#ffffff", error: "#dc2626",
+    errorSurface: "#fef2f2", errorText: "#ffffff",
+    scrim: "rgb(0 0 0 / 0.5)",
+  };
+  const DARK: Dict = {
+    accent: "#2563eb", accentText: "#ffffff",
+    accentSoft: "rgb(255 255 255 / 0.2)",
+    accentTextMuted: "rgb(255 255 255 / 0.7)",
+    surface: "#111827", surfaceMuted: "#1f2937", text: "#f3f4f6",
+    textMuted: "#9ca3af", border: "#374151", userBubbleText: "#ffffff",
+    assistantBubbleText: "#e5e7eb", field: "#1f2937", error: "#f87171",
+    errorSurface: "rgb(127 29 29 / 0.3)", errorText: "#ffffff",
+    link: "#60a5fa", scrim: "rgb(0 0 0 / 0.5)",
+  };
+  const BASE: Record<string, Dict> = {
+    radii: { sm: "8px", md: "12px", lg: "16px", full: "9999px", tail: "2px" },
+    shadows: {
+      elevated: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+      floating:
+        "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+      floatingHover:
+        "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+    },
+    fonts: { heading: "system-ui", body: "system-ui" },
+  };
+
+  const PRESETS: Record<string, Record<string, unknown>> = {
+    default: {},
+    minimal: {
+      colors: { accent: "#171717", accentText: "#ffffff", surface: "#ffffff",
+        surfaceMuted: "#f5f5f5", text: "#171717", textMuted: "#737373",
+        border: "#e5e5e5", link: "#171717" },
+      colorsDark: { accent: "#fafafa", accentText: "#171717",
+        surface: "#0a0a0a", surfaceMuted: "#1c1c1c", text: "#fafafa",
+        textMuted: "#a3a3a3", border: "#2e2e2e", field: "#1c1c1c",
+        link: "#fafafa" },
+      radii: { sm: "4px", md: "6px", lg: "10px" },
+      shadows: { elevated: "0 4px 16px rgb(0 0 0 / 0.12)",
+        floating: "0 2px 8px rgb(0 0 0 / 0.12)",
+        floatingHover: "0 4px 12px rgb(0 0 0 / 0.16)" },
+    },
+    playful: {
+      colors: { accent: "#8b5cf6", surfaceMuted: "#f5f3ff",
+        assistantBubbleText: "#4c1d95", link: "#7c3aed" },
+      colorsDark: { accent: "#a78bfa", surfaceMuted: "#2e1065",
+        assistantBubbleText: "#ede9fe", link: "#c4b5fd" },
+      radii: { sm: "12px", md: "16px", lg: "24px", tail: "8px" },
+      shadows: { elevated: "0 24px 48px -12px rgb(139 92 246 / 0.35)",
+        floating: "0 10px 20px -5px rgb(139 92 246 / 0.4)",
+        floatingHover: "0 16px 28px -6px rgb(139 92 246 / 0.5)" },
+      fonts: { heading: "ui-rounded, 'Hiragino Maru Gothic ProN', system-ui",
+        body: "ui-rounded, 'Hiragino Maru Gothic ProN', system-ui" },
+    },
+    corporate: {
+      colors: { accent: "#1e3a5f", surfaceMuted: "#f3f4f6", text: "#1f2937",
+        textMuted: "#6b7280", border: "#d1d5db", link: "#1d4ed8" },
+      colorsDark: { accent: "#2c5282", link: "#93c5fd" },
+      radii: { sm: "4px", md: "6px", lg: "8px", tail: "2px" },
+      shadows: { elevated: "0 8px 24px rgb(15 23 42 / 0.16)",
+        floating: "0 4px 12px rgb(15 23 42 / 0.18)",
+        floatingHover: "0 6px 16px rgb(15 23 42 / 0.24)" },
+      fonts: { heading: "'Segoe UI', 'Helvetica Neue', Arial, system-ui",
+        body: "'Segoe UI', 'Helvetica Neue', Arial, system-ui" },
+    },
+  };
+
+  const GROUPS: Array<{ key: string; label: string; tokens: string[]; placeholders: Dict }> = [
+    { key: "colors", label: "Colors", tokens: COLOR_TOKENS, placeholders: LIGHT },
+    { key: "colorsDark", label: "Colors — dark overrides", tokens: COLOR_TOKENS, placeholders: DARK },
+    { key: "radii", label: "Radii", tokens: RADIUS_TOKENS, placeholders: BASE.radii },
+    { key: "shadows", label: "Shadows", tokens: SHADOW_TOKENS, placeholders: BASE.shadows },
+    { key: "fonts", label: "Fonts", tokens: FONT_TOKENS, placeholders: BASE.fonts },
+  ];
+
+  const state: Record<string, Dict> = {
+    colors: {}, colorsDark: {}, radii: {}, shadows: {}, fonts: {},
+  };
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+  function effectiveColor(token: string, dark: boolean): string {
+    const set = dark
+      ? state.colorsDark[token] ?? state.colors[token]
+      : state.colors[token];
+    if (set) return set;
+    const defaults = dark ? DARK : LIGHT;
+    if (defaults[token]) return defaults[token];
+    if (token === "userBubble") return effectiveColor("accent", dark);
+    if (token === "assistantBubble") return effectiveColor("surfaceMuted", dark);
+    if (token === "link") return effectiveColor("text", dark); // ~currentColor
+    return "";
+  }
+
+  function render(): void {
+    const dark = ($("dark-preview") as HTMLInputElement).checked;
+    const root = $("preview-root");
+    for (const t of COLOR_TOKENS) {
+      root.style.setProperty(`--cl-color-${kebab(t)}`, effectiveColor(t, dark));
+    }
+    for (const g of ["radii", "shadows", "fonts"] as const) {
+      const prefix = { radii: "--cl-radius-", shadows: "--cl-shadow-", fonts: "--cl-font-" }[g];
+      for (const [t, def] of Object.entries(BASE[g])) {
+        root.style.setProperty(prefix + kebab(t), state[g][t] ?? def);
+      }
+    }
+    $("json-out").textContent = JSON.stringify(buildTheme(), null, 2);
+  }
+
+  function buildTheme(): Record<string, unknown> {
+    const theme: Record<string, unknown> = {
+      $schema: "https://claudius-docs.pages.dev/schema/theme.v1.json",
+    };
+    const name = ($("theme-name") as HTMLInputElement).value.trim();
+    if (name) theme.name = name;
+    const scheme = ($("scheme") as HTMLSelectElement).value;
+    if (scheme !== "light") theme.colorScheme = scheme;
+    for (const g of Object.keys(state)) {
+      const entries = Object.entries(state[g]).filter(([, v]) => v.trim());
+      if (entries.length) theme[g] = Object.fromEntries(entries);
+    }
+    return theme;
+  }
+
+  function buildForm(): void {
+    const container = $("groups");
+    container.innerHTML = "";
+    for (const group of GROUPS) {
+      const details = document.createElement("details");
+      details.open = group.key === "colors";
+      const summary = document.createElement("summary");
+      summary.textContent = group.label;
+      details.appendChild(summary);
+      for (const token of group.tokens) {
+        const row = document.createElement("label");
+        row.className = "token-row";
+        const span = document.createElement("span");
+        span.textContent = token;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = group.placeholders[token] ?? "";
+        input.value = state[group.key][token] ?? "";
+        input.addEventListener("input", () => {
+          if (input.value.trim()) state[group.key][token] = input.value.trim();
+          else delete state[group.key][token];
+          render();
+        });
+        row.append(span, input);
+        details.appendChild(row);
+      }
+      container.appendChild(details);
+    }
+  }
+
+  function applyPreset(presetName: string): void {
+    const preset = PRESETS[presetName] ?? {};
+    for (const key of Object.keys(state)) {
+      state[key] = { ...((preset as Record<string, Dict>)[key] ?? {}) };
+    }
+    ($("theme-name") as HTMLInputElement).value =
+      presetName === "default" ? "" : presetName;
+    buildForm();
+    render();
+  }
+
+  $("preset").addEventListener("change", (e) =>
+    applyPreset((e.target as HTMLSelectElement).value),
+  );
+  $("scheme").addEventListener("change", render);
+  $("theme-name").addEventListener("input", render);
+  $("dark-preview").addEventListener("change", render);
+
+  $("download").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(buildTheme(), null, 2) + "\n"], {
+      type: "application/json",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "claudius-theme.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  $("copy").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(
+      JSON.stringify(buildTheme(), null, 2),
+    );
+    $("copied").hidden = false;
+    setTimeout(() => ($("copied").hidden = true), 1500);
+  });
+
+  buildForm();
+  render();
+</script>
+
+<style>
+  .editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .editor { grid-template-columns: 1fr; }
+  }
+  .row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
+  .controls details { margin: 0.5rem 0; border: 1px solid var(--sl-color-hairline); border-radius: 6px; padding: 0.25rem 0.75rem; }
+  .controls summary { cursor: pointer; font-weight: 600; padding: 0.25rem 0; }
+  .token-row { display: grid; grid-template-columns: 11rem 1fr; gap: 0.5rem; align-items: center; margin: 0.3rem 0; font-size: 0.85rem; }
+  .token-row input, .row input[type="text"], .row select {
+    font: inherit; font-size: 0.85rem; padding: 0.25rem 0.5rem;
+    border: 1px solid var(--sl-color-hairline); border-radius: 4px;
+    background: var(--sl-color-bg); color: var(--sl-color-text);
+  }
+  .action { cursor: pointer; padding: 0.4rem 0.9rem; border-radius: 6px; border: 1px solid var(--sl-color-hairline); background: var(--sl-color-bg-nav); color: var(--sl-color-text); font: inherit; font-size: 0.85rem; }
+  .json-out { max-height: 16rem; overflow: auto; font-size: 0.75rem; }
+
+  /* Preview replica: styled exclusively by the same --cl-* tokens the real
+     widget consumes (values are set inline by the editor script). */
+  .preview-pane { position: sticky; top: 4rem; }
+  .clp-stage { background: repeating-conic-gradient(#80808014 0% 25%, transparent 0% 50%) 50% / 24px 24px; border: 1px solid var(--sl-color-hairline); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; }
+  .clp-window { width: 100%; max-width: 320px; background: var(--cl-color-surface, #fff); border-radius: var(--cl-radius-lg, 16px); box-shadow: var(--cl-shadow-elevated, 0 25px 50px -12px rgb(0 0 0 / 0.25)); overflow: hidden; font-family: var(--cl-font-body, system-ui); }
+  .clp-header { display: flex; align-items: center; gap: 0.6rem; background: var(--cl-color-accent, #2563eb); color: var(--cl-color-accent-text, #fff); padding: 0.7rem 1rem; }
+  .clp-header strong { font-family: var(--cl-font-heading, system-ui); display: block; font-size: 0.85rem; }
+  .clp-subtitle { font-size: 0.7rem; opacity: 0.9; }
+  .clp-avatar { display: flex; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; border-radius: var(--cl-radius-full, 9999px); background: var(--cl-color-accent-soft, rgb(255 255 255 / 0.2)); font-size: 0.8rem; font-weight: 700; }
+  .clp-close { margin-left: auto; color: var(--cl-color-accent-text-muted, rgb(255 255 255 / 0.7)); font-size: 1.1rem; }
+  .clp-messages { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.8rem; }
+  .clp-bubble { max-width: 85%; padding: 0.5rem 0.8rem; font-size: 0.8rem; line-height: 1.45; border-radius: var(--cl-radius-lg, 16px); }
+  .clp-assistant { align-self: flex-start; background: var(--cl-color-assistant-bubble, #f1f5f9); color: var(--cl-color-assistant-bubble-text, #1e293b); border-bottom-left-radius: var(--cl-radius-tail, 2px); }
+  .clp-user { align-self: flex-end; background: var(--cl-color-user-bubble, #2563eb); color: var(--cl-color-user-bubble-text, #fff); border-bottom-right-radius: var(--cl-radius-tail, 2px); }
+  .clp-link { color: var(--cl-color-link, inherit); text-decoration: underline; }
+  .clp-error { align-self: center; background: var(--cl-color-error-surface, #fef2f2); color: var(--cl-color-error, #dc2626); font-size: 0.7rem; padding: 0.35rem 0.6rem; border-radius: var(--cl-radius-sm, 8px); }
+  .clp-retry { background: var(--cl-color-error, #dc2626); color: var(--cl-color-error-text, #fff); padding: 0.1rem 0.5rem; border-radius: var(--cl-radius-md, 12px); font-weight: 600; }
+  .clp-inputrow { display: flex; gap: 0.5rem; border-top: 1px solid var(--cl-color-border, #e2e8f0); background: var(--cl-color-surface, #fff); padding: 0.6rem; }
+  .clp-field { flex: 1; border: 1px solid var(--cl-color-border, #e2e8f0); background: var(--cl-color-field, #fff); color: var(--cl-color-text-muted, #64748b); font-size: 0.75rem; padding: 0.45rem 0.6rem; border-radius: var(--cl-radius-sm, 8px); }
+  .clp-send { display: flex; align-items: center; justify-content: center; width: 2.1rem; background: var(--cl-color-accent, #2563eb); color: var(--cl-color-accent-text, #fff); border-radius: var(--cl-radius-sm, 8px); font-size: 0.8rem; }
+  .clp-toggle { display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: var(--cl-radius-full, 9999px); background: var(--cl-color-accent, #2563eb); color: var(--cl-color-accent-text, #fff); box-shadow: var(--cl-shadow-floating, 0 10px 15px -3px rgb(0 0 0 / 0.1)); font-size: 1.2rem; }
+</style>

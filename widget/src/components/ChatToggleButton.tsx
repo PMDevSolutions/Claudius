@@ -32,7 +32,7 @@ export const ChatToggleButton = forwardRef<
       ref={ref}
       onClick={onClick}
       aria-label={label}
-      className={`fixed ${positionClasses[position]} z-50 flex h-14 w-14 items-center justify-center rounded-full bg-claudius-primary text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-claudius-primary focus:ring-offset-2`}
+      className={`fixed ${positionClasses[position]} z-50 flex h-14 w-14 items-center justify-center rounded-claudius-full bg-claudius-accent text-claudius-accent-text shadow-claudius-floating transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-claudius-accent focus:ring-offset-2`}
     >
       {isOpen ? (
         <svg

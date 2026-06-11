@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claudius-docs.pages.dev/schema/theme.v1.json",
+  "title": "Claudius Theme",
+  "description": "Design-token theme for the Claudius chat widget. Every value is a CSS string applied through a --cl-* custom property. `colors` apply to both light and dark modes unless `colorsDark` overrides a token for dark mode.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": {
+      "type": "string",
+      "description": "Human-readable theme name",
+      "minLength": 1
+    },
+    "colorScheme": {
+      "description": "Initial color scheme this theme is designed for (default: light)",
+      "enum": ["light", "dark", "auto"]
+    },
+    "colors": { "$ref": "#/definitions/colorTokens" },
+    "colorsDark": { "$ref": "#/definitions/colorTokens" },
+    "radii": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sm": { "$ref": "#/definitions/cssValue" },
+        "md": { "$ref": "#/definitions/cssValue" },
+        "lg": { "$ref": "#/definitions/cssValue" },
+        "full": { "$ref": "#/definitions/cssValue" },
+        "tail": { "$ref": "#/definitions/cssValue" }
+      }
+    },
+    "shadows": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "elevated": { "$ref": "#/definitions/cssValue" },
+        "floating": { "$ref": "#/definitions/cssValue" },
+        "floatingHover": { "$ref": "#/definitions/cssValue" }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "heading": { "$ref": "#/definitions/cssValue" },
+        "body": { "$ref": "#/definitions/cssValue" }
+      }
+    }
+  },
+  "definitions": {
+    "cssValue": {
+      "type": "string",
+      "minLength": 1
+    },
+    "colorTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accent": { "$ref": "#/definitions/cssValue" },
+        "accentText": { "$ref": "#/definitions/cssValue" },
+        "accentSoft": { "$ref": "#/definitions/cssValue" },
+        "accentTextMuted": { "$ref": "#/definitions/cssValue" },
+        "surface": { "$ref": "#/definitions/cssValue" },
+        "surfaceMuted": { "$ref": "#/definitions/cssValue" },
+        "text": { "$ref": "#/definitions/cssValue" },
+        "textMuted": { "$ref": "#/definitions/cssValue" },
+        "border": { "$ref": "#/definitions/cssValue" },
+        "userBubble": { "$ref": "#/definitions/cssValue" },
+        "userBubbleText": { "$ref": "#/definitions/cssValue" },
+        "assistantBubble": { "$ref": "#/definitions/cssValue" },
+        "assistantBubbleText": { "$ref": "#/definitions/cssValue" },
+        "field": { "$ref": "#/definitions/cssValue" },
+        "error": { "$ref": "#/definitions/cssValue" },
+        "errorSurface": { "$ref": "#/definitions/cssValue" },
+        "errorText": { "$ref": "#/definitions/cssValue" },
+        "link": { "$ref": "#/definitions/cssValue" },
+        "scrim": { "$ref": "#/definitions/cssValue" }
+      }
+    }
+  }
+}
