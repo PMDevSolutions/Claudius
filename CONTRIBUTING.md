@@ -164,6 +164,30 @@ Branch names should be lowercase, use hyphens as separators, and be descriptive.
 
 ---
 
+## Versioning, Releases, and Milestones
+
+Releases are fully automated with [release-please](https://github.com/googleapis/release-please):
+merging to `main` accumulates conventional commits into a release PR, and
+merging that PR cuts the tag, GitHub Release, and `CHANGELOG.md` entry.
+`feat:` bumps the minor version, `fix:` the patch, and a `!`/`BREAKING CHANGE`
+commit the major. Version numbers are therefore **outputs of the commit
+history, not plans**.
+
+Two conventions follow from that:
+
+- **Milestones are themes, not version numbers.** Issues are grouped into
+  thematic milestones (e.g. *Developer Experience & Distribution*,
+  *Conversation Intelligence*, *Quality & Hardening*) with due dates. Don't
+  create milestones named after unreleased minor versions — release-please
+  will assign whatever number the commits dictate, and the milestone name
+  will drift. The one exception is a deliberately gated **major** (e.g.
+  *v2.0 - Multi-Channel & Enterprise*): breaking changes are a real product
+  boundary because the CDN `@1` channel never auto-serves a new major.
+- **Issues associate with releases through commits, not milestones.** Put
+  `Closes #N` in the PR description and reference the issue in commit bodies
+  where useful; the changelog and GitHub Release then record which version
+  actually shipped the work.
+
 ## Project Structure
 
 ```
