@@ -75,9 +75,9 @@ src/content/docs/
   deployment/wordpress.md            # embed via theme footer / code-snippets plugin
   deployment/replit.md               # self-hosted files on Replit (pmds.info pattern)
   deployment/react.md                # React component + Next.js (client component) usage
-  plugins/index.md                   # extension points today (system prompt, translations, CSS vars, MockChatApiClient); planned: #42 tool registry, #46 middleware SDK, #79 v2 RFC
-  rag/index.md                       # sources pipeline today (ChatResponse.sources, ChatSources sidebar, Source type); planned: #43 retriever + Vectorize, #47 inline citations
-  channels/index.md                  # web channel today (script embed, <claudius-chat>, React); planned: #57 Slack/Teams, #58 SMS/WhatsApp
+  plugins/index.md                   # extension points today (system prompt, translations, CSS vars, MockChatApiClient); planned: #51 tool registry, #45 middleware SDK, #79 v2 RFC
+  rag/index.md                       # sources pipeline today (ChatResponse.sources, ChatSources sidebar, Source type); planned: #52 retriever + Vectorize, #56 inline citations
+  channels/index.md                  # web channel today (script embed, <claudius-chat>, React); planned: #62 Slack/Teams, #63 SMS/WhatsApp
   api/rest.md                        # POST /api/chat (request/response JSON, error envelope, codes table incl. RATE_LIMITED + Retry-After + limitType), GET /api/health, client retry policy
   api/widget.md                      # ChatWidgetProps reference, ClaudiusConfig global, web component attrs, exports
   migration/index.md                 # semver + versioning policy, docs archive policy

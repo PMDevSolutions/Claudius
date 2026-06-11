@@ -28,9 +28,9 @@ issues, rather than describing unshipped features as real.
 | Getting Started | What is Claudius; 5-minute embed quick start (CDN snippet); local development setup |
 | Configuration | Widget options (React props / `window.ClaudiusConfig` / `<claudius-chat>` attributes); worker env vars; proactive triggers; localization; theming; multi-client configs + CLI |
 | Deployment | Worker on Cloudflare (KV, D1 analytics, secrets); embed via CDN; self-hosted embed; per-host guides: static HTML, WordPress, Replit, React/Next.js |
-| Plugins & Tools | Extension points that exist today (system prompt, translations, CSS custom properties); roadmap: tool-use registry (#42), plugin/hook SDK (#46), v2 plugin SDK RFC (#79) |
-| RAG | Sources feature that exists today (`sources` in `ChatResponse`, `ChatSources` sidebar); roadmap: pluggable retriever + Vectorize (#43), inline citations (#47) |
-| Channels | Web channel today (script embed, web component, React); roadmap: Slack/Teams (#57), SMS/WhatsApp (#58) |
+| Plugins & Tools | Extension points that exist today (system prompt, translations, CSS custom properties); roadmap: tool-use registry (#51), plugin/hook SDK (#45), v2 plugin SDK RFC (#79) |
+| RAG | Sources feature that exists today (`sources` in `ChatResponse`, `ChatSources` sidebar); roadmap: pluggable retriever + Vectorize (#52), inline citations (#56) |
+| Channels | Web channel today (script embed, web component, React); roadmap: Slack/Teams (#62), SMS/WhatsApp (#63) |
 | API Reference | REST: `POST /api/chat` (request/response, error codes, 429 + `Retry-After` + `limitType`), `GET /api/health`; client retry behavior; Widget API: full `ChatWidgetProps` |
 | Migration Guides | 1.0→1.1 (embed filenames `claudius-embed.*` → `claudius.iife.js`/`claudius.css`, sessionStorage persistence); 1.1→1.2 (CDN channel); 1.2→1.3 (429 `limitType`); versioning policy |
 | FAQ | CORS errors, rate limits, CSP for jsDelivr, multiple widgets per page, model configuration, data/privacy (metadata-only analytics) |
