@@ -26,12 +26,12 @@ describe("SourceIcon", () => {
   it("applies active styling when isActive is true", () => {
     render(<SourceIcon count={2} isActive={true} onClick={vi.fn()} />);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("bg-claudius-primary");
+    expect(button.className).toContain("bg-claudius-accent");
   });
 
   it("applies inactive styling when isActive is false", () => {
     render(<SourceIcon count={2} isActive={false} onClick={vi.fn()} />);
     const button = screen.getByRole("button");
-    expect(button.className).not.toContain("bg-claudius-primary");
+    expect(button.className).not.toContain("bg-claudius-accent");
   });
 });

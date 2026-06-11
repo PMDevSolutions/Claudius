@@ -36,10 +36,10 @@ function TypingIndicator({ label }: { label: string }) {
       aria-label={label}
       className="mr-auto flex max-w-[85%]"
     >
-      <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-3">
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:0ms]" />
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:150ms]" />
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-full bg-claudius-gray [animation-delay:300ms]" />
+      <div className="flex gap-1 rounded-claudius-bubble rounded-bl-claudius-tail bg-claudius-assistant-bubble px-4 py-3">
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:0ms]" />
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:150ms]" />
+        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:300ms]" />
       </div>
     </div>
   );
@@ -120,8 +120,8 @@ export function ChatWindow({
       aria-labelledby={titleId}
       className={
         isMobile
-          ? "claudius-bottom-sheet fixed inset-x-0 bottom-0 z-50 flex h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-gray-900 shadow-2xl font-body"
-          : `fixed ${windowPositionClasses[position]} z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-card bg-white dark:bg-gray-900 shadow-2xl font-body`
+          ? "claudius-bottom-sheet fixed inset-x-0 bottom-0 z-50 flex h-[90vh] w-full flex-col overflow-hidden rounded-t-claudius-lg bg-claudius-surface shadow-claudius-elevated font-body"
+          : `fixed ${windowPositionClasses[position]} z-50 flex h-[min(500px,calc(100vh-7rem))] w-[calc(100vw-1.5rem)] max-w-[380px] sm:max-w-[400px] md:max-w-[440px] flex-col overflow-hidden rounded-claudius-lg bg-claudius-surface shadow-claudius-elevated font-body`
       }
       style={
         isMobile && !reducedMotion
@@ -132,31 +132,31 @@ export function ChatWindow({
     >
       {isMobile && (
         <div className="flex justify-center py-2" aria-hidden="true">
-          <div className="h-1 w-8 rounded-full bg-gray-300 dark:bg-gray-600" />
+          <div className="h-1 w-8 rounded-claudius-full bg-claudius-border" />
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-3 bg-claudius-primary px-5 py-4">
+      <div className="flex items-center gap-3 bg-claudius-accent px-5 py-4">
         <div
           aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white"
+          className="flex h-8 w-8 items-center justify-center rounded-claudius-full bg-claudius-accent-soft text-sm font-bold text-claudius-accent-text"
         >
           {title.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
           <h2
             id={titleId}
-            className="text-sm font-heading font-semibold text-white"
+            className="text-sm font-heading font-semibold text-claudius-accent-text"
           >
             {title}
           </h2>
-          <p className="text-xs text-white">{subtitle}</p>
+          <p className="text-xs text-claudius-accent-text">{subtitle}</p>
         </div>
         <button
           onClick={onClose}
           aria-label={closeLabel}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-claudius-full text-claudius-accent-text-muted transition-colors hover:bg-claudius-accent-soft hover:text-claudius-accent-text"
         >
           <svg
             width="18"
@@ -194,7 +194,7 @@ export function ChatWindow({
         >
           {messages.length === 0 && !error && (
             <div className="mr-auto flex max-w-[85%]">
-              <div className="rounded-2xl rounded-bl-sm bg-claudius-light dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-claudius-dark dark:text-gray-200">
+              <div className="rounded-claudius-bubble rounded-bl-claudius-tail bg-claudius-assistant-bubble px-4 py-2.5 text-sm leading-relaxed text-claudius-assistant-bubble-text">
                 {welcomeMessage}
               </div>
             </div>
@@ -226,14 +226,14 @@ export function ChatWindow({
           {error && (
             <div
               role="alert"
-              className="mx-auto flex max-w-[90%] flex-col items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/30 px-3 py-2 text-center text-xs text-red-600 dark:text-red-400"
+              className="mx-auto flex max-w-[90%] flex-col items-center gap-2 rounded-claudius-sm bg-claudius-error-surface px-3 py-2 text-center text-xs text-claudius-error"
             >
               <span>{error}</span>
               {canRetry && onRetry && !isLoading && (
                 <button
                   type="button"
                   onClick={onRetry}
-                  className="rounded-button bg-red-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
+                  className="rounded-claudius-md bg-claudius-error px-3 py-1 text-xs font-semibold text-claudius-error-text transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-claudius-error focus-visible:ring-offset-1"
                 >
                   {translations?.errorRetry ?? "Retry"}
                 </button>

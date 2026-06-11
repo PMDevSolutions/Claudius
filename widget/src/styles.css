@@ -2,6 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark mode: reassign each color token to its -dark counterpart. A theme's
+   `colors` are emitted as both --cl-color-X and --cl-color-X-dark (unless
+   `colorsDark` overrides X), so themed tokens carry into dark mode while
+   untouched tokens fall back to the default dark palette below. */
+[data-claudius-dark="true"] {
+  --cl-color-accent: var(--cl-color-accent-dark, #2563eb);
+  --cl-color-accent-text: var(--cl-color-accent-text-dark, #ffffff);
+  --cl-color-accent-soft: var(
+    --cl-color-accent-soft-dark,
+    rgb(255 255 255 / 0.2)
+  );
+  --cl-color-accent-text-muted: var(
+    --cl-color-accent-text-muted-dark,
+    rgb(255 255 255 / 0.7)
+  );
+  --cl-color-surface: var(--cl-color-surface-dark, #111827);
+  --cl-color-surface-muted: var(--cl-color-surface-muted-dark, #1f2937);
+  --cl-color-text: var(--cl-color-text-dark, #f3f4f6);
+  --cl-color-text-muted: var(--cl-color-text-muted-dark, #9ca3af);
+  --cl-color-border: var(--cl-color-border-dark, #374151);
+  --cl-color-user-bubble: var(
+    --cl-color-user-bubble-dark,
+    var(--cl-color-accent)
+  );
+  --cl-color-user-bubble-text: var(--cl-color-user-bubble-text-dark, #ffffff);
+  --cl-color-assistant-bubble: var(
+    --cl-color-assistant-bubble-dark,
+    var(--cl-color-surface-muted)
+  );
+  --cl-color-assistant-bubble-text: var(
+    --cl-color-assistant-bubble-text-dark,
+    #e5e7eb
+  );
+  --cl-color-field: var(--cl-color-field-dark, #1f2937);
+  --cl-color-error: var(--cl-color-error-dark, #f87171);
+  --cl-color-error-surface: var(
+    --cl-color-error-surface-dark,
+    rgb(127 29 29 / 0.3)
+  );
+  --cl-color-error-text: var(--cl-color-error-text-dark, #ffffff);
+  --cl-color-link: var(--cl-color-link-dark, #60a5fa);
+  --cl-color-scrim: var(--cl-color-scrim-dark, rgb(0 0 0 / 0.5));
+}
+
 /* Bottom sheet slide-up animation */
 .claudius-bottom-sheet {
   transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);

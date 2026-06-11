@@ -53,7 +53,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-claudius-border dark:border-gray-700 dark:bg-gray-900 p-3"
+      className="border-t border-claudius-border bg-claudius-surface p-3"
     >
       <div className="flex gap-2">
         <input
@@ -65,13 +65,13 @@ export function ChatInput({
           disabled={isLoading}
           aria-label={inputLabel}
           aria-describedby={isNearLimit ? "char-count" : undefined}
-          className="flex-1 rounded-lg border border-claudius-border dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400 px-3 py-2 text-sm font-body text-claudius-dark placeholder:text-claudius-gray focus:border-claudius-primary focus:outline-none focus:ring-1 focus:ring-claudius-primary disabled:opacity-50"
+          className="flex-1 rounded-claudius-sm border border-claudius-border bg-claudius-field px-3 py-2 text-sm font-body text-claudius-text placeholder:text-claudius-text-muted focus:border-claudius-accent focus:outline-none focus:ring-1 focus:ring-claudius-accent disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={isLoading || isAtLimit}
           aria-label={sendLabel}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-claudius-primary text-white transition-colors hover:opacity-90 disabled:opacity-50"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-claudius-sm bg-claudius-accent text-claudius-accent-text transition-colors hover:opacity-90 disabled:opacity-50"
         >
           <svg
             width="16"
@@ -92,7 +92,7 @@ export function ChatInput({
       {isNearLimit && (
         <div
           id="char-count"
-          className={`mt-1 text-xs text-right ${isAtLimit ? "text-claudius-error" : "text-claudius-gray"}`}
+          className={`mt-1 text-xs text-right ${isAtLimit ? "text-claudius-error" : "text-claudius-text-muted"}`}
           aria-live="polite"
         >
           {charCount}/{MAX_MESSAGE_LENGTH}
