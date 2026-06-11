@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import starlightVersions from "starlight-versions";
 
 // https://astro.build/config
 export default defineConfig({
@@ -8,6 +9,14 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Claudius",
+      plugins: [
+        // Archives a copy of the docs per major release line. When v2 ships,
+        // add a "2.x" entry here; the previous line stays browsable via the
+        // version switcher.
+        starlightVersions({
+          versions: [{ slug: "1.x", label: "v1.x" }],
+        }),
+      ],
       description:
         "Embeddable AI chat widget powered by Claude. React component + standalone script embed, backed by Cloudflare Workers.",
       social: [

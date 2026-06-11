@@ -1,0 +1,92 @@
+{
+  "sidebar": [
+    {
+      "label": "Getting Started",
+      "items": [
+        {
+          "slug": "getting-started/introduction"
+        },
+        {
+          "slug": "getting-started/quick-start"
+        },
+        {
+          "slug": "getting-started/local-development"
+        }
+      ]
+    },
+    {
+      "label": "Configuration",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "configuration"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Deployment",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "deployment"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Plugins & Tools",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "plugins"
+          }
+        }
+      ]
+    },
+    {
+      "label": "RAG",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "rag"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Channels",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "channels"
+          }
+        }
+      ]
+    },
+    {
+      "label": "API Reference",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "api"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Migration Guides",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "migration"
+          }
+        }
+      ]
+    },
+    {
+      "label": "FAQ",
+      "slug": "faq"
+    }
+  ]
+}

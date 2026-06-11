@@ -3,12 +3,13 @@ title: Local development
 description: Run the widget and worker on your machine.
 sidebar:
   order: 3
+slug: 1.x/getting-started/local-development
 ---
 
 ## Prerequisites
 
-- Node.js 20+ and [pnpm](https://pnpm.io)
-- An Anthropic API key
+* Node.js 20+ and [pnpm](https://pnpm.io)
+* An Anthropic API key
 
 ## Setup
 
