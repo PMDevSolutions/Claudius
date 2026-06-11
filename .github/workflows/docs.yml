@@ -1,0 +1,75 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (includes Pagefind index)
+        run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-dist
+          path: docs/dist
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    # Deploys need the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo
+    # secrets, and a one-time `wrangler pages project create claudius-docs`.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-dist
+          path: docs/dist
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: docs
+          command: pages deploy dist --project-name=claudius-docs

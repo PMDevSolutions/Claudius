@@ -33,12 +33,17 @@ function createMockCtx(): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function postChat(env: ChatRouteEnv, ip: string): Promise<Response> {
+function postChat(
+  env: ChatRouteEnv,
+  ip: string,
+  origin?: string
+): Promise<Response> {
   const request = new Request("http://localhost/api/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "cf-connecting-ip": ip,
+      ...(origin ? { Origin: origin } : {}),
     },
     body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] }),
   });
@@ -85,5 +90,55 @@ describe("POST /api/chat rate limiting", () => {
     const body = (await res.json()) as { code?: string; limitType?: string };
     expect(body.code).toBe("RATE_LIMITED");
     expect(body.limitType).toBe("hour");
+  });
+});
+
+describe("CORS allowed origins", () => {
+  // Drive the deterministic 429 path so no Anthropic call is made; CORS
+  // headers are set by the middleware regardless of the response status.
+  function rateLimitedEnv(allowedOrigin: string): ChatRouteEnv {
+    return {
+      ANTHROPIC_API_KEY: "test-key",
+      ALLOWED_ORIGIN: allowedOrigin,
+      RATE_LIMIT: createMockKV({ "rate:min:9.9.9.9": "10" }),
+    };
+  }
+
+  it("allows a single configured origin (existing behavior)", async () => {
+    const env = rateLimitedEnv("https://pmds.info");
+
+    const res = await postChat(env, "9.9.9.9", "https://pmds.info");
+
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://pmds.info"
+    );
+  });
+
+  it("allows any origin in a comma-separated ALLOWED_ORIGIN list", async () => {
+    const env = rateLimitedEnv(
+      "https://pmds.info, https://claudius-docs.pages.dev"
+    );
+
+    const res = await postChat(
+      env,
+      "9.9.9.9",
+      "https://claudius-docs.pages.dev"
+    );
+
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://claudius-docs.pages.dev"
+    );
+  });
+
+  it("does not reflect an origin missing from the list", async () => {
+    const env = rateLimitedEnv(
+      "https://pmds.info,https://claudius-docs.pages.dev"
+    );
+
+    const res = await postChat(env, "9.9.9.9", "https://evil.example");
+
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://pmds.info"
+    );
   });
 });

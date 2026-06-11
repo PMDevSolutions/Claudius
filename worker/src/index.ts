@@ -28,11 +28,15 @@ app.use(
   "/api/*",
   cors({
     origin: (origin, c) => {
-      const allowed = c.env.ALLOWED_ORIGIN || "http://localhost:5173";
+      // Comma-separated list, e.g. "https://pmds.info,https://docs.example"
+      const allowed = (c.env.ALLOWED_ORIGIN || "http://localhost:5173")
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean);
       if (origin?.startsWith("http://localhost:")) {
         return origin;
       }
-      return origin === allowed ? origin : allowed;
+      return origin && allowed.includes(origin) ? origin : allowed[0];
     },
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],

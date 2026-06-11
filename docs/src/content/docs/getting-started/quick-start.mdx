@@ -1,0 +1,73 @@
+---
+title: Quick start
+description: Deploy the worker and embed the widget on your site in about five minutes.
+sidebar:
+  order: 2
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Two pieces: a Cloudflare Worker (your backend, holds the API key) and the
+widget embed (two tags on your site).
+
+<Steps>
+
+1. **Deploy the worker.** You need a Cloudflare account and an Anthropic API
+   key.
+
+   ```bash
+   git clone https://github.com/PMDevSolutions/Claudius.git
+   cd Claudius/worker
+   pnpm install
+   npx wrangler login
+   npx wrangler kv namespace create RATE_LIMIT   # paste the id into wrangler.toml
+   npx wrangler secret put ANTHROPIC_API_KEY
+   npx wrangler deploy
+   ```
+
+   Note the deployed URL, e.g. `https://claudius-chat-worker.<you>.workers.dev`.
+   See the [worker deployment guide](/deployment/worker/) for KV, analytics,
+   and CORS details.
+
+2. **Allow your site's origin.** In the Cloudflare dashboard (Workers →
+   Settings → Variables) set:
+
+   ```
+   ALLOWED_ORIGIN = https://your-site.example
+   ```
+
+   Multiple sites? Use a comma-separated list.
+
+3. **Add the embed tags** before `</body>` on your site:
+
+   ```html
+   <script>
+     window.ClaudiusConfig = {
+       apiUrl: "https://claudius-chat-worker.<you>.workers.dev",
+       title: "Support",
+       subtitle: "Ask me anything",
+       theme: "auto",
+     };
+   </script>
+   <link
+     rel="stylesheet"
+     href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+   />
+   <script src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"></script>
+   ```
+
+   The `@1` channel auto-updates to the latest `v1.x` release. If your site
+   sets a Content-Security-Policy, allow `cdn.jsdelivr.net` in `script-src`
+   and `style-src`.
+
+4. **Open your site.** The chat bubble appears bottom-right. Send a message to
+   confirm the round trip to Claude works.
+
+</Steps>
+
+## Next steps
+
+- Make the bot yours: edit the [system prompt](/configuration/worker/#system-prompt)
+- Match your brand: [theming](/configuration/theming/) and the full
+  [widget option reference](/configuration/widget/)
+- Using React? See the [React component guide](/deployment/react/)

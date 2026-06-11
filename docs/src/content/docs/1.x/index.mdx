@@ -1,0 +1,50 @@
+---
+title: Claudius
+description: Embeddable AI chat widget powered by Claude. Drop it into any
+  website with a single script tag.
+template: splash
+hero:
+  tagline: An open-source, embeddable AI chat widget powered by Claude. Drop it
+    into any website with a single script tag.
+  actions:
+    - text: Get started in 5 minutes
+      link: /1.x/getting-started/quick-start/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/PMDevSolutions/Claudius
+      icon: external
+      variant: minimal
+slug: 1.x
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import DemoWidget from "../../../components/DemoWidget.astro";
+
+## Try it right now
+
+This page runs a live Claudius widget. Click the chat bubble in the corner and
+say hello — that's exactly what your visitors get.
+
+<CardGrid stagger>
+  <Card title="One script tag" icon="rocket">
+    Embed on any site with a `<script>` and a `<link>` tag, or use the React
+    component. Auto-updating CDN channel included.
+  </Card>
+
+  <Card title="Your backend, your key" icon="cloudflare">
+    A small Cloudflare Worker (Hono + Anthropic SDK) keeps your API key
+    server-side, with KV rate limiting and optional D1 analytics.
+  </Card>
+
+  <Card title="Accessible and fast" icon="approve-check">
+    WCAG 2.1 AA, focus trap, keyboard navigation, reduced-motion aware.
+    \~150 KB gzipped JS + 3 KB CSS.
+  </Card>
+
+  <Card title="Configurable" icon="setting">
+    Themes, brand colors, proactive triggers, four bundled locales, custom
+    translations, and per-client config files with a CLI.
+  </Card>
+</CardGrid>
+
+<DemoWidget />
