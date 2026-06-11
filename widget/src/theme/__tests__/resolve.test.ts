@@ -107,9 +107,7 @@ describe("themeToCssVars", () => {
       colors: { accent: "#fff", banana: "#yellow" } as never,
     });
     expect(vars["--cl-color-banana"]).toBeUndefined();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("banana"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("banana"));
   });
 
   it("skips non-string values without crashing", () => {
