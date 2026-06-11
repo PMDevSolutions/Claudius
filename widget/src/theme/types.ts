@@ -68,5 +68,4 @@ export type ClaudiusThemeInput =
   | "auto"
   | BuiltinThemeName
   | ClaudiusTheme
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   | (string & {});
