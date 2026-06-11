@@ -11,6 +11,8 @@ import {
   createTranslations,
 } from "../i18n";
 import { resolveTranslations, type LocaleCode } from "../locales";
+import { useTheme } from "../theme/useTheme";
+import type { ClaudiusThemeInput } from "../theme/types";
 
 export type WidgetPosition =
   | "bottom-right"
@@ -29,7 +31,12 @@ export interface ChatWidgetProps {
   persistMessages?: boolean;
   storageKeyPrefix?: string;
   requestTimeoutMs?: number;
-  theme?: "light" | "dark" | "auto";
+  /**
+   * Color-scheme mode ("light" | "dark" | "auto"), a built-in theme name
+   * ("default" | "minimal" | "playful" | "corporate"), an inline
+   * ClaudiusTheme object, or a URL to a theme JSON file.
+   */
+  theme?: ClaudiusThemeInput;
   accentColor?: string;
   position?: WidgetPosition;
   locale?: LocaleCode;
@@ -92,10 +99,12 @@ export function ChatWidget({
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
 
+  const { mode, cssVars } = useTheme(theme);
+
   const [osDark, setOsDark] = useState(false);
 
   useEffect(() => {
-    if (theme !== "auto") return;
+    if (mode !== "auto") return;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setOsDark(mq.matches);
@@ -103,7 +112,7 @@ export function ChatWidget({
     const handler = (e: MediaQueryListEvent) => setOsDark(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [theme]);
+  }, [mode]);
 
   useEffect(() => {
     // Return focus to toggle button when chat closes
@@ -157,11 +166,23 @@ export function ChatWidget({
     onGreeting: handleTriggerGreeting,
   });
 
-  const isDark = theme === "dark" || (theme === "auto" && osDark);
+  const isDark = mode === "dark" || (mode === "auto" && osDark);
 
-  const wrapperStyle: React.CSSProperties | undefined = accentColor
-    ? ({ "--cl-color-accent": accentColor } as React.CSSProperties)
-    : undefined;
+  // accentColor (the v1 API) wins over the theme's accent; it also overrides
+  // the dark mirror so the override holds in dark mode.
+  const tokenVars: Record<string, string> = {
+    ...cssVars,
+    ...(accentColor
+      ? {
+          "--cl-color-accent": accentColor,
+          "--cl-color-accent-dark": accentColor,
+        }
+      : {}),
+  };
+  const wrapperStyle: React.CSSProperties | undefined =
+    Object.keys(tokenVars).length > 0
+      ? (tokenVars as React.CSSProperties)
+      : undefined;
 
   return (
     // Outer div carries theme token vars; the inner div carries the dark-mode
