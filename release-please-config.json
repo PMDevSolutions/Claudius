@@ -20,7 +20,8 @@
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         { "type": "json", "path": "widget/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "worker/package.json", "jsonpath": "$.version" }
+        { "type": "json", "path": "worker/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "docs/package.json", "jsonpath": "$.version" }
       ]
     }
   }
