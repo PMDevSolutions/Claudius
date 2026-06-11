@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/PMDevSolutions/Claudius/compare/v1.3.0...v1.4.0) (2026-06-11)
+
+
+### Features
+
+* Astro Starlight docs site with versioned content and live demo ([9f29abe](https://github.com/PMDevSolutions/Claudius/commit/9f29abe71c32f69809430a96b5c2c44b3bbba44b))
+* **docs:** archive 1.x docs with starlight-versions switcher ([b81ea85](https://github.com/PMDevSolutions/Claudius/commit/b81ea85cb3f2da397c6bcd17e1f47bc5fb2907bc))
+* **docs:** author all nine doc sections with live demo on home page ([5929cdd](https://github.com/PMDevSolutions/Claudius/commit/5929cddf8ff0bd8e49fd751a922b0de476715c6c))
+* **docs:** scaffold Astro Starlight site in docs/ ([cc98cf1](https://github.com/PMDevSolutions/Claudius/commit/cc98cf16fc53e752dfcfa95acfa87196e65393d1))
+* **worker:** accept comma-separated ALLOWED_ORIGIN list ([267cec2](https://github.com/PMDevSolutions/Claudius/commit/267cec2f6c87b1936d81a2b4dedef34d7902f07d))
+
 ## [1.3.0](https://github.com/PMDevSolutions/Claudius/compare/v1.2.1...v1.3.0) (2026-06-09)
 
 
