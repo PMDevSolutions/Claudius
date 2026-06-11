@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/PMDevSolutions/Claudius/compare/v1.4.0...v1.5.0) (2026-06-11)
+
+
+### Features
+
+* theming v2 with design tokens, theme files, and editor ([96dbdc0](https://github.com/PMDevSolutions/Claudius/commit/96dbdc0250f96ad0d290f004d5210ddabddfaefd))
+* **widget:** add theme engine with four built-in themes ([b4d8b17](https://github.com/PMDevSolutions/Claudius/commit/b4d8b177f7a44c43bf08a0430948dd02f590e75e))
+* **widget:** publish theme.v1 JSON schema with validation tests ([ce43d5b](https://github.com/PMDevSolutions/Claudius/commit/ce43d5bd4c1ff52d7af02fc821cf4aed0138cecc))
+* **widget:** theme prop accepts built-in names, theme objects, and URLs ([1ce06d3](https://github.com/PMDevSolutions/Claudius/commit/1ce06d34e48ee2dc000a96a65802e119b133e3c1))
+
+
+### Refactoring
+
+* **widget:** move all visual styles onto --cl-* design tokens ([1eb6ed9](https://github.com/PMDevSolutions/Claudius/commit/1eb6ed9efc529513cbd793877021ee36ee865de0))
+
 ## [1.4.0](https://github.com/PMDevSolutions/Claudius/compare/v1.3.0...v1.4.0) (2026-06-11)
 
 
