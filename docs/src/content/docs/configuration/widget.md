@@ -19,7 +19,7 @@ attributes on the `<claudius-chat>` web component.
 | `persistMessages` | `boolean` | `true` | Save history to `sessionStorage` (survives navigation, clears on tab close) |
 | `storageKeyPrefix` | `string` | `"claudius:messages"` | Storage key prefix; set a unique value per widget when embedding several on one page |
 | `requestTimeoutMs` | `number` | `30000` | Per-attempt request timeout; `0` disables. Timeouts surface a retryable error |
-| `theme` | `"light" \| "dark" \| "auto"` | `"light"` | Color scheme; `auto` follows `prefers-color-scheme` |
+| `theme` | `"light" \| "dark" \| "auto"` \| theme name \| `ClaudiusTheme` \| URL | `"light"` | Color scheme, a [built-in theme](/configuration/theming/#built-in-themes), an inline [theme object](/configuration/theming/), or a URL to a theme JSON file |
 | `accentColor` | `string` | `"#2563eb"` | Primary brand color override |
 | `position` | `"bottom-right" \| "bottom-left" \| "top-right" \| "top-left"` | `"bottom-right"` | Corner the bubble and window anchor to |
 | `locale` | `"en" \| "es" \| "fr" \| "de"` | auto-detected | UI language; see [Localization](/configuration/localization/) |

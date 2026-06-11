@@ -24,7 +24,7 @@ interface ChatWidgetProps {
   persistMessages?: boolean;
   storageKeyPrefix?: string;
   requestTimeoutMs?: number;
-  theme?: "light" | "dark" | "auto";
+  theme?: ClaudiusThemeInput;
   accentColor?: string;
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   locale?: "en" | "es" | "fr" | "de";
@@ -46,6 +46,30 @@ type Trigger =
 
 type TriggerAction = "open" | { greeting: string };
 ```
+
+### `ClaudiusThemeInput` and `ClaudiusTheme`
+
+```ts
+type ClaudiusThemeInput =
+  | "light" | "dark" | "auto"                       // color-scheme mode
+  | "default" | "minimal" | "playful" | "corporate" // built-in themes
+  | ClaudiusTheme                                   // inline tokens
+  | (string & {});                                  // URL to theme JSON
+
+interface ClaudiusTheme {
+  $schema?: string;
+  name?: string;
+  colorScheme?: "light" | "dark" | "auto";
+  colors?: Partial<Record<ThemeColorToken, string>>;
+  colorsDark?: Partial<Record<ThemeColorToken, string>>;
+  radii?: Partial<Record<"sm" | "md" | "lg" | "full" | "tail", string>>;
+  shadows?: Partial<Record<"elevated" | "floating" | "floatingHover", string>>;
+  fonts?: Partial<Record<"heading" | "body", string>>;
+}
+```
+
+The four built-ins are exported as `builtinThemes`. Token semantics and
+defaults: [theming reference](/configuration/theming/#token-reference).
 
 ### `ClaudiusTranslations`
 
