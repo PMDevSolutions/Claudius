@@ -61,6 +61,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # wrangler-action installs wrangler with the package manager it detects
+      # from docs/pnpm-lock.yaml, so pnpm must be on PATH in this job too.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - uses: actions/download-artifact@v4
         with:
           name: docs-dist
