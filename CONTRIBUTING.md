@@ -173,6 +173,33 @@ merging that PR cuts the tag, GitHub Release, and `CHANGELOG.md` entry.
 commit the major. Version numbers are therefore **outputs of the commit
 history, not plans**.
 
+### Publishing to npm
+
+The same release also **publishes the widget to npm** as
+[`claudius-chat-widget`](https://www.npmjs.com/package/claudius-chat-widget). The
+publish step in `.github/workflows/release-please.yml` runs only when a release is
+cut, builds the dual ESM/CJS package, and authenticates with an `NPM_TOKEN`
+repository secret (publishing with provenance):
+
+- Create an **Automation** access token — or a **granular** token scoped to
+  publish `claudius-chat-widget` — at npmjs.com → *Access Tokens*.
+- Store it as a repository Actions secret:
+
+  ```bash
+  gh secret set NPM_TOKEN --repo PMDevSolutions/Claudius
+  ```
+
+The very first version must be published manually once, because release-please
+only triggers the publish step on a *new* release after the workflow is wired up:
+
+```bash
+npm login
+cd widget && pnpm build && npm publish --access public
+```
+
+(`--provenance` is omitted for the local manual publish; it requires the OIDC
+token only available in CI.) Every release after that publishes automatically.
+
 Two conventions follow from that:
 
 - **Milestones are themes, not version numbers.** Issues are grouped into
