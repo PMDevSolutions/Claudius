@@ -16,8 +16,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
       name: "Claudius",
-      fileName: "claudius",
-      formats: ["es"],
+      formats: ["es", "cjs"],
+      fileName: (format) => (format === "es" ? "claudius.js" : "claudius.cjs"),
     },
     rollupOptions: {
       external: ["react", "react-dom", "react/jsx-runtime"],

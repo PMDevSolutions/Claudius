@@ -1,7 +1,10 @@
 # Claudius - Embeddable AI Chat Widget
 
+[![npm](https://img.shields.io/npm/v/claudius-chat-widget.svg)](https://www.npmjs.com/package/claudius-chat-widget)
+[![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
+
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
-website with a single script tag.
+website with a single script tag, or install it as a React component.
 
 **Full documentation: [claudius-docs.pages.dev](https://claudius-docs.pages.dev)**
 
@@ -49,6 +52,28 @@ Add before `</body>`:
 ```
 
 The `@1` CDN channel auto-updates within v1.x. That's it.
+
+### 3. Or install as a React component
+
+Building a React app? Install from npm instead of the script embed:
+
+```bash
+npm install claudius-chat-widget react react-dom
+```
+
+```tsx
+import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+<ChatWidget
+  apiUrl="https://claudius-chat-worker.<you>.workers.dev"
+  title="Support"
+/>;
+```
+
+The package ships dual ESM/CJS builds with TypeScript types. See the
+[documentation](https://claudius-docs.pages.dev) for theming, localization, and
+SSR notes.
 
 ## Documentation
 
