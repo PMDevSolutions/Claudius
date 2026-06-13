@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/PMDevSolutions/Claudius/compare/v1.5.0...v1.6.0) (2026-06-13)
+
+
+### Features
+
+* publish widget to npm as claudius-chat-widget ([4146076](https://github.com/PMDevSolutions/Claudius/commit/414607635f359c20038981ddb324db9944a2c842))
+* publish widget to npm as claudius-chat-widget ([c686212](https://github.com/PMDevSolutions/Claudius/commit/c686212238062bf83a8ad7b35fc16240b87897a2))
+
 ## [1.5.0](https://github.com/PMDevSolutions/Claudius/compare/v1.4.0...v1.5.0) (2026-06-11)
 
 
