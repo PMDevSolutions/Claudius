@@ -19,7 +19,7 @@
   "homepage": "https://claudius-docs.pages.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PMDevSolutions/Claudius.git",
+    "url": "git+https://github.com/PMDevSolutions/Claudius.git",
     "directory": "widget"
   },
   "bugs": {
