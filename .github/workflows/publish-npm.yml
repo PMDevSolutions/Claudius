@@ -1,0 +1,61 @@
+name: Publish to npm
+
+# Manual, on-demand publish of the widget to npm.
+#
+# The release-please workflow already publishes automatically when it cuts a
+# release. This workflow exists for the cases that one can't handle:
+#   - bootstrapping the very first publish (the release for the current version
+#     already exists, so re-running release-please is a no-op), and
+#   - recovering from a failed release publish without waiting for the next
+#     release.
+#
+# Requires the NPM_TOKEN secret to be an npm token that can publish the package
+# and bypasses 2FA (a classic Automation token, or a granular token with
+# "All packages" + read/write). Publishes with provenance (needs id-token).
+on:
+  workflow_dispatch:
+    inputs:
+      dist-tag:
+        description: "npm dist-tag to publish under"
+        required: false
+        default: "latest"
+
+permissions:
+  contents: read
+  id-token: write # for npm provenance
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish widget to npm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public --tag "${{ inputs.dist-tag }}"
