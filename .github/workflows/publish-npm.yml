@@ -1,20 +1,27 @@
 name: Publish to npm
 
-# Manual, on-demand publish of the widget to npm.
+# Manual, on-demand publish of a package to npm.
 #
 # The release-please workflow already publishes automatically when it cuts a
 # release. This workflow exists for the cases that one can't handle:
-#   - bootstrapping the very first publish (the release for the current version
-#     already exists, so re-running release-please is a no-op), and
-#   - recovering from a failed release publish without waiting for the next
-#     release.
+#   - bootstrapping the very first publish of a package (the release for the
+#     current version already exists, so re-running release-please is a no-op), and
+#   - recovering from a failed release publish without waiting for the next release.
 #
 # Requires the NPM_TOKEN secret to be an npm token that can publish the package
-# and bypasses 2FA (a classic Automation token, or a granular token with
-# "All packages" + read/write). Publishes with provenance (needs id-token).
+# (and create it on first publish) and bypasses 2FA — a granular token with
+# "All packages" + read/write, or an account-scoped token. Publishes with
+# provenance (needs id-token).
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Which package to publish"
+        type: choice
+        options:
+          - widget
+          - create-claudius
+        default: widget
       dist-tag:
         description: "npm dist-tag to publish under"
         required: false
@@ -25,16 +32,16 @@ permissions:
   id-token: write # for npm provenance
 
 concurrency:
-  group: publish-npm
+  group: publish-npm-${{ github.event.inputs.package }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish widget to npm
+    name: Publish ${{ inputs.package }} to npm
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: widget
+        working-directory: ${{ inputs.package }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +54,7 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
           cache: pnpm
-          cache-dependency-path: widget/pnpm-lock.yaml
+          cache-dependency-path: ${{ inputs.package }}/pnpm-lock.yaml
 
       - name: Install
         run: pnpm install --frozen-lockfile

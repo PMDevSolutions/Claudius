@@ -1,0 +1,721 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scaffold > adds the worker scaffold when requested 1`] = `
+{
+  ".gitignore": "node_modules
+dist
+*.local
+.DS_Store
+",
+  "README.md": "# demo-app
+
+A [Vite](https://vite.dev) + React + TypeScript app using the
+[\`claudius-chat-widget\`](https://www.npmjs.com/package/claudius-chat-widget)
+component.
+
+\`\`\`bash
+pnpm install
+pnpm dev
+\`\`\`
+
+The widget lives in \`src/App.tsx\`:
+
+\`\`\`tsx
+import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+<ChatWidget apiUrl="https://demo.workers.dev" theme="auto" accentColor="#4f46e5" />;
+\`\`\`
+
+You need a running Claudius worker for the chat to respond. See the
+[worker setup guide](https://claudius-docs.pages.dev/deployment/worker/), or
+re-run the scaffolder with \`--worker\` to generate one.
+",
+  "index.html": "<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>demo-app</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+",
+  "package.json": "{
+  "name": "demo-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "claudius-chat-widget": "^1.6.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}
+",
+  "src/App.tsx": "import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+const pageStyle: React.CSSProperties = {
+  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+  display: "grid",
+  placeItems: "center",
+  minHeight: "100vh",
+  margin: 0,
+};
+
+export function App() {
+  return (
+    <main style={pageStyle}>
+      <div style={{ maxWidth: "32rem", padding: "2rem", textAlign: "center" }}>
+        <h1>demo-app</h1>
+        <p>
+          Edit <code>src/App.tsx</code> and configure the widget via its props. The
+          launcher is in the corner.
+        </p>
+      </div>
+
+      <ChatWidget
+        apiUrl="https://demo.workers.dev"
+        title="demo-app"
+        theme="auto"
+        accentColor="#4f46e5"
+      />
+    </main>
+  );
+}
+",
+  "src/main.tsx": "import React from "react";
+import { createRoot } from "react-dom/client";
+import { App } from "./App";
+
+createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+",
+  "tsconfig.json": "{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "useDefineForClassFields": true
+  },
+  "include": ["src", "vite.config.ts"]
+}
+",
+  "vite.config.ts": "import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+});
+",
+  "worker/.dev.vars.example": "# Copy this file to .dev.vars and fill in your key for local development:
+#   cp .dev.vars.example .dev.vars
+ANTHROPIC_API_KEY=
+",
+  "worker/.gitignore": "node_modules
+.wrangler
+dist
+.dev.vars
+.DS_Store
+",
+  "worker/README.md": "# demo-app-worker
+
+A minimal [Cloudflare Worker](https://workers.cloudflare.com) that keeps your
+Anthropic API key server-side and powers the Claudius widget. It exposes
+\`POST /api/chat\` and \`GET /api/health\`, with CORS and a small KV-backed rate limit.
+
+> This is a trimmed starter. For the full-featured worker (analytics, configurable
+> rate limits, richer error handling), see the
+> [Claudius worker](https://github.com/PMDevSolutions/Claudius/tree/main/worker).
+
+## Local development
+
+\`\`\`bash
+pnpm install
+cp .dev.vars.example .dev.vars   # then add your ANTHROPIC_API_KEY
+pnpm dev                          # http://localhost:8787
+\`\`\`
+
+## Deploy
+
+\`\`\`bash
+# 1. Create the KV namespace and paste the id(s) into wrangler.toml
+npx wrangler kv namespace create RATE_LIMIT
+
+# 2. Store your API key as a secret
+npx wrangler secret put ANTHROPIC_API_KEY
+
+# 3. Deploy
+npx wrangler deploy
+\`\`\`
+
+After deploying, set \`ALLOWED_ORIGIN\` (in \`wrangler.toml\` or the Cloudflare
+dashboard) to your site's origin, and point the widget's \`apiUrl\` at the worker
+URL.
+",
+  "worker/package.json": "{
+  "name": "demo-app-worker",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.6.0"
+  }
+}
+",
+  "worker/src/index.ts": "import { Hono } from "hono";
+import { cors } from "hono/cors";
+import Anthropic from "@anthropic-ai/sdk";
+
+interface Env {
+  ANTHROPIC_API_KEY: string;
+  ALLOWED_ORIGIN: string;
+  RATE_LIMIT: KVNamespace;
+  CLAUDE_MODEL?: string;
+  MAX_TOKENS?: string;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const MAX_MESSAGE_LENGTH = 2000;
+const RATE_LIMIT_PER_MINUTE = 20;
+
+// Customize your assistant's personality and knowledge here.
+const SYSTEM_PROMPT =
+  "You are a helpful, concise assistant embedded on a website. " +
+  "Answer clearly and politely. If you don't know something, say so.";
+
+const app = new Hono<{ Bindings: Env }>();
+
+app.use(
+  "/api/*",
+  cors({
+    origin: (origin, c) => {
+      const allowed = (c.env.ALLOWED_ORIGIN || "http://localhost:5173")
+        .split(",")
+        .map((o: string) => o.trim())
+        .filter(Boolean);
+      if (origin?.startsWith("http://localhost:")) return origin;
+      return origin && allowed.includes(origin) ? origin : allowed[0];
+    },
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+    maxAge: 86400,
+  }),
+);
+
+app.get("/api/health", (c) => c.json({ ok: true }));
+
+app.post("/api/chat", async (c) => {
+  let body: { messages?: ChatMessage[] };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const messages = body.messages;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return c.json({ error: "A non-empty messages array is required." }, 400);
+  }
+
+  // Minimal per-IP, per-minute rate limit backed by the RATE_LIMIT KV namespace.
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const bucket = \`rl:\${ip}:\${Math.floor(Date.now() / 60000)}\`;
+  const count = parseInt((await c.env.RATE_LIMIT.get(bucket)) ?? "0", 10);
+  if (count >= RATE_LIMIT_PER_MINUTE) {
+    return c.json({ error: "Too many requests. Please wait a minute." }, 429, {
+      "Retry-After": "60",
+    });
+  }
+  await c.env.RATE_LIMIT.put(bucket, String(count + 1), { expirationTtl: 120 });
+
+  const sanitized = messages.map((m) => ({
+    role: m.role,
+    content: String(m.content ?? "").slice(0, MAX_MESSAGE_LENGTH),
+  }));
+
+  try {
+    const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY });
+    const response = await client.messages.create({
+      model: c.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
+      max_tokens: c.env.MAX_TOKENS ? parseInt(c.env.MAX_TOKENS, 10) : 1024,
+      system: SYSTEM_PROMPT,
+      messages: sanitized,
+    });
+    const textBlock = response.content.find((block) => block.type === "text");
+    return c.json({ reply: textBlock && textBlock.type === "text" ? textBlock.text : "" });
+  } catch {
+    return c.json({ error: "AI service temporarily unavailable. Please try again." }, 502);
+  }
+});
+
+export default app;
+",
+  "worker/tsconfig.json": "{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src"]
+}
+",
+  "worker/wrangler.toml": "name = "demo-app-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[vars]
+# Comma-separated list of origins allowed to call this worker.
+ALLOWED_ORIGIN = "http://localhost:5173"
+# Optional overrides:
+# CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+# MAX_TOKENS = "1024"
+
+# Per-IP rate limiting is backed by this KV namespace. Create it with:
+#   npx wrangler kv namespace create RATE_LIMIT
+# then paste the returned id (and preview_id) below.
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "placeholder"
+preview_id = "placeholder"
+",
+}
+`;
+
+exports[`scaffold > generates the next template 1`] = `
+{
+  ".gitignore": "node_modules
+.next
+out
+dist
+*.local
+.DS_Store
+next-env.d.ts
+",
+  "README.md": "# demo-app
+
+A [Next.js](https://nextjs.org) (App Router) + TypeScript app using the
+[\`claudius-chat-widget\`](https://www.npmjs.com/package/claudius-chat-widget)
+component.
+
+\`\`\`bash
+pnpm install
+pnpm dev
+\`\`\`
+
+The widget is rendered by a client component (\`app/ClaudiusWidget.tsx\`) because it
+relies on browser APIs:
+
+\`\`\`tsx
+"use client";
+import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+\`\`\`
+
+You need a running Claudius worker for the chat to respond. See the
+[worker setup guide](https://claudius-docs.pages.dev/deployment/worker/), or
+re-run the scaffolder with \`--worker\` to generate one.
+",
+  "app/ClaudiusWidget.tsx": ""use client";
+
+import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+// ChatWidget uses browser APIs and React state, so it must run on the client.
+export function ClaudiusWidget() {
+  return (
+    <ChatWidget
+      apiUrl="https://demo.workers.dev"
+      title="demo-app"
+      theme="auto"
+      accentColor="#4f46e5"
+    />
+  );
+}
+",
+  "app/layout.tsx": "import type { Metadata } from "next";
+import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  title: "demo-app",
+  description: "A Claudius-powered app",
+};
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body style={{ margin: 0 }}>{children}</body>
+    </html>
+  );
+}
+",
+  "app/page.tsx": "import { ClaudiusWidget } from "./ClaudiusWidget";
+
+export default function Home() {
+  return (
+    <main
+      style={{
+        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+        display: "grid",
+        placeItems: "center",
+        minHeight: "100vh",
+      }}
+    >
+      <div style={{ maxWidth: "32rem", padding: "2rem", textAlign: "center" }}>
+        <h1>demo-app</h1>
+        <p>
+          Edit <code>app/ClaudiusWidget.tsx</code> to configure the widget. The launcher
+          is in the corner.
+        </p>
+      </div>
+
+      <ClaudiusWidget />
+    </main>
+  );
+}
+",
+  "next.config.mjs": "/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default nextConfig;
+",
+  "package.json": "{
+  "name": "demo-app",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "claudius-chat-widget": "^1.6.0",
+    "next": "^14.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.6.0"
+  }
+}
+",
+  "tsconfig.json": "{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+",
+}
+`;
+
+exports[`scaffold > generates the react template 1`] = `
+{
+  ".gitignore": "node_modules
+dist
+*.local
+.DS_Store
+",
+  "README.md": "# demo-app
+
+A [Vite](https://vite.dev) + React + TypeScript app using the
+[\`claudius-chat-widget\`](https://www.npmjs.com/package/claudius-chat-widget)
+component.
+
+\`\`\`bash
+pnpm install
+pnpm dev
+\`\`\`
+
+The widget lives in \`src/App.tsx\`:
+
+\`\`\`tsx
+import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+<ChatWidget apiUrl="https://demo.workers.dev" theme="auto" accentColor="#4f46e5" />;
+\`\`\`
+
+You need a running Claudius worker for the chat to respond. See the
+[worker setup guide](https://claudius-docs.pages.dev/deployment/worker/), or
+re-run the scaffolder with \`--worker\` to generate one.
+",
+  "index.html": "<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>demo-app</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+",
+  "package.json": "{
+  "name": "demo-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "claudius-chat-widget": "^1.6.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}
+",
+  "src/App.tsx": "import { ChatWidget } from "claudius-chat-widget";
+import "claudius-chat-widget/style.css";
+
+const pageStyle: React.CSSProperties = {
+  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+  display: "grid",
+  placeItems: "center",
+  minHeight: "100vh",
+  margin: 0,
+};
+
+export function App() {
+  return (
+    <main style={pageStyle}>
+      <div style={{ maxWidth: "32rem", padding: "2rem", textAlign: "center" }}>
+        <h1>demo-app</h1>
+        <p>
+          Edit <code>src/App.tsx</code> and configure the widget via its props. The
+          launcher is in the corner.
+        </p>
+      </div>
+
+      <ChatWidget
+        apiUrl="https://demo.workers.dev"
+        title="demo-app"
+        theme="auto"
+        accentColor="#4f46e5"
+      />
+    </main>
+  );
+}
+",
+  "src/main.tsx": "import React from "react";
+import { createRoot } from "react-dom/client";
+import { App } from "./App";
+
+createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+",
+  "tsconfig.json": "{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "useDefineForClassFields": true
+  },
+  "include": ["src", "vite.config.ts"]
+}
+",
+  "vite.config.ts": "import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+});
+",
+}
+`;
+
+exports[`scaffold > generates the vanilla template 1`] = `
+{
+  ".gitignore": "node_modules
+dist
+*.local
+.DS_Store
+",
+  "README.md": "# demo-app
+
+A static site with the [Claudius](https://claudius-docs.pages.dev) chat widget
+embedded via the CDN — no build step required for the widget itself.
+
+\`\`\`bash
+pnpm install
+pnpm dev
+\`\`\`
+
+The widget is configured in \`index.html\` via \`window.ClaudiusConfig\`:
+
+- \`apiUrl\` — your deployed Claudius worker (currently \`https://demo.workers.dev\`)
+- \`theme\` — \`auto\`
+- \`accentColor\` — \`#4f46e5\`
+
+You need a running Claudius worker for the chat to respond. See the
+[worker setup guide](https://claudius-docs.pages.dev/deployment/worker/), or
+re-run the scaffolder with \`--worker\` to generate one.
+",
+  "index.html": "<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>demo-app</title>
+    <!-- Claudius widget styles (CDN, auto-updates within v1.x) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+    />
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        line-height: 1.5;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      main {
+        max-width: 32rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      code {
+        background: #e2e8f0;
+        padding: 0.15em 0.4em;
+        border-radius: 0.3em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>demo-app</h1>
+      <p>
+        Your Claudius chat widget is live in the corner. Configure it by editing
+        <code>window.ClaudiusConfig</code> in <code>index.html</code>.
+      </p>
+    </main>
+
+    <!-- Claudius Chat Widget -->
+    <script>
+      window.ClaudiusConfig = {
+        apiUrl: "https://demo.workers.dev",
+        title: "demo-app",
+        theme: "auto",
+        accentColor: "#4f46e5",
+      };
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"
+      defer
+    ></script>
+  </body>
+</html>
+",
+  "package.json": "{
+  "name": "demo-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
+",
+}
+`;

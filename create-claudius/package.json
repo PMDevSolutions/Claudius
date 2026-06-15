@@ -1,0 +1,57 @@
+{
+  "name": "create-claudius",
+  "version": "1.6.0",
+  "description": "Scaffold a Claudius AI chat widget project in one command.",
+  "keywords": [
+    "claudius",
+    "create",
+    "create-claudius",
+    "scaffold",
+    "cli",
+    "chat-widget",
+    "claude",
+    "ai-chat"
+  ],
+  "author": "PAMulligan",
+  "license": "MIT",
+  "homepage": "https://claudius-docs.pages.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PMDevSolutions/Claudius.git",
+    "directory": "create-claudius"
+  },
+  "bugs": {
+    "url": "https://github.com/PMDevSolutions/Claudius/issues"
+  },
+  "type": "module",
+  "bin": {
+    "create-claudius": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.0"
+  }
+}

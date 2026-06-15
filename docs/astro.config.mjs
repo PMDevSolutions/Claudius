@@ -35,6 +35,7 @@ export default defineConfig({
           items: [
             { slug: "getting-started/introduction" },
             { slug: "getting-started/quick-start" },
+            { slug: "getting-started/scaffolding" },
             { slug: "getting-started/local-development" },
           ],
         },

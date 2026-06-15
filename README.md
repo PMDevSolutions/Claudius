@@ -1,6 +1,7 @@
 # Claudius - Embeddable AI Chat Widget
 
 [![npm](https://img.shields.io/npm/v/claudius-chat-widget.svg)](https://www.npmjs.com/package/claudius-chat-widget)
+[![create-claudius](https://img.shields.io/npm/v/create-claudius.svg?label=create-claudius)](https://www.npmjs.com/package/create-claudius)
 [![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
@@ -15,6 +16,19 @@ website with a single script tag, or install it as a React component.
 
 Claudius is two pieces: a Cloudflare Worker (keeps your Anthropic API key
 server-side) and a widget embed.
+
+### Fastest: scaffold a project
+
+```bash
+npm create claudius@latest
+```
+
+Answer a few prompts (framework — vanilla, React, or Next.js — theme, accent color,
+worker API URL, and optionally a Cloudflare Worker) and you get a ready-to-run
+project. See the
+[scaffolding guide](https://claudius-docs.pages.dev/getting-started/scaffolding/).
+
+Prefer to wire things up by hand? Continue below.
 
 ### 1. Deploy the worker
 
