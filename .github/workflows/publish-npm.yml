@@ -50,13 +50,14 @@ jobs:
         with:
           version: 9
 
-      # No registry-url: passing it makes setup-node write an .npmrc with a
-      # placeholder _authToken, and npm then does (failing) token auth instead
-      # of the OIDC trusted-publishing exchange. The default registry is already
-      # registry.npmjs.org, which is also where provenance must be published.
+      # registry-url is required for OIDC trusted publishing: it points npm at
+      # the registry to mint the short-lived token against. setup-node also
+      # writes a placeholder _authToken, which npm ignores in favour of OIDC as
+      # long as a matching trusted publisher is configured for this package.
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: ${{ inputs.package }}/pnpm-lock.yaml
 
