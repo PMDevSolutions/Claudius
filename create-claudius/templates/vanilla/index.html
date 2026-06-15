@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{PROJECT_NAME}}</title>
+    <!-- Claudius widget styles (CDN, auto-updates within v1.x) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+    />
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        line-height: 1.5;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      main {
+        max-width: 32rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      code {
+        background: #e2e8f0;
+        padding: 0.15em 0.4em;
+        border-radius: 0.3em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>{{PROJECT_NAME}}</h1>
+      <p>
+        Your Claudius chat widget is live in the corner. Configure it by editing
+        <code>window.ClaudiusConfig</code> in <code>index.html</code>.
+      </p>
+    </main>
+
+    <!-- Claudius Chat Widget -->
+    <script>
+      window.ClaudiusConfig = {
+        apiUrl: "{{API_URL}}",
+        title: "{{PROJECT_NAME}}",
+        theme: "{{THEME}}",
+        accentColor: "{{ACCENT_COLOR}}",
+      };
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"
+      defer
+    ></script>
+  </body>
+</html>

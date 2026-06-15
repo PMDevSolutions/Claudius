@@ -103,3 +103,13 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
           npm publish --provenance --access public
+
+      - name: Build and publish create-claudius
+        if: ${{ steps.release.outputs.release_created }}
+        working-directory: create-claudius
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          npm publish --provenance --access public

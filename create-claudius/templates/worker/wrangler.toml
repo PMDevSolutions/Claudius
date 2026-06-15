@@ -1,0 +1,18 @@
+name = "{{PROJECT_NAME}}-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[vars]
+# Comma-separated list of origins allowed to call this worker.
+ALLOWED_ORIGIN = "http://localhost:5173"
+# Optional overrides:
+# CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+# MAX_TOKENS = "1024"
+
+# Per-IP rate limiting is backed by this KV namespace. Create it with:
+#   npx wrangler kv namespace create RATE_LIMIT
+# then paste the returned id (and preview_id) below.
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "placeholder"
+preview_id = "placeholder"
