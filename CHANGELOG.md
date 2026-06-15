@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/PMDevSolutions/Claudius/compare/v1.6.0...v1.7.0) (2026-06-15)
+
+
+### Features
+
+* add create-claudius project scaffolder ([b72f3ca](https://github.com/PMDevSolutions/Claudius/commit/b72f3cab20b3435339d3ae53c0c49e655a06c9a0))
+* add create-claudius project scaffolder ([04f870e](https://github.com/PMDevSolutions/Claudius/commit/04f870e030e0c6a2f3c87467f3f0e7d2335e378b)), closes [#42](https://github.com/PMDevSolutions/Claudius/issues/42)
+
 ## [1.6.0](https://github.com/PMDevSolutions/Claudius/compare/v1.5.0...v1.6.0) (2026-06-13)
 
 
