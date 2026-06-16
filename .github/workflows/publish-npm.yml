@@ -1,18 +1,19 @@
 name: Publish to npm
 
-# Manual, on-demand publish of a package to npm.
+# Manual, on-demand publish of a package to npm, to recover from a failed
+# release publish without waiting for the next release. (release-please.yml
+# publishes automatically when it cuts a release.)
 #
-# The release-please workflow already publishes automatically when it cuts a
-# release. This workflow exists for the cases that one can't handle:
-#   - bootstrapping the very first publish of a package (the release for the
-#     current version already exists, so re-running release-please is a no-op), and
-#   - recovering from a failed release publish without waiting for the next release.
+# Auth uses npm Trusted Publishing (OIDC) — there is no NPM_TOKEN secret.
+# Requires id-token: write and npm >= 11.5.1, so we upgrade the runner's
+# bundled npm before publishing. Provenance is generated automatically.
 #
-# Auth uses npm Trusted Publishing (OIDC) — there is no NPM_TOKEN secret. A
-# trusted publisher matching this repo + workflow filename must be configured
-# on each package at npmjs.com. Requires id-token: write and npm >= 11.5.1, so
-# we upgrade the runner's bundled npm before publishing. Provenance is
-# generated automatically.
+# NOTE: npm allows only ONE trusted publisher per package, configured here for
+# release-please.yml. To publish from THIS workflow instead, temporarily
+# repoint the package's trusted publisher (npmjs.com -> package Settings) to
+# publish-npm.yml, dispatch, then switch it back. A brand-new package's FIRST
+# publish cannot use OIDC at all — publish it once with a token (locally), then
+# configure trusted publishing.
 on:
   workflow_dispatch:
     inputs:
@@ -56,7 +57,7 @@ jobs:
       # long as a matching trusted publisher is configured for this package.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: ${{ inputs.package }}/pnpm-lock.yaml
