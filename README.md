@@ -2,6 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/claudius-chat-widget.svg)](https://www.npmjs.com/package/claudius-chat-widget)
 [![create-claudius](https://img.shields.io/npm/v/create-claudius.svg?label=create-claudius)](https://www.npmjs.com/package/create-claudius)
+[![Storybook](https://img.shields.io/badge/Storybook-live-ff4785?logo=storybook&logoColor=white)](https://claudius-storybook.pages.dev)
 [![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
@@ -109,6 +110,10 @@ cd widget && pnpm install && pnpm dev    # http://localhost:5173
 
 Tests: `pnpm test` in `widget/` and `worker/`. Details in the
 [local development guide](https://claudius-docs.pages.dev/getting-started/local-development/).
+
+Browse the components in Storybook — hosted at
+[claudius-storybook.pages.dev](https://claudius-storybook.pages.dev), or run it
+locally with `cd widget && pnpm storybook`.
 
 ## Tech stack
 

@@ -52,7 +52,15 @@ export default defineConfig({
         },
         {
           label: "Plugins & Tools",
-          items: [{ autogenerate: { directory: "plugins" } }],
+          items: [
+            { autogenerate: { directory: "plugins" } },
+            {
+              label: "Component Storybook",
+              link: "https://claudius-storybook.pages.dev",
+              attrs: { target: "_blank", rel: "noopener noreferrer" },
+              badge: { text: "live", variant: "success" },
+            },
+          ],
         },
         { label: "RAG", items: [{ autogenerate: { directory: "rag" } }] },
         {
