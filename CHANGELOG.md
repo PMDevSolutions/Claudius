@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0](https://github.com/PMDevSolutions/Claudius/compare/v1.7.0...v1.8.0) (2026-06-16)
+
+
+### Features
+
+* **widget:** expand Storybook coverage, theme switcher, and Pages deploy ([943e580](https://github.com/PMDevSolutions/Claudius/commit/943e5800bf6bb608c1e716d73620efd16ef919bc))
+* **widget:** expand Storybook coverage, theme switcher, and Pages deploy ([7e5de1b](https://github.com/PMDevSolutions/Claudius/commit/7e5de1b500912370b0bfd1566ba70ff9e91059b7)), closes [#43](https://github.com/PMDevSolutions/Claudius/issues/43)
+
 ## [1.7.0](https://github.com/PMDevSolutions/Claudius/compare/v1.6.0...v1.7.0) (2026-06-15)
 
 
