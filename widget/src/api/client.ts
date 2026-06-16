@@ -1,19 +1,46 @@
 import type { ChatMessage, ChatResponse, ChatErrorResponse } from "./types";
 import { ChatApiError, DebounceError } from "./errors";
 
+/**
+ * Options for {@link ChatApiClient}.
+ */
 export interface ChatApiClientOptions {
+  /**
+   * Maximum retries after the first attempt, for retryable failures (HTTP
+   * 429/503, network errors, timeouts).
+   * @defaultValue `2`
+   */
   maxRetries?: number;
+  /**
+   * Minimum gap between sends, in milliseconds. A send inside this window
+   * rejects with {@link DebounceError}. Set to 0 to disable.
+   * @defaultValue `300`
+   */
   debounceMs?: number;
   /**
    * Per-attempt request timeout in milliseconds. Aborts the in-flight fetch
-   * via AbortController and surfaces a retryable ChatApiError with code
-   * "TIMEOUT". Set to 0 to disable. Defaults to 30000 (30s).
+   * via `AbortController` and surfaces a retryable {@link ChatApiError} with
+   * code `"TIMEOUT"`. Set to 0 to disable.
+   * @defaultValue `30000`
    */
   timeoutMs?: number;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+/**
+ * Typed client for the Claudius Worker chat API. Handles debouncing,
+ * per-attempt timeouts, and automatic retries with backoff for transient
+ * failures (HTTP 429/503, network errors, timeouts).
+ *
+ * @example
+ * ```ts
+ * const client = new ChatApiClient("https://api.example.com");
+ * const { reply } = await client.sendMessage([
+ *   { id: "1", role: "user", content: "Hello" },
+ * ]);
+ * ```
+ */
 export class ChatApiClient {
   private readonly baseUrl: string;
   private readonly maxRetries: number;
@@ -21,6 +48,12 @@ export class ChatApiClient {
   private readonly timeoutMs: number;
   private lastSendTime = 0;
 
+  /**
+   * Create a chat client for the given Worker base URL.
+   *
+   * @param baseUrl - Base URL of the Worker. Requests post to `${baseUrl}/api/chat`.
+   * @param options - Optional retry, debounce, and timeout settings.
+   */
   constructor(baseUrl: string, options?: ChatApiClientOptions) {
     this.baseUrl = baseUrl;
     this.maxRetries = options?.maxRetries ?? 2;
@@ -28,6 +61,16 @@ export class ChatApiClient {
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
+  /**
+   * Send the conversation to the chat endpoint and return the assistant's
+   * reply, retrying transient failures with backoff up to
+   * {@link ChatApiClientOptions.maxRetries} times.
+   *
+   * @param messages - The full conversation so far, oldest message first.
+   * @returns The assistant's reply and any cited sources.
+   * @throws {@link DebounceError} when called within the debounce window.
+   * @throws {@link ChatApiError} when the request fails after all retries.
+   */
   async sendMessage(messages: ChatMessage[]): Promise<ChatResponse> {
     if (
       this.debounceMs > 0 &&

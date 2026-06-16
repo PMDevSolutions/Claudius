@@ -14,6 +14,7 @@ import { resolveTranslations, type LocaleCode } from "../locales";
 import { useTheme } from "../theme/useTheme";
 import type { ClaudiusThemeInput } from "../theme/types";
 
+/** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
   | "bottom-right"
   | "bottom-left"
@@ -22,25 +23,48 @@ export type WidgetPosition =
 
 const DISMISS_STORAGE_KEY = "claudius:triggers:dismissed";
 
+/**
+ * Props for the {@link ChatWidget} component.
+ */
 export interface ChatWidgetProps {
+  /** Absolute URL of the Worker chat endpoint (e.g. `https://api.example.com`). */
   apiUrl: string;
+  /** Header title. Falls back to the active locale's default title. */
   title?: string;
+  /** Header subtitle shown beneath the title. */
   subtitle?: string;
+  /** First assistant message shown when the chat opens. */
   welcomeMessage?: string;
+  /** Placeholder text for the message input. */
   placeholder?: string;
+  /**
+   * Persist the conversation to storage so it survives reloads.
+   * @defaultValue `false`
+   */
   persistMessages?: boolean;
+  /** Prefix for the storage key used when {@link ChatWidgetProps.persistMessages} is enabled. */
   storageKeyPrefix?: string;
+  /** Abort a chat request after this many milliseconds. */
   requestTimeoutMs?: number;
   /**
    * Color-scheme mode ("light" | "dark" | "auto"), a built-in theme name
    * ("default" | "minimal" | "playful" | "corporate"), an inline
    * ClaudiusTheme object, or a URL to a theme JSON file.
+   * @defaultValue `"light"`
    */
   theme?: ClaudiusThemeInput;
+  /** Accent color override; wins over the theme's accent in both light and dark. */
   accentColor?: string;
+  /**
+   * Corner of the viewport the widget docks to.
+   * @defaultValue `"bottom-right"`
+   */
   position?: WidgetPosition;
+  /** BCP-47 locale used to select built-in translations. */
   locale?: LocaleCode;
+  /** Partial overrides merged over the resolved locale translations. */
   translations?: Partial<ClaudiusTranslations>;
+  /** Proactive open/greeting rules evaluated against the current page. */
   triggers?: Trigger[];
 }
 
@@ -62,6 +86,16 @@ function writeDismissed(): void {
   }
 }
 
+/**
+ * Root Claudius chat widget: a floating toggle button that opens a chat window
+ * backed by the Worker chat API. Render a single instance on the page.
+ *
+ * @param props - See {@link ChatWidgetProps}.
+ * @example
+ * ```tsx
+ * <ChatWidget apiUrl="https://api.example.com" title="Support" />
+ * ```
+ */
 export function ChatWidget({
   apiUrl,
   title,

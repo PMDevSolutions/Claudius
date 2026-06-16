@@ -56,6 +56,8 @@
     "build": "vite build && vite build --config vite.config.embed.ts && node scripts/emit-dts-cts.mjs",
     "build:lib": "vite build && node scripts/emit-dts-cts.mjs",
     "build:embed": "vite build --config vite.config.embed.ts",
+    "docs:api": "typedoc",
+    "docs:api:check": "typedoc --emit none",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
