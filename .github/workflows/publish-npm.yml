@@ -8,10 +8,11 @@ name: Publish to npm
 #     current version already exists, so re-running release-please is a no-op), and
 #   - recovering from a failed release publish without waiting for the next release.
 #
-# Requires the NPM_TOKEN secret to be an npm token that can publish the package
-# (and create it on first publish) and bypasses 2FA — a granular token with
-# "All packages" + read/write, or an account-scoped token. Publishes with
-# provenance (needs id-token).
+# Auth uses npm Trusted Publishing (OIDC) — there is no NPM_TOKEN secret. A
+# trusted publisher matching this repo + workflow filename must be configured
+# on each package at npmjs.com. Requires id-token: write and npm >= 11.5.1, so
+# we upgrade the runner's bundled npm before publishing. Provenance is
+# generated automatically.
 on:
   workflow_dispatch:
     inputs:
@@ -49,12 +50,20 @@ jobs:
         with:
           version: 9
 
+      # registry-url is required for OIDC trusted publishing: it points npm at
+      # the registry to mint the short-lived token against. setup-node also
+      # writes a placeholder _authToken, which npm ignores in favour of OIDC as
+      # long as a matching trusted publisher is configured for this package.
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: ${{ inputs.package }}/pnpm-lock.yaml
+
+      # Trusted Publishing (OIDC) needs npm >= 11.5.1; Node 20 ships npm 10.x.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -63,6 +72,4 @@ jobs:
         run: pnpm build
 
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public --tag "${{ inputs.dist-tag }}"
