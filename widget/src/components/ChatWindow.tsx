@@ -2,6 +2,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
+import { ChatHeader } from "./ChatHeader";
+import { ErrorBanner } from "./ErrorBanner";
+import { TypingIndicator } from "./TypingIndicator";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
@@ -24,25 +27,6 @@ interface ChatWindowProps {
   position?: WidgetPosition;
   translations?: ClaudiusTranslations;
   isMobile?: boolean;
-}
-
-function TypingIndicator({ label }: { label: string }) {
-  // motion-safe: variant disables the bounce when prefers-reduced-motion is
-  // set; the dots remain visible as a static status pill.
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-label={label}
-      className="mr-auto flex max-w-[85%]"
-    >
-      <div className="flex gap-1 rounded-claudius-bubble rounded-bl-claudius-tail bg-claudius-assistant-bubble px-4 py-3">
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:0ms]" />
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:150ms]" />
-        <span className="h-2 w-2 motion-safe:animate-bounce rounded-claudius-full bg-claudius-text-muted [animation-delay:300ms]" />
-      </div>
-    </div>
-  );
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -136,44 +120,13 @@ export function ChatWindow({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center gap-3 bg-claudius-accent px-5 py-4">
-        <div
-          aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-claudius-full bg-claudius-accent-soft text-sm font-bold text-claudius-accent-text"
-        >
-          {title.charAt(0).toUpperCase()}
-        </div>
-        <div className="flex-1">
-          <h2
-            id={titleId}
-            className="text-sm font-heading font-semibold text-claudius-accent-text"
-          >
-            {title}
-          </h2>
-          <p className="text-xs text-claudius-accent-text">{subtitle}</p>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label={closeLabel}
-          className="flex h-10 w-10 items-center justify-center rounded-claudius-full text-claudius-accent-text-muted transition-colors hover:bg-claudius-accent-soft hover:text-claudius-accent-text"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+      <ChatHeader
+        title={title}
+        subtitle={subtitle}
+        titleId={titleId}
+        closeLabel={closeLabel}
+        onClose={onClose}
+      />
 
       {/* Messages area */}
       <div className="relative flex-1 overflow-hidden">
@@ -224,21 +177,11 @@ export function ChatWindow({
           )}
 
           {error && (
-            <div
-              role="alert"
-              className="mx-auto flex max-w-[90%] flex-col items-center gap-2 rounded-claudius-sm bg-claudius-error-surface px-3 py-2 text-center text-xs text-claudius-error"
-            >
-              <span>{error}</span>
-              {canRetry && onRetry && !isLoading && (
-                <button
-                  type="button"
-                  onClick={onRetry}
-                  className="rounded-claudius-md bg-claudius-error px-3 py-1 text-xs font-semibold text-claudius-error-text transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-claudius-error focus-visible:ring-offset-1"
-                >
-                  {translations?.errorRetry ?? "Retry"}
-                </button>
-              )}
-            </div>
+            <ErrorBanner
+              message={error}
+              retryLabel={translations?.errorRetry ?? "Retry"}
+              onRetry={canRetry && onRetry && !isLoading ? onRetry : undefined}
+            />
           )}
         </div>
       </div>

@@ -1,0 +1,82 @@
+name: Storybook
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "widget/**"
+      - ".github/workflows/storybook.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "widget/**"
+      - ".github/workflows/storybook.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Storybook
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        run: pnpm build-storybook
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: widget/storybook-static
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    # Deploys need the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo
+    # secrets (already used by the Docs workflow), and a one-time
+    # `wrangler pages project create claudius-storybook`.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # wrangler-action installs wrangler with the package manager it detects
+      # from widget/pnpm-lock.yaml, so pnpm must be on PATH in this job too.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: storybook-static
+          path: widget/storybook-static
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: widget
+          command: pages deploy storybook-static --project-name=claudius-storybook

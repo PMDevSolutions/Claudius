@@ -48,6 +48,24 @@ pnpm test                # API, validation, rate-limit, analytics tests
 The E2E suite mocks `**/api/chat`, so the worker doesn't need to run during
 Playwright tests.
 
+## Component Storybook
+
+Every widget component has stories covering its meaningful states — themes
+(light / dark / auto), error and empty states, the mobile bottom sheet, RTL
+layout, and the proactive greeting. It's a fast feedback loop for UI work and
+doubles as living documentation.
+
+```bash
+cd widget
+pnpm storybook          # http://localhost:6006
+pnpm build-storybook    # static build -> widget/storybook-static
+```
+
+The latest `main` is published at
+[claudius-storybook.pages.dev](https://claudius-storybook.pages.dev). Use the
+toolbar **Theme**, **Locale**, and **Direction** controls to preview each
+component across color schemes, languages, and writing direction.
+
 ## Repository layout
 
 | Path | What it is |
