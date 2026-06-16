@@ -69,7 +69,15 @@ export default defineConfig({
         },
         {
           label: "API Reference",
-          items: [{ autogenerate: { directory: "api" } }],
+          items: [
+            { autogenerate: { directory: "api" } },
+            {
+              label: "Generated Reference (TypeDoc)",
+              link: "/api/",
+              attrs: { target: "_blank", rel: "noopener noreferrer" },
+              badge: { text: "typedoc", variant: "tip" },
+            },
+          ],
         },
         {
           label: "Migration Guides",

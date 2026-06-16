@@ -2,6 +2,8 @@
 dist/
 # generated types
 .astro/
+# generated TypeDoc API reference (copied from ../widget/dist/api by scripts/copy-api.mjs)
+public/api/
 
 # dependencies
 node_modules/
