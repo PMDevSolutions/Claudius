@@ -76,9 +76,14 @@ jobs:
           gh release upload "${{ steps.release.outputs.tag_name }}" \
             cdn/claudius.iife.js cdn/claudius.css --clobber
 
-      # On merge, publish the widget to npm. Runs against the default checkout
-      # (main at the released commit), which carries the version release-please
-      # just bumped. --provenance signs the package via the id-token permission.
+      # On merge, publish to npm via Trusted Publishing (OIDC) — no long-lived
+      # NPM_TOKEN. Each package has a trusted publisher configured at npmjs.com
+      # matching this repo + this workflow filename (release-please.yml); the
+      # id-token: write permission above lets npm mint a short-lived token.
+      # Trusted Publishing needs npm >= 11.5.1 (newer than Node's bundled npm),
+      # so we upgrade npm first. Provenance is generated automatically. Runs
+      # against the default checkout (main at the released commit), which carries
+      # the version release-please just bumped.
       - name: Setup pnpm (npm publish)
         if: ${{ steps.release.outputs.release_created }}
         uses: pnpm/action-setup@v4
@@ -89,16 +94,18 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: widget/pnpm-lock.yaml
 
+      - name: Upgrade npm for trusted publishing
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm install -g npm@latest
+
       - name: Build and publish widget
         if: ${{ steps.release.outputs.release_created }}
         working-directory: widget
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           pnpm install --frozen-lockfile
           pnpm build
@@ -107,8 +114,6 @@ jobs:
       - name: Build and publish create-claudius
         if: ${{ steps.release.outputs.release_created }}
         working-directory: create-claudius
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           pnpm install --frozen-lockfile
           pnpm build
