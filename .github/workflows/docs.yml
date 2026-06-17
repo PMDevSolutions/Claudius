@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "widget/**"
       - ".github/workflows/docs.yml"
   pull_request:
     branches: [main]
     paths:
       - "docs/**"
+      - "widget/**"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -39,6 +41,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # The hosted API reference is generated from the widget's TSDoc and copied
+      # into docs/public/api by the docs build (scripts/copy-api.mjs). Generate
+      # it here first so it ships with this deploy.
+      - name: Install widget dependencies
+        working-directory: widget
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate API reference (TypeDoc)
+        working-directory: widget
+        run: pnpm docs:api
 
       - name: Build (includes Pagefind index)
         run: pnpm build

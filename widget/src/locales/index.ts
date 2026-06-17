@@ -4,8 +4,10 @@ import { es } from "./es";
 import { fr } from "./fr";
 import { de } from "./de";
 
+/** BCP-47 primary language subtags the widget ships built-in translations for. */
 export type LocaleCode = "en" | "es" | "fr" | "de";
 
+/** Built-in translations keyed by {@link LocaleCode}. */
 export const locales: Record<LocaleCode, ClaudiusTranslations> = {
   en,
   es,
@@ -21,6 +23,12 @@ function normalize(tag: string | undefined | null): LocaleCode | undefined {
     : undefined;
 }
 
+/**
+ * Detect the best {@link LocaleCode} for the current environment: the document
+ * `lang` attribute first, then the browser language, falling back to `"en"`.
+ *
+ * @returns The detected locale code.
+ */
 export function detectLocale(): LocaleCode {
   const fromHtml =
     typeof document !== "undefined"
@@ -37,11 +45,21 @@ export function detectLocale(): LocaleCode {
   return "en";
 }
 
+/** Options for {@link resolveTranslations}. */
 export interface ResolveTranslationsOptions {
+  /** Locale to use. Defaults to the result of {@link detectLocale}. */
   locale?: LocaleCode;
+  /** Per-string overrides layered over the chosen locale's translations. */
   translations?: Partial<ClaudiusTranslations>;
 }
 
+/**
+ * Resolve the final translations for a locale, applying any per-string
+ * overrides on top of the chosen locale's defaults.
+ *
+ * @param options - Locale and override settings.
+ * @returns A complete translations object.
+ */
 export function resolveTranslations(
   options: ResolveTranslationsOptions = {},
 ): ClaudiusTranslations {

@@ -1,9 +1,37 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import dts from "vite-plugin-dts";
 import { resolve } from "path";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Storybook's Vite builder also loads this config, but it builds to its own
+    // output (not dist/), so the declaration bundler would fail looking for
+    // dist/index.d.ts. Emit declarations only for the library build.
+    ...(process.env.STORYBOOK
+      ? []
+      : [
+          dts({
+            // unplugin-dts (vite-plugin-dts v5) calls declaration bundling
+            // `bundleTypes` (the old `rollupTypes` name is ignored). This rolls
+            // the whole public surface into a single dist/index.d.ts via
+            // api-extractor.
+            bundleTypes: true,
+            tsconfigPath: "./tsconfig.json",
+            include: ["src"],
+            exclude: [
+              "src/**/*.test.ts",
+              "src/**/*.test.tsx",
+              "src/**/*.stories.tsx",
+              "src/test-setup.ts",
+              "src/test-utils/**",
+              "src/main.tsx",
+              "src/embed.tsx",
+            ],
+          }),
+        ]),
+  ],
   server: {
     port: 5173,
     strictPort: true,

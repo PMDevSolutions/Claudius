@@ -1,0 +1,43 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "claudius-chat-widget",
+  "entryPoints": ["src/index.ts"],
+  "out": "dist/api",
+  "tsconfig": "tsconfig.json",
+  "readme": "none",
+  "githubPages": false,
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.tsx",
+    "**/__tests__/**",
+    "**/test-utils/**"
+  ],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true
+  },
+  "requiredToBeDocumented": [
+    "Class",
+    "Interface",
+    "Function",
+    "Variable",
+    "TypeAlias",
+    "Property",
+    "Method",
+    "Accessor",
+    "EnumMember",
+    "Constructor"
+  ],
+  "intentionallyNotExported": [
+    "THEME_COLOR_TOKENS",
+    "THEME_RADIUS_TOKENS",
+    "THEME_SHADOW_TOKENS",
+    "THEME_FONT_TOKENS"
+  ],
+  "treatWarningsAsErrors": true
+}

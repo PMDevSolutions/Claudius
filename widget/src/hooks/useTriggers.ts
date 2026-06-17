@@ -1,30 +1,58 @@
 import { useEffect } from "react";
 
+/** A URL match: a case-insensitive substring, or a regular expression. */
 export type UrlPattern = string | RegExp;
 
-export type TriggerAction = "open" | { greeting: string };
+/**
+ * What a {@link Trigger} does when it fires: open the chat, or show a greeting
+ * bubble with the given message.
+ */
+export type TriggerAction =
+  | "open"
+  | {
+      /** Greeting bubble message to display. */
+      greeting: string;
+    };
 
+/**
+ * A proactive engagement rule. Each variant fires at most once per page on a
+ * different signal: elapsed time, scroll depth, exit intent, or URL match.
+ */
 export type Trigger =
   | {
+      /** Fire after a fixed dwell time. */
       on: "time";
+      /** Seconds to wait before firing. */
       seconds: number;
+      /** Only fire when the current URL matches this pattern. */
       matchUrl?: UrlPattern;
+      /** Action to run when the trigger fires. */
       action: TriggerAction;
     }
   | {
+      /** Fire once the user scrolls past a depth threshold. */
       on: "scroll";
+      /** Scroll depth (0-100) that fires the trigger. */
       percent: number;
+      /** Only fire when the current URL matches this pattern. */
       matchUrl?: UrlPattern;
+      /** Action to run when the trigger fires. */
       action: TriggerAction;
     }
   | {
+      /** Fire when the pointer leaves the top of the viewport (exit intent). */
       on: "exit-intent";
+      /** Only fire when the current URL matches this pattern. */
       matchUrl?: UrlPattern;
+      /** Action to run when the trigger fires. */
       action: TriggerAction;
     }
   | {
+      /** Fire immediately when the current URL matches. */
       on: "url";
+      /** URL pattern that must match for the trigger to fire. */
       pattern: UrlPattern;
+      /** Action to run when the trigger fires. */
       action: TriggerAction;
     };
 
