@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1](https://github.com/PMDevSolutions/Claudius/compare/v1.8.0...v1.8.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **widget:** skip declaration bundling under Storybook build ([df0a03e](https://github.com/PMDevSolutions/Claudius/commit/df0a03ef09f5eaa8dd6825a060c0a070f54ea1b3))
+
 ## [1.8.0](https://github.com/PMDevSolutions/Claudius/compare/v1.7.0...v1.8.0) (2026-06-16)
 
 
