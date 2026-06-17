@@ -1,6 +1,6 @@
 {
   "name": "create-claudius",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Scaffold a Claudius AI chat widget project in one command.",
   "keywords": [
     "claudius",
