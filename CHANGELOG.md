@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2](https://github.com/PMDevSolutions/Claudius/compare/v1.8.1...v1.8.2) (2026-06-18)
+
+
+### Bug Fixes
+
+* **ci:** harden npm trusted publishing (OIDC) in release workflows ([494292f](https://github.com/PMDevSolutions/Claudius/commit/494292f0071d9a1efdbf9df8bc623f0bcad65755))
+* **ci:** harden npm trusted publishing (OIDC) in release workflows ([f6ec1ae](https://github.com/PMDevSolutions/Claudius/commit/f6ec1ae2e271ce37df1b0781e51657ce203cdff2))
+
 ## [1.8.1](https://github.com/PMDevSolutions/Claudius/compare/v1.8.0...v1.8.1) (2026-06-17)
 
 

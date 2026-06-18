@@ -1,6 +1,6 @@
 {
   "name": "claudius",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Embeddable AI chat widget for PMDS and client sites. React component + standalone script embed, powered by Cloudflare Workers and Claude.",
   "private": true,
   "type": "module",
