@@ -18,9 +18,9 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           config-file: release-please-config.json
@@ -31,19 +31,19 @@ jobs:
       # the exact bytes jsDelivr serves at gh@<major>/cdn/.
       - name: Checkout release PR branch
         if: ${{ steps.release.outputs.pr }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
 
       - name: Setup pnpm
         if: ${{ steps.release.outputs.pr }}
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
       - name: Setup Node
         if: ${{ steps.release.outputs.pr }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm
@@ -76,32 +76,76 @@ jobs:
           gh release upload "${{ steps.release.outputs.tag_name }}" \
             cdn/claudius.iife.js cdn/claudius.css --clobber
 
-      # On merge, publish to npm via Trusted Publishing (OIDC) — no long-lived
-      # NPM_TOKEN. Each package has a trusted publisher configured at npmjs.com
-      # matching this repo + this workflow filename (release-please.yml); the
-      # id-token: write permission above lets npm mint a short-lived token.
-      # Trusted Publishing needs npm >= 11.5.1 (newer than Node's bundled npm),
-      # so we upgrade npm first. Provenance is generated automatically. Runs
-      # against the default checkout (main at the released commit), which carries
-      # the version release-please just bumped.
+      # ---------------------------------------------------------------------
+      # Publish to npm via npm Trusted Publishing (OIDC). Tokenless: there is no
+      # NPM_TOKEN secret. Each published package (claudius-chat-widget and
+      # create-claudius) has a trusted publisher configured on npmjs.com, bound
+      # to BOTH:
+      #   repo:     PMDevSolutions/Claudius
+      #   workflow: release-please.yml   (the filename of THIS workflow)
+      # The job-level "id-token: write" permission lets npm exchange a GitHub
+      # OIDC token for a short-lived publish token. Provenance is automatic.
+      #
+      # IMPORTANT: the trusted-publisher binding is keyed on this workflow's
+      # FILENAME. Renaming this file, or running "npm publish" from a different
+      # workflow, breaks publishing until each package's trusted publisher is
+      # updated on npmjs.com to match the new filename.
+      #
+      # OIDC requires npm >= 11.5.1, newer than the npm bundled with Node 22, so
+      # the steps below upgrade and verify npm first. Publishing runs against the
+      # default checkout (main at the released commit), which carries the version
+      # release-please just bumped.
+      # ---------------------------------------------------------------------
       - name: Setup pnpm (npm publish)
         if: ${{ steps.release.outputs.release_created }}
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
       - name: Setup Node (npm publish)
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
+          # registry-url makes setup-node write the registry that OIDC mints its
+          # short-lived token against (required for trusted publishing). The
+          # "Sanitize npm config" step below removes the legacy always-auth key
+          # and placeholder _authToken that setup-node also writes.
           registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: widget/pnpm-lock.yaml
 
-      - name: Upgrade npm for trusted publishing
+      # setup-node's generated .npmrc (path exported as NPM_CONFIG_USERCONFIG)
+      # carries a deprecated "always-auth" key (npm >= 11 warns: Unknown user
+      # config "always-auth") and a placeholder _authToken that expands to empty.
+      # Strip both so npm authenticates via OIDC instead of a bogus token; keep
+      # the registry line so OIDC knows which registry to target.
+      - name: Sanitize npm config for OIDC
         if: ${{ steps.release.outputs.release_created }}
-        run: npm install -g npm@latest
+        run: |
+          for f in "${NPM_CONFIG_USERCONFIG:-}" "$HOME/.npmrc"; do
+            [ -n "$f" ] && [ -f "$f" ] || continue
+            sed -i '/^always-auth=/d; /_authToken=/d' "$f"
+            echo "Sanitized $f:"
+            cat "$f"
+          done
+
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1, newer than Node 22's
+      # bundled npm. Pin to npm 11 (not @latest) for reproducible runs, assert
+      # the version, and prepend the freshly installed npm's bin dir to PATH so
+      # the publish steps use it instead of Node's bundled npm.
+      - name: Upgrade and verify npm for trusted publishing
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          npm install -g npm@^11
+          NPM_GLOBAL_BIN="$(npm prefix -g)/bin"
+          echo "$NPM_GLOBAL_BIN" >> "$GITHUB_PATH"
+          NPM_VERSION="$("$NPM_GLOBAL_BIN/npm" --version)"
+          echo "Resolved npm $NPM_VERSION from $NPM_GLOBAL_BIN"
+          if [ "$(printf '%s\n' "11.5.1" "$NPM_VERSION" | sort -V | head -n1)" != "11.5.1" ]; then
+            echo "::error::npm $NPM_VERSION is older than 11.5.1; trusted publishing (OIDC) requires >= 11.5.1" >&2
+            exit 1
+          fi
 
       - name: Build and publish widget
         if: ${{ steps.release.outputs.release_created }}
