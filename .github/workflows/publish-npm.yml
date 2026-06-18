@@ -4,16 +4,21 @@ name: Publish to npm
 # release publish without waiting for the next release. (release-please.yml
 # publishes automatically when it cuts a release.)
 #
-# Auth uses npm Trusted Publishing (OIDC) — there is no NPM_TOKEN secret.
-# Requires id-token: write and npm >= 11.5.1, so we upgrade the runner's
-# bundled npm before publishing. Provenance is generated automatically.
+# Auth uses npm Trusted Publishing (OIDC). Tokenless: there is no NPM_TOKEN
+# secret. The job-level "id-token: write" permission lets npm exchange a GitHub
+# OIDC token for a short-lived publish token. Provenance is automatic. OIDC
+# requires npm >= 11.5.1 (newer than Node 22's bundled npm), so the steps below
+# upgrade and verify npm before publishing.
 #
-# NOTE: npm allows only ONE trusted publisher per package, configured here for
-# release-please.yml. To publish from THIS workflow instead, temporarily
-# repoint the package's trusted publisher (npmjs.com -> package Settings) to
-# publish-npm.yml, dispatch, then switch it back. A brand-new package's FIRST
-# publish cannot use OIDC at all — publish it once with a token (locally), then
-# configure trusted publishing.
+# TRUSTED-PUBLISHER BINDING: npm keys each package's trusted publisher on the
+# repo (PMDevSolutions/Claudius) AND the exact workflow FILENAME that runs
+# "npm publish". npm allows only ONE trusted publisher per package, and both
+# packages are normally bound to release-please.yml. To publish from THIS file
+# instead, temporarily repoint the package's trusted publisher (npmjs.com ->
+# package Settings) to publish-npm.yml, dispatch, then switch it back. Renaming
+# either workflow file breaks publishing until the trusted publisher is updated
+# to match the new filename. A brand-new package's FIRST publish cannot use OIDC
+# at all: publish it once with a token (locally), then configure OIDC.
 on:
   workflow_dispatch:
     inputs:
@@ -51,10 +56,10 @@ jobs:
         with:
           version: 9
 
-      # registry-url is required for OIDC trusted publishing: it points npm at
-      # the registry to mint the short-lived token against. setup-node also
-      # writes a placeholder _authToken, which npm ignores in favour of OIDC as
-      # long as a matching trusted publisher is configured for this package.
+      # registry-url makes setup-node write the registry that OIDC mints its
+      # short-lived token against (required for trusted publishing). setup-node
+      # also writes a deprecated always-auth key and a placeholder _authToken;
+      # the "Sanitize npm config" step below removes both so they can't interfere.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -62,9 +67,35 @@ jobs:
           cache: pnpm
           cache-dependency-path: ${{ inputs.package }}/pnpm-lock.yaml
 
-      # Trusted Publishing (OIDC) needs npm >= 11.5.1; Node 20 ships npm 10.x.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
+      # setup-node's generated .npmrc (path exported as NPM_CONFIG_USERCONFIG)
+      # carries a deprecated "always-auth" key (npm >= 11 warns: Unknown user
+      # config "always-auth") and a placeholder _authToken that expands to empty.
+      # Strip both so npm authenticates via OIDC instead of a bogus token; keep
+      # the registry line so OIDC knows which registry to target.
+      - name: Sanitize npm config for OIDC
+        run: |
+          for f in "${NPM_CONFIG_USERCONFIG:-}" "$HOME/.npmrc"; do
+            [ -n "$f" ] && [ -f "$f" ] || continue
+            sed -i '/^always-auth=/d; /_authToken=/d' "$f"
+            echo "Sanitized $f:"
+            cat "$f"
+          done
+
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1, newer than Node 22's
+      # bundled npm. Pin to npm 11 (not @latest) for reproducible runs, assert
+      # the version, and prepend the freshly installed npm's bin dir to PATH so
+      # the Publish step uses it instead of Node's bundled npm.
+      - name: Upgrade and verify npm for trusted publishing
+        run: |
+          npm install -g npm@^11
+          NPM_GLOBAL_BIN="$(npm prefix -g)/bin"
+          echo "$NPM_GLOBAL_BIN" >> "$GITHUB_PATH"
+          NPM_VERSION="$("$NPM_GLOBAL_BIN/npm" --version)"
+          echo "Resolved npm $NPM_VERSION from $NPM_GLOBAL_BIN"
+          if [ "$(printf '%s\n' "11.5.1" "$NPM_VERSION" | sort -V | head -n1)" != "11.5.1" ]; then
+            echo "::error::npm $NPM_VERSION is older than 11.5.1; trusted publishing (OIDC) requires >= 11.5.1" >&2
+            exit 1
+          fi
 
       - name: Install
         run: pnpm install --frozen-lockfile
