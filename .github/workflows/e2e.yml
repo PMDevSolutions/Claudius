@@ -34,20 +34,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
-        id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-webkit-${{ runner.os }}-${{ hashFiles('widget/pnpm-lock.yaml') }}
+          # Key on the resolved Playwright version: each version pins specific
+          # browser builds (e.g. webkit-2272), so a bump auto-invalidates the cache.
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      # Run unconditionally. `playwright install` is idempotent: it only downloads
+      # browsers missing from the (possibly cached) ms-playwright dir, so a partial
+      # or stale cache self-heals here instead of permanently skipping the binary
+      # install. --with-deps re-applies system libraries, which are not cached.
+      - name: Install Playwright browsers and system dependencies
         run: pnpm exec playwright install --with-deps chromium webkit
-
-      - name: Install Playwright system deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium webkit
 
       - name: Run E2E tests
         run: pnpm e2e
