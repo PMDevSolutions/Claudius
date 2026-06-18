@@ -18,9 +18,9 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           config-file: release-please-config.json
@@ -31,19 +31,19 @@ jobs:
       # the exact bytes jsDelivr serves at gh@<major>/cdn/.
       - name: Checkout release PR branch
         if: ${{ steps.release.outputs.pr }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
 
       - name: Setup pnpm
         if: ${{ steps.release.outputs.pr }}
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
       - name: Setup Node
         if: ${{ steps.release.outputs.pr }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm
@@ -98,13 +98,13 @@ jobs:
       # ---------------------------------------------------------------------
       - name: Setup pnpm (npm publish)
         if: ${{ steps.release.outputs.release_created }}
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
       - name: Setup Node (npm publish)
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           # registry-url makes setup-node write the registry that OIDC mints its

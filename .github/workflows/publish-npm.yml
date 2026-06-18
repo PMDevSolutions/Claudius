@@ -50,9 +50,9 @@ jobs:
       run:
         working-directory: ${{ inputs.package }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9
 
@@ -60,7 +60,7 @@ jobs:
       # short-lived token against (required for trusted publishing). setup-node
       # also writes a deprecated always-auth key and a placeholder _authToken;
       # the "Sanitize npm config" step below removes both so they can't interfere.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
