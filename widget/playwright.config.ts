@@ -28,7 +28,9 @@ export default defineConfig({
       testIgnore: ["**/mobile.spec.ts"],
     },
     {
-      name: "chromium-mobile",
+      // iPhone 13 emulation runs on WebKit (Mobile Safari), not Chromium —
+      // name it accordingly so CI installs the right browser binary.
+      name: "mobile-safari",
       use: { ...devices["iPhone 13"] },
       testMatch: ["**/mobile.spec.ts"],
     },
