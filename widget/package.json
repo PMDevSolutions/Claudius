@@ -1,6 +1,6 @@
 {
   "name": "claudius-chat-widget",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "type": "module",
   "description": "Embeddable AI chat widget powered by Claude. Drop-in React component or standalone script embed, backed by a Cloudflare Worker.",
   "keywords": [
