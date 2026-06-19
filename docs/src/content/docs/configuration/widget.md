@@ -25,6 +25,7 @@ attributes on the `<claudius-chat>` web component.
 | `locale` | `"en" \| "es" \| "fr" \| "de"` | auto-detected | UI language; see [Localization](/configuration/localization/) |
 | `translations` | `Partial<ClaudiusTranslations>` | built-in | Override individual UI strings |
 | `triggers` | `Trigger[]` | `undefined` | Proactive triggers; see [Proactive triggers](/configuration/triggers/) |
+| `plugins` | `ClaudiusPlugin[]` | `undefined` | Message middleware run around each send (`onBeforeSend` / `onAfterReceive` / `onError`); see [Plugins](/plugins/) |
 
 ## Web component attributes
 
@@ -41,8 +42,10 @@ attributes on the `<claudius-chat>` web component.
 ></claudius-chat>
 ```
 
-`locale`, `translations`, and `triggers` are not available as attributes — use
-`window.ClaudiusConfig` or the React component for those.
+`locale`, `translations`, `triggers`, and `plugins` are not available as
+attributes — use `window.ClaudiusConfig` or the React component for those.
+(`plugins` are functions, so set them in JS via `window.ClaudiusConfig` or as a
+React prop.)
 
 ## Checking the deployed version
 

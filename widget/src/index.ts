@@ -28,3 +28,28 @@ export type {
   ChatResponse,
   ChatErrorResponse,
 } from "./api/types";
+
+// Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three
+// reference plugins.
+export type {
+  ClaudiusPlugin,
+  PluginContext,
+  BeforeSendContext,
+  ErrorContext,
+  PluginReply,
+  MaybePromise,
+} from "./plugins";
+export {
+  pluginAnalytics,
+  pluginRedactPII,
+  pluginCannedResponses,
+  redactText,
+  DEFAULT_PII_PATTERNS,
+} from "./plugins";
+export type {
+  AnalyticsPluginOptions,
+  ClaudiusAnalyticsEvent,
+  RedactPiiOptions,
+  CannedRule,
+  CannedResponsesOptions,
+} from "./plugins";

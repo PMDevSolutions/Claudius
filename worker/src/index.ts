@@ -3,6 +3,8 @@ import { cors } from "hono/cors";
 import { handleChat, ChatRequest, ChatTelemetry } from "./chat";
 import { checkRateLimit } from "./rate-limit";
 import { recordEvent } from "./analytics";
+import { chatPlugins } from "./plugins";
+import type { ClaudiusServerPlugin } from "./plugins";
 
 interface Env {
   ANTHROPIC_API_KEY: string;
@@ -22,7 +24,16 @@ export interface ErrorResponse {
   limitType?: "minute" | "hour";
 }
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{
+  Bindings: Env;
+  Variables: { chatRequest?: ChatRequest };
+}>();
+
+// Server-side plugins run around POST /api/chat as Hono middleware — the
+// equivalent of the widget's `plugins` prop. Empty by default (behavior
+// unchanged); add plugins here to enable PII redaction, canned responses,
+// analytics, model routing, etc. See docs: /plugins.
+const serverPlugins: ClaudiusServerPlugin[] = [];
 
 app.use(
   "/api/*",
@@ -31,7 +42,7 @@ app.use(
       // Comma-separated list, e.g. "https://pmds.info,https://docs.example"
       const allowed = (c.env.ALLOWED_ORIGIN || "http://localhost:5173")
         .split(",")
-        .map((o) => o.trim())
+        .map((o: string) => o.trim())
         .filter(Boolean);
       if (origin?.startsWith("http://localhost:")) {
         return origin;
@@ -43,6 +54,10 @@ app.use(
     maxAge: 86400,
   })
 );
+
+if (serverPlugins.length > 0) {
+  app.use("/api/chat", chatPlugins(serverPlugins));
+}
 
 app.post("/api/chat", async (c) => {
   const startedAt = Date.now();
@@ -89,7 +104,9 @@ app.post("/api/chat", async (c) => {
       );
     }
 
-    body = await c.req.json<ChatRequest>();
+    // When the plugin middleware ran, it stashed the transformed request here;
+    // fall back to parsing the body when no plugins are configured.
+    body = c.get("chatRequest") ?? (await c.req.json<ChatRequest>());
 
     const chatConfig = {
       model: c.env.CLAUDE_MODEL,

@@ -3,6 +3,8 @@ import type { ClaudiusTranslations } from "../i18n";
 import type { ChatMessage } from "../api/types";
 import { ChatApiClient } from "../api/client";
 import { ChatApiError, DebounceError } from "../api/errors";
+import type { ClaudiusPlugin } from "../plugins/types";
+import { runBeforeSend, runAfterReceive, runError } from "../plugins/runner";
 
 interface UseChatOptions {
   apiUrl: string;
@@ -10,6 +12,7 @@ interface UseChatOptions {
   storageKeyPrefix?: string;
   timeoutMs?: number;
   translations?: ClaudiusTranslations;
+  plugins?: readonly ClaudiusPlugin[];
 }
 
 interface UseChatReturn {
@@ -63,6 +66,7 @@ export function useChat({
   storageKeyPrefix = DEFAULT_STORAGE_KEY_PREFIX,
   timeoutMs,
   translations,
+  plugins,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
     () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs }),
@@ -81,6 +85,11 @@ export function useChat({
   const idCounterRef = useRef(initialMessages.length);
   const isLoadingRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(initialMessages);
+
+  // Hold the latest plugins in a ref so the send callbacks stay stable while
+  // always seeing the current array.
+  const pluginsRef = useRef<readonly ClaudiusPlugin[]>(plugins ?? []);
+  pluginsRef.current = plugins ?? [];
 
   const saveMessages = useCallback(
     (msgs: ChatMessage[]) => {
@@ -157,18 +166,51 @@ export function useChat({
       try {
         const data = await client.sendMessage(msgsToSend);
 
-        const assistantMessage: ChatMessage = {
+        let assistantMessage: ChatMessage = {
           id: nextId(),
           role: "assistant",
           content: data.reply,
           sources: data.sources,
         };
+        if (pluginsRef.current.length > 0) {
+          assistantMessage = await runAfterReceive(
+            pluginsRef.current,
+            assistantMessage,
+            { messages: msgsToSend, apiUrl },
+          );
+        }
         const withReply = [...msgsToSend, assistantMessage];
         messagesRef.current = withReply;
         setMessages(withReply);
         saveMessages(withReply);
       } catch (err) {
         if (err instanceof DebounceError) return;
+
+        // Give plugins a chance to recover with a fallback reply before we
+        // surface the error UI.
+        if (pluginsRef.current.length > 0) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          const recovery = await runError(pluginsRef.current, error, {
+            messages: msgsToSend,
+            apiUrl,
+          });
+          if (recovery) {
+            const assistantMessage: ChatMessage = {
+              id: nextId(),
+              role: "assistant",
+              content: recovery.content,
+              sources: recovery.sources,
+            };
+            const withReply = [...msgsToSend, assistantMessage];
+            messagesRef.current = withReply;
+            setMessages(withReply);
+            saveMessages(withReply);
+            setError(null);
+            setCanRetry(false);
+            return;
+          }
+        }
+
         if (err instanceof ChatApiError) {
           setError(getErrorMessage(err.code, err.message));
         } else {
@@ -183,7 +225,14 @@ export function useChat({
         isLoadingRef.current = false;
       }
     },
-    [client, getErrorMessage, isRetryableError, saveMessages, translations],
+    [
+      apiUrl,
+      client,
+      getErrorMessage,
+      isRetryableError,
+      saveMessages,
+      translations,
+    ],
   );
 
   const sendMessage = useCallback(
@@ -197,14 +246,50 @@ export function useChat({
         content: trimmed,
       };
 
-      const updatedMessages = [...messagesRef.current, userMessage];
+      let outgoing = userMessage;
+
+      if (pluginsRef.current.length > 0) {
+        const outcome = await runBeforeSend(pluginsRef.current, userMessage, {
+          messages: messagesRef.current,
+          apiUrl,
+        });
+
+        // A plugin cancelled the send: drop the message, render nothing.
+        if (outcome.type === "abort") return;
+
+        // A plugin answered locally: show the user message and the canned
+        // reply, and skip the network entirely.
+        if (outcome.type === "respond") {
+          const assistantMessage: ChatMessage = {
+            id: nextId(),
+            role: "assistant",
+            content: outcome.reply.content,
+            sources: outcome.reply.sources,
+          };
+          const next = [
+            ...messagesRef.current,
+            outcome.message,
+            assistantMessage,
+          ];
+          messagesRef.current = next;
+          setMessages(next);
+          saveMessages(next);
+          setError(null);
+          setCanRetry(false);
+          return;
+        }
+
+        outgoing = outcome.message;
+      }
+
+      const updatedMessages = [...messagesRef.current, outgoing];
       messagesRef.current = updatedMessages;
       setMessages(updatedMessages);
       saveMessages(updatedMessages);
 
       await submit(updatedMessages);
     },
-    [saveMessages, submit],
+    [apiUrl, saveMessages, submit],
   );
 
   const retry = useCallback(async () => {

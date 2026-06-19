@@ -13,6 +13,7 @@ import {
 import { resolveTranslations, type LocaleCode } from "../locales";
 import { useTheme } from "../theme/useTheme";
 import type { ClaudiusThemeInput } from "../theme/types";
+import type { ClaudiusPlugin } from "../plugins/types";
 
 /** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
@@ -66,6 +67,12 @@ export interface ChatWidgetProps {
   translations?: Partial<ClaudiusTranslations>;
   /** Proactive open/greeting rules evaluated against the current page. */
   triggers?: Trigger[];
+  /**
+   * Middleware run around each message: `onBeforeSend`, `onAfterReceive`, and
+   * `onError`. Hooks run in array order and may modify, replace, or
+   * short-circuit messages. See {@link ClaudiusPlugin}.
+   */
+  plugins?: ClaudiusPlugin[];
 }
 
 function readDismissed(): boolean {
@@ -111,6 +118,7 @@ export function ChatWidget({
   locale,
   translations: translationOverrides,
   triggers,
+  plugins,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -129,6 +137,7 @@ export function ChatWidget({
     storageKeyPrefix,
     timeoutMs: requestTimeoutMs,
     translations,
+    plugins,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
