@@ -155,6 +155,19 @@ chunks. The widget renders a "used tool" chip with a details disclosure.
 Reference tools: `get_current_time` (enabled), `search_knowledge_base` and
 `submit_lead` (stubs — wire before registering). Docs: plugins/tools.md.
 
+### RAG
+
+RAG lives in `worker/src/rag/` (Retriever interface, retrieval pipeline,
+VectorizeRetriever reference implementation) and activates only when the
+`VECTORIZE_INDEX` + `AI` bindings exist (see wrangler.toml). Per request the
+worker retrieves for the latest user message (`RAG_TOP_K`,
+`RAG_SCORE_THRESHOLD`, optional reranker hook in `createRagFromEnv`), appends
+a `RAG_CONTEXT_TEMPLATE` context block to the system prompt, and returns
+deduplicated `sources` (JSON body / SSE done event) that the widget already
+renders. Retrieval failures degrade to ungrounded replies. Ingestion:
+`pnpm rag:ingest ./content --index <name>` (chunking helpers in
+`scripts/lib/rag-ingest.ts`). Docs: rag/index.md.
+
 ### Chat Request/Response
 
 ```typescript
