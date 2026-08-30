@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/PMDevSolutions/Claudius/compare/v1.11.0...v1.12.0) (2026-08-30)
+
+
+### Features
+
+* SSE streaming responses with token-by-token rendering ([6ce4a26](https://github.com/PMDevSolutions/Claudius/commit/6ce4a26d9154dec9beb792f6cc96cb7f93c3b99b))
+* **widget:** token-by-token streaming with stop button ([ab0360b](https://github.com/PMDevSolutions/Claudius/commit/ab0360b08994f9b01113c6f25d917dda43aa1648)), closes [#50](https://github.com/PMDevSolutions/Claudius/issues/50)
+* **worker:** SSE streaming endpoint /api/chat/stream ([1e72c7b](https://github.com/PMDevSolutions/Claudius/commit/1e72c7becebce1db2053124abddfe8bab53cc5ee)), closes [#50](https://github.com/PMDevSolutions/Claudius/issues/50)
+
 ## [1.11.0](https://github.com/PMDevSolutions/Claudius/compare/v1.10.0...v1.11.0) (2026-08-30)
 
 
