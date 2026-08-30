@@ -3,6 +3,7 @@
 [![npm](https://img.shields.io/npm/v/claudius-chat-widget.svg)](https://www.npmjs.com/package/claudius-chat-widget)
 [![create-claudius](https://img.shields.io/npm/v/create-claudius.svg?label=create-claudius)](https://www.npmjs.com/package/create-claudius)
 [![Storybook](https://img.shields.io/badge/Storybook-live-ff4785?logo=storybook&logoColor=white)](https://claudius-storybook.pages.dev)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/claudius-chat-widget?label=bundle%20size)](https://bundlephobia.com/package/claudius-chat-widget)
 [![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
