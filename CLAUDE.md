@@ -108,14 +108,24 @@ pnpm test             # Run tests
 Manages chat state:
 - `messages` - Array of chat messages
 - `isLoading` - Loading state during API calls
+- `isStreaming` - True while an assistant reply is streaming in
+- `streamingMessageId` - Id of the message currently receiving tokens
 - `error` - Error message if API call fails
 - `sendMessage(text)` - Send a message to the API
+- `stop()` - Cancel the in-flight stream, keeping the partial reply
 - `clearMessages()` - Clear chat history
+
+Streaming is on by default (`streaming: false` disables it); the client
+falls back to the blocking endpoint automatically when the browser or
+Worker can't stream.
 
 ### API Client
 
 `ChatApiClient` in `widget/src/api/client.ts` handles communication with the Worker:
 - Typed requests/responses (`ChatRequest`, `ChatResponse`)
+- SSE streaming via `streamMessage()` (fetch + `ReadableStream`), with
+  automatic fallback to `sendMessage()` on older browsers or Workers
+  without `/api/chat/stream`
 - Retry on 429 (respects `Retry-After`) and 503 (exponential backoff: 1s, 3s)
 - Max 2 retries (3 total attempts)
 - Debounced sends (configurable, default 300ms)
@@ -126,7 +136,13 @@ Manages chat state:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | POST | Send message, get AI response |
+| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`chunk`/`done`/`error` events) |
 | `/api/health` | GET | Health check |
+
+`/api/chat/stream` shares the rate limiter, validation, and error shapes with
+`/api/chat`: failures before the first streamed byte return the same JSON
+error responses (400/429/500/503); failures mid-stream arrive as an in-band
+`error` SSE event.
 
 ### Chat Request/Response
 
