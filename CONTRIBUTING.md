@@ -164,6 +164,29 @@ Branch names should be lowercase, use hyphens as separators, and be descriptive.
 
 ---
 
+## Bundle-Size Budgets
+
+The widget's build outputs are guarded by [size-limit](https://github.com/ai/size-limit).
+Budgets live in `widget/.size-limit.json`, with entries for the raw, gzip, and
+brotli size of each artifact (`dist/claudius.iife.js`, `dist/claudius.js`, and
+`dist/claudius.css`).
+
+- The **Bundle size** CI job fails any pull request that exceeds a budget, and
+  posts a PR comment with the raw/gzip/brotli sizes and the diff against `main`.
+- Check sizes locally with:
+
+  ```bash
+  cd widget && pnpm build && pnpm size
+  ```
+
+- **Raising a budget is a deliberate act.** If your change legitimately needs
+  more room (e.g., a new feature that justifies its weight), update the limits
+  in `widget/.size-limit.json` in an explicit commit and explain the increase in
+  your PR description. Never bump a budget just to silence the check, and avoid
+  bundling budget changes into unrelated commits.
+
+---
+
 ## Versioning, Releases, and Milestones
 
 Releases are fully automated with [release-please](https://github.com/googleapis/release-please):
