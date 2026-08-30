@@ -155,6 +155,49 @@ describe("POST /api/chat/stream", () => {
     });
   });
 
+  it("emits a tool event when the model calls a registered tool", async () => {
+    // Round 1: the model calls get_current_time (in the default registry).
+    createSpy.mockImplementationOnce(async function* () {
+      yield { type: "message_start", message: { usage: { input_tokens: 3 } } };
+      yield {
+        type: "content_block_start",
+        index: 0,
+        content_block: {
+          type: "tool_use",
+          id: "tu_1",
+          name: "get_current_time",
+        },
+      };
+      yield {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "input_json_delta", partial_json: "{}" },
+      };
+      yield { type: "content_block_stop", index: 0 };
+      yield {
+        type: "message_delta",
+        delta: { stop_reason: "tool_use" },
+        usage: { output_tokens: 2 },
+      };
+      yield { type: "message_stop" };
+    });
+    // Round 2: the model answers with text.
+    createSpy.mockImplementationOnce(() => wellFormedStream());
+
+    const res = await app.fetch(streamRequest(), createEnv(), createMockCtx());
+
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain("event: tool");
+    expect(text).toContain('"name":"get_current_time"');
+    expect(text).toContain('event: done');
+    expect(text).toContain('"toolUses":[{"name":"get_current_time"');
+    // Tool event precedes the second round's chunks.
+    expect(text.indexOf("event: tool")).toBeLessThan(
+      text.indexOf("event: chunk")
+    );
+  });
+
   it("shares the rate-limit budget with /api/chat", async () => {
     const env = createEnv({ RATE_LIMIT_MINUTE: "1" });
 

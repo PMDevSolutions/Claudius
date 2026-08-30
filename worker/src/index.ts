@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { handleChat, streamChat, ChatRequest, ChatTelemetry } from "./chat";
+import { chatTools } from "./tools";
 import { checkRateLimit } from "./rate-limit";
 import { recordEvent } from "./analytics";
 import { chatPlugins } from "./plugins";
@@ -92,11 +93,18 @@ function getRateLimitConfig(env: Env) {
   };
 }
 
-function getChatConfig(env: Env) {
+function getChatConfig(env: Env, body?: ChatRequest) {
   return {
     model: env.CLAUDE_MODEL,
     maxTokens: env.MAX_TOKENS ? parseInt(env.MAX_TOKENS, 10) : undefined,
     systemPrompt: env.SYSTEM_PROMPT,
+    // Tools registered at startup (worker/src/tools/index.ts); the chat
+    // layer runs the tool_use / tool_result round trip transparently.
+    tools: chatTools,
+    toolContext: {
+      env: env as unknown as Record<string, unknown>,
+      conversationId: body?.conversationId,
+    },
   };
 }
 
@@ -167,7 +175,7 @@ app.post("/api/chat", async (c) => {
     const result = await handleChat(
       body,
       c.env.ANTHROPIC_API_KEY,
-      getChatConfig(c.env)
+      getChatConfig(c.env, body)
     );
     telemetry = result.telemetry;
     return c.json(result.response);
@@ -272,7 +280,7 @@ app.post("/api/chat/stream", async (c) => {
     const stream = streamChat(
       body,
       c.env.ANTHROPIC_API_KEY,
-      getChatConfig(c.env)
+      getChatConfig(c.env, body)
     );
 
     // Pull the first event before opening the SSE response: validation and
@@ -290,11 +298,19 @@ app.post("/api/chat/stream", async (c) => {
               event: "chunk",
               data: JSON.stringify({ text: event.text }),
             });
+          } else if (event.type === "tool") {
+            await sse.writeSSE({
+              event: "tool",
+              data: JSON.stringify(event.toolUse),
+            });
           } else {
             telemetry = event.telemetry;
             await sse.writeSSE({
               event: "done",
-              data: JSON.stringify({ reply: event.reply }),
+              data: JSON.stringify({
+                reply: event.reply,
+                ...(event.toolUses ? { toolUses: event.toolUses } : {}),
+              }),
             });
           }
           result = await stream.next();

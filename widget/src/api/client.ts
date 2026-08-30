@@ -4,6 +4,7 @@ import type {
   ChatErrorResponse,
   ChatStreamOptions,
   ChatStreamResult,
+  ToolUse,
 } from "./types";
 import { ChatApiError, DebounceError } from "./errors";
 
@@ -275,6 +276,7 @@ export class ChatApiClient {
     const decoder = new TextDecoder();
     let buffer = "";
     let fullText = "";
+    const toolUses: ToolUse[] = [];
     let done: ChatStreamResult | undefined;
 
     const abort = () => {
@@ -312,13 +314,23 @@ export class ChatApiClient {
               fullText += text;
               options.onChunk?.(text, fullText);
             }
+          } else if (parsed.event === "tool") {
+            if (typeof parsed.data.name === "string") {
+              const toolUse = parsed.data as unknown as ToolUse;
+              toolUses.push(toolUse);
+              options.onToolUse?.(toolUse, toolUses);
+            }
           } else if (parsed.event === "done") {
+            const doneToolUses = Array.isArray(parsed.data.toolUses)
+              ? (parsed.data.toolUses as ToolUse[])
+              : toolUses;
             done = {
               reply:
                 typeof parsed.data.reply === "string"
                   ? parsed.data.reply
                   : fullText,
               sources: parsed.data.sources as ChatStreamResult["sources"],
+              ...(doneToolUses.length > 0 ? { toolUses: doneToolUses } : {}),
             };
           } else if (parsed.event === "error") {
             throw new ChatApiError(
@@ -337,7 +349,11 @@ export class ChatApiClient {
     }
 
     if (options.signal?.aborted) {
-      return { reply: fullText, aborted: true };
+      return {
+        reply: fullText,
+        aborted: true,
+        ...(toolUses.length > 0 ? { toolUses } : {}),
+      };
     }
 
     if (done) return done;

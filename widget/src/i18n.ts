@@ -25,6 +25,10 @@ export interface ClaudiusTranslations {
   sendMessage: string;
   /** Accessible label for the stop button shown while a reply streams in. */
   stopGenerating: string;
+  /** Label prefix for the "used tool" chip on assistant messages. */
+  toolUsed: string;
+  /** Accessible label for the tool-details disclosure toggle. */
+  toolDetails: string;
   /** Accessible label for the message input field. */
   typeYourMessage: string;
   /** Accessible label for the button that opens the chat. */

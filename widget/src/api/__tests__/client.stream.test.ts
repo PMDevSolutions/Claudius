@@ -136,6 +136,68 @@ describe("ChatApiClient.streamMessage", () => {
     expect(controller).toBeDefined();
   });
 
+  it("delivers tool events via onToolUse and attaches toolUses to the result", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([
+        'event: tool\ndata: {"name":"get_current_time","input":{},"result":"{\\"iso\\":\\"2026-01-01T00:00:00Z\\"}"}\n\n',
+        'event: chunk\ndata: {"text":"It is midnight."}\n\n',
+        'event: done\ndata: {"reply":"It is midnight.","toolUses":[{"name":"get_current_time","input":{},"result":"{\\"iso\\":\\"2026-01-01T00:00:00Z\\"}"}]}\n\n',
+      ]),
+    );
+
+    const seen: string[] = [];
+    const result = await newClient().streamMessage(mockMessages, {
+      onToolUse: (toolUse, all) => {
+        seen.push(toolUse.name);
+        expect(all).toHaveLength(1);
+      },
+    });
+
+    expect(seen).toEqual(["get_current_time"]);
+    expect(result.reply).toBe("It is midnight.");
+    expect(result.toolUses).toEqual([
+      {
+        name: "get_current_time",
+        input: {},
+        result: '{"iso":"2026-01-01T00:00:00Z"}',
+      },
+    ]);
+  });
+
+  it("keeps accumulated toolUses when the caller aborts mid-stream", async () => {
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c;
+        c.enqueue(
+          encoder.encode(
+            'event: tool\ndata: {"name":"get_time","input":{}}\n\n' +
+              'event: chunk\ndata: {"text":"Partial"}\n\n',
+          ),
+        );
+      },
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "text/event-stream" }),
+      body,
+    });
+
+    const abort = new AbortController();
+    const result = await newClient().streamMessage(mockMessages, {
+      signal: abort.signal,
+      onChunk: () => abort.abort(),
+    });
+
+    expect(result).toEqual({
+      reply: "Partial",
+      aborted: true,
+      toolUses: [{ name: "get_time", input: {} }],
+    });
+    expect(controller).toBeDefined();
+  });
+
   it("throws a STREAM_ERROR ChatApiError on an in-band error event", async () => {
     mockFetch.mockResolvedValueOnce(
       sseResponse([

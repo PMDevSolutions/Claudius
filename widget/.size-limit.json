@@ -20,18 +20,18 @@
     "name": "claudius.js (raw)",
     "path": "dist/claudius.js",
     "brotli": false,
-    "limit": "64103 B"
+    "limit": "68849 B"
   },
   {
     "name": "claudius.js (gzip)",
     "path": "dist/claudius.js",
     "gzip": true,
-    "limit": "17714 B"
+    "limit": "18774 B"
   },
   {
     "name": "claudius.js (brotli)",
     "path": "dist/claudius.js",
-    "limit": "15446 B"
+    "limit": "16349 B"
   },
   {
     "name": "claudius.css (raw)",
