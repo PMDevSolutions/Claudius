@@ -29,6 +29,8 @@ export interface ChatResult {
 export interface ChatConfig {
   model?: string;
   maxTokens?: number;
+  /** Overrides the compiled-in system prompt (e.g. via the SYSTEM_PROMPT var). */
+  systemPrompt?: string;
 }
 
 const MAX_MESSAGES = 100;
@@ -67,7 +69,7 @@ export async function handleChat(
   const response = await client.messages.create({
     model,
     max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
-    system: SYSTEM_PROMPT,
+    system: config.systemPrompt ?? SYSTEM_PROMPT,
     messages: sanitizedMessages,
   });
 

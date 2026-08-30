@@ -8,6 +8,8 @@ ALLOWED_ORIGIN = "http://localhost:5173"
 # CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 # Optional: Configure max response tokens (default: 1024)
 # MAX_TOKENS = "1024"
+# Optional: Override the compiled-in system prompt (worker/src/system-prompt.ts)
+# SYSTEM_PROMPT = "You are ..."
 # Optional: Configure rate limits (defaults: 10/min, 50/hr)
 # RATE_LIMIT_MINUTE = "10"
 # RATE_LIMIT_HOUR = "50"
