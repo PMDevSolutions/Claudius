@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
@@ -29,6 +30,8 @@
   "author": "PAMulligan",
   "license": "MIT",
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
     "standard-version": "^9.5.0",
     "tsx": "^4.19.0",
     "vitest": "^4.1.0"
