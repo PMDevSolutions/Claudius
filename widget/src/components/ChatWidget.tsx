@@ -73,6 +73,14 @@ export interface ChatWidgetProps {
    * short-circuit messages. See {@link ClaudiusPlugin}.
    */
   plugins?: ClaudiusPlugin[];
+  /**
+   * Stream assistant replies token-by-token from the Worker's SSE endpoint,
+   * with automatic fallback to the non-streaming API on older browsers or
+   * Workers without `/api/chat/stream`. Set to `false` to always use the
+   * blocking request/response flow.
+   * @defaultValue `true`
+   */
+  streaming?: boolean;
 }
 
 function readDismissed(): boolean {
@@ -119,6 +127,7 @@ export function ChatWidget({
   translations: translationOverrides,
   triggers,
   plugins,
+  streaming = true,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [greeting, setGreeting] = useState<string | null>(null);
@@ -131,13 +140,24 @@ export function ChatWidget({
     [locale, translationOverrides],
   );
 
-  const { messages, isLoading, error, canRetry, sendMessage, retry } = useChat({
+  const {
+    messages,
+    isLoading,
+    isStreaming,
+    streamingMessageId,
+    error,
+    canRetry,
+    sendMessage,
+    stop,
+    retry,
+  } = useChat({
     apiUrl,
     persistMessages,
     storageKeyPrefix,
     timeoutMs: requestTimeoutMs,
     translations,
     plugins,
+    streaming,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
@@ -244,9 +264,12 @@ export function ChatWidget({
           <ChatWindow
             messages={messages}
             isLoading={isLoading}
+            isStreaming={isStreaming}
+            streamingMessageId={streamingMessageId}
             error={error}
             canRetry={canRetry}
             onSend={sendMessage}
+            onStop={stop}
             onRetry={retry}
             onClose={handleClose}
             title={title ?? translations.title}

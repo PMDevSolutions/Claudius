@@ -12,6 +12,7 @@ export const en: ClaudiusTranslations = {
   // ChatInput
   placeholder: "Type your message...",
   sendMessage: "Send message",
+  stopGenerating: "Stop generating",
   typeYourMessage: "Type your message",
 
   // ChatToggleButton

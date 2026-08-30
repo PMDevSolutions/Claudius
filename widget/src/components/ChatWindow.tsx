@@ -15,9 +15,15 @@ import type { ChatMessage as ChatMessageData, Source } from "../api/types";
 interface ChatWindowProps {
   messages: ChatMessageData[];
   isLoading: boolean;
+  /** True while an assistant reply is streaming in. */
+  isStreaming?: boolean;
+  /** Id of the message currently receiving streamed tokens, when any. */
+  streamingMessageId?: string | null;
   error: string | null;
   canRetry?: boolean;
   onSend: (message: string) => void;
+  /** Cancels the in-flight stream (renders the stop button when provided). */
+  onStop?: () => void;
   onRetry?: () => void;
   onClose: () => void;
   title?: string;
@@ -39,9 +45,12 @@ const windowPositionClasses: Record<WidgetPosition, string> = {
 export function ChatWindow({
   messages,
   isLoading,
+  isStreaming = false,
+  streamingMessageId = null,
   error,
   canRetry = false,
   onSend,
+  onStop,
   onRetry,
   onClose,
   title = "Chat",
@@ -158,6 +167,7 @@ export function ChatWindow({
               key={msg.id}
               role={msg.role}
               content={msg.content}
+              isStreaming={msg.id === streamingMessageId}
               sources={msg.sources}
               isSourceActive={activeSources?.messageId === msg.id}
               onSourceClick={() => {
@@ -170,11 +180,17 @@ export function ChatWindow({
             />
           ))}
 
-          {isLoading && (
-            <TypingIndicator
-              label={translations?.typingIndicator ?? "Assistant is typing"}
-            />
-          )}
+          {isLoading &&
+            /* Once streamed tokens are rendering in a bubble, the typing
+               indicator is redundant — show it only until the first token. */
+            !(
+              streamingMessageId !== null &&
+              messages.some((m) => m.id === streamingMessageId)
+            ) && (
+              <TypingIndicator
+                label={translations?.typingIndicator ?? "Assistant is typing"}
+              />
+            )}
 
           {error && (
             <ErrorBanner
@@ -197,7 +213,9 @@ export function ChatWindow({
         aria-atomic="true"
         className="sr-only"
       >
-        {lastAssistantMessage
+        {/* Announce only settled messages: reading a reply that's still
+            streaming would re-announce the whole text on every token. */}
+        {lastAssistantMessage && lastAssistantMessage.id !== streamingMessageId
           ? stripAnnouncementFormatting(lastAssistantMessage.content)
           : ""}
       </div>
@@ -206,6 +224,8 @@ export function ChatWindow({
       <ChatInput
         onSend={onSend}
         isLoading={isLoading}
+        isStreaming={isStreaming}
+        onStop={onStop}
         placeholder={placeholder}
         translations={translations}
       />

@@ -60,4 +60,48 @@ describe("ChatInput", () => {
     await user.click(screen.getByRole("button", { name: /send/i }));
     expect(onSend).not.toHaveBeenCalled();
   });
+
+  it("swaps send for an enabled stop button while streaming", async () => {
+    const user = userEvent.setup();
+    const onStop = vi.fn();
+    render(
+      <ChatInput
+        onSend={vi.fn()}
+        isLoading={true}
+        isStreaming={true}
+        onStop={onStop}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /send/i })).toBeNull();
+    const stop = screen.getByRole("button", { name: /stop generating/i });
+    expect(stop).toBeEnabled();
+
+    await user.click(stop);
+    expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the send button again when streaming ends", () => {
+    const { rerender } = render(
+      <ChatInput
+        onSend={vi.fn()}
+        isLoading={true}
+        isStreaming={true}
+        onStop={vi.fn()}
+      />,
+    );
+    rerender(
+      <ChatInput
+        onSend={vi.fn()}
+        isLoading={false}
+        isStreaming={false}
+        onStop={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /send/i })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: /stop generating/i }),
+    ).toBeNull();
+  });
 });

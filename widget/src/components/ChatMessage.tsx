@@ -2,10 +2,17 @@ import { memo, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
 import type { Source } from "../api/types";
 import { sanitizeUrl } from "../utils/sanitize";
+import { stabilizeStreamingMarkdown } from "../utils/stabilizeStreamingMarkdown";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
+  /**
+   * True while this message is still receiving streamed tokens. Partial
+   * markdown is stabilized so unclosed `**`/`*` markers don't flash as
+   * literal asterisks mid-stream.
+   */
+  isStreaming?: boolean;
   sources?: Source[];
   onSourceClick?: () => void;
   isSourceActive?: boolean;
@@ -98,11 +105,15 @@ function renderFormattedContent(content: string): ReactNode[] {
 export const ChatMessage = memo(function ChatMessage({
   role,
   content,
+  isStreaming = false,
   sources,
   onSourceClick,
   isSourceActive,
 }: ChatMessageProps) {
   const isUser = role === "user";
+  const displayContent = isStreaming
+    ? stabilizeStreamingMarkdown(content)
+    : content;
 
   return (
     <div className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%]`}>
@@ -113,7 +124,7 @@ export const ChatMessage = memo(function ChatMessage({
             : "bg-claudius-assistant-bubble text-claudius-assistant-bubble-text rounded-bl-claudius-tail"
         }`}
       >
-        {renderFormattedContent(content)}
+        {renderFormattedContent(displayContent)}
       </div>
       {!isUser && sources && sources.length > 0 && onSourceClick && (
         <div className="mt-1">

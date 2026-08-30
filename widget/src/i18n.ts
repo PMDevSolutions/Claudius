@@ -23,6 +23,8 @@ export interface ClaudiusTranslations {
   placeholder: string;
   /** Accessible label for the send button. */
   sendMessage: string;
+  /** Accessible label for the stop button shown while a reply streams in. */
+  stopGenerating: string;
   /** Accessible label for the message input field. */
   typeYourMessage: string;
   /** Accessible label for the button that opens the chat. */
