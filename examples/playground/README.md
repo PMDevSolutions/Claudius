@@ -14,9 +14,9 @@ Live at [claudius-playground.pages.dev](https://claudius-playground.pages.dev).
   embed) and reads its `window.ClaudiusConfig` from a base64url-encoded JSON
   URL hash. Editing a control re-encodes the config and remounts the iframe
   (debounced).
-- The preview talks to the live demo worker the docs site uses. Chat requests
-  succeed once that worker's `ALLOWED_ORIGIN` list includes this site's
-  origin.
+- The preview talks to the dedicated public demo worker
+  (`worker/wrangler.demo.toml`), which allows this site's origin and answers
+  with a demo persona under tight rate limits.
 - The snippet panel renders the same config against a placeholder worker URL,
   formatted like the `pnpm claudius snippet` CLI output.
 

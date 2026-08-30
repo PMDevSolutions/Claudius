@@ -14,6 +14,7 @@ interface Env {
   // Optional configuration
   CLAUDE_MODEL?: string;
   MAX_TOKENS?: string;
+  SYSTEM_PROMPT?: string;
   RATE_LIMIT_MINUTE?: string;
   RATE_LIMIT_HOUR?: string;
 }
@@ -111,6 +112,7 @@ app.post("/api/chat", async (c) => {
     const chatConfig = {
       model: c.env.CLAUDE_MODEL,
       maxTokens: c.env.MAX_TOKENS ? parseInt(c.env.MAX_TOKENS, 10) : undefined,
+      systemPrompt: c.env.SYSTEM_PROMPT,
     };
 
     const result = await handleChat(body, c.env.ANTHROPIC_API_KEY, chatConfig);

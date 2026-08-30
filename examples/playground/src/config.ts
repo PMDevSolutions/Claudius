@@ -4,8 +4,8 @@
  * (ChatWidgetProps / ClaudiusConfig in widget/src/embed.tsx).
  */
 
-/** Demo worker the live preview talks to (same one the docs site uses). */
-export const DEMO_API_URL = "https://pmds-chat-worker.paul-130.workers.dev";
+/** Dedicated public demo worker (worker/wrangler.demo.toml) the preview talks to. */
+export const DEMO_API_URL = "https://claudius-demo-worker.paul-130.workers.dev";
 
 /** Auto-updating v1 CDN channel, matching the README embed instructions. */
 export const CDN_JS_URL =
