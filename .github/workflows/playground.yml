@@ -1,0 +1,87 @@
+name: Playground
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/playground/**"
+      - ".github/workflows/playground.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "examples/playground/**"
+      - ".github/workflows/playground.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Playground
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/playground
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: examples/playground/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Test (Vitest)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playground-dist
+          path: examples/playground/dist
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    # Deploys need the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repo
+    # secrets, and a one-time `wrangler pages project create claudius-playground`.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # wrangler-action installs wrangler with the package manager it detects
+      # from the lockfile, so pnpm must be on PATH in this job too.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: playground-dist
+          path: examples/playground/dist
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: examples/playground
+          command: pages deploy dist --project-name=claudius-playground

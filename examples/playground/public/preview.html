@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claudius preview</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.css"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #1e293b;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 3.5rem 1.5rem 5rem;
+      }
+      h1 {
+        font-size: 1.7rem;
+        margin: 0 0 0.5rem;
+      }
+      .tagline {
+        color: #64748b;
+        margin: 0 0 2rem;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+      }
+      .card h2 {
+        font-size: 1rem;
+        margin: 0 0 0.35rem;
+      }
+      .card p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-top: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Acme Example Co.</h1>
+      <p class="tagline">
+        A stand-in landing page — the Claudius widget docks to a corner of this
+        frame.
+      </p>
+      <div class="card">
+        <h2>This is your site</h2>
+        <p>
+          Everything you configure in the playground re-renders the widget here
+          exactly as visitors would see it. Click the chat bubble and say hello
+          — replies come from a live Claude-backed worker.
+        </p>
+      </div>
+      <div class="card">
+        <h2>Scroll and exit triggers work too</h2>
+        <p>
+          Enable a proactive trigger in the panel: scroll this frame, wait out
+          the timer, or move the pointer out through the top edge to see it
+          fire. Dismissing a greeting suppresses triggers for the session.
+        </p>
+      </div>
+      <div class="card">
+        <h2>Filler section</h2>
+        <p>
+          This page is intentionally taller than the frame so scroll-depth
+          triggers have somewhere to go.
+        </p>
+      </div>
+      <div class="card">
+        <h2>More filler</h2>
+        <p>Keep scrolling — a 50% depth trigger fires around here.</p>
+      </div>
+      <div class="card">
+        <h2>Nearly there</h2>
+        <p>The end of the page. A 90% trigger fires about now.</p>
+      </div>
+      <p class="hint">Claudius playground preview frame</p>
+    </main>
+
+    <script>
+      // Decode the widget config from the URL hash (#cfg=<base64url JSON>).
+      // src/lib/encode.ts is the mirror-image encoder; keep them in sync.
+      (function () {
+        var fallback = {
+          apiUrl: "https://pmds-chat-worker.paul-130.workers.dev",
+          storageKeyPrefix: "claudius-playground",
+        };
+        try {
+          var match = location.hash.match(/cfg=([^&]+)/);
+          if (match) {
+            var b64 = decodeURIComponent(match[1])
+              .replace(/-/g, "+")
+              .replace(/_/g, "/");
+            var binary = atob(b64);
+            var bytes = new Uint8Array(binary.length);
+            for (var i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            var json = new TextDecoder().decode(bytes);
+            window.ClaudiusConfig = JSON.parse(json);
+          }
+        } catch (e) {
+          // Fall through to the fallback config below.
+        }
+        if (!window.ClaudiusConfig || !window.ClaudiusConfig.apiUrl) {
+          window.ClaudiusConfig = fallback;
+        }
+      })();
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/gh/PMDevSolutions/Claudius@1/cdn/claudius.iife.js"
+      defer
+    ></script>
+  </body>
+</html>
