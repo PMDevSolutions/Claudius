@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/PMDevSolutions/Claudius/compare/v1.10.0...v1.11.0) (2026-08-30)
+
+
+### Features
+
+* **worker:** SYSTEM_PROMPT override + dedicated demo worker for playground/docs ([492140e](https://github.com/PMDevSolutions/Claudius/commit/492140e8b1c252dd70713dc362c50ce25df137cd))
+
 ## [1.10.0](https://github.com/PMDevSolutions/Claudius/compare/v1.9.0...v1.10.0) (2026-08-30)
 
 
