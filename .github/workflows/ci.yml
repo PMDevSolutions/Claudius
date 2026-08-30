@@ -69,7 +69,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # size-limit v13 needs Node >= 22 (uses node:fs/promises glob)
+          node-version: 22
           cache: pnpm
           cache-dependency-path: widget/pnpm-lock.yaml
 
