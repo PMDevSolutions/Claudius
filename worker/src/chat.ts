@@ -33,16 +33,22 @@ export interface ChatConfig {
   systemPrompt?: string;
 }
 
+/**
+ * A single event produced while streaming a chat completion. `text` events
+ * carry one incremental text delta; the final `done` event carries the full
+ * assembled reply plus telemetry.
+ */
+export type ChatStreamEvent =
+  | { type: "text"; text: string }
+  | { type: "done"; reply: string; telemetry: ChatTelemetry };
+
 const MAX_MESSAGES = 100;
 const MAX_MESSAGE_LENGTH = 2000;
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 const DEFAULT_MAX_TOKENS = 1024;
 
-export async function handleChat(
-  request: ChatRequest,
-  apiKey: string,
-  config: ChatConfig = {}
-): Promise<ChatResult> {
+/** Validates the request shape and returns role-checked, length-capped messages. */
+function validateMessages(request: ChatRequest): ChatMessage[] {
   if (!request.messages || request.messages.length === 0) {
     throw new Error("Messages array is required");
   }
@@ -51,9 +57,8 @@ export async function handleChat(
     throw new Error("Too many messages");
   }
 
-  // Validate roles and sanitize content
   const validRoles = new Set(["user", "assistant"]);
-  const sanitizedMessages = request.messages.map((msg) => {
+  return request.messages.map((msg) => {
     if (!validRoles.has(msg.role)) {
       throw new Error("Invalid message role");
     }
@@ -62,6 +67,14 @@ export async function handleChat(
       content: msg.content.slice(0, MAX_MESSAGE_LENGTH).trim(),
     };
   });
+}
+
+export async function handleChat(
+  request: ChatRequest,
+  apiKey: string,
+  config: ChatConfig = {}
+): Promise<ChatResult> {
+  const sanitizedMessages = validateMessages(request);
 
   const client = new Anthropic({ apiKey });
   const model = config.model ?? DEFAULT_MODEL;
@@ -85,5 +98,57 @@ export async function handleChat(
       inputTokens: response.usage?.input_tokens ?? 0,
       outputTokens: response.usage?.output_tokens ?? 0,
     },
+  };
+}
+
+/**
+ * Streaming variant of {@link handleChat}. Validates the request up front
+ * (throwing the same errors, before any bytes are streamed), then yields one
+ * `text` event per text delta from the model and a final `done` event with
+ * the assembled reply and telemetry.
+ */
+export async function* streamChat(
+  request: ChatRequest,
+  apiKey: string,
+  config: ChatConfig = {}
+): AsyncGenerator<ChatStreamEvent> {
+  const sanitizedMessages = validateMessages(request);
+
+  const client = new Anthropic({ apiKey });
+  const model = config.model ?? DEFAULT_MODEL;
+
+  const stream = await client.messages.create({
+    model,
+    max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
+    system: config.systemPrompt ?? SYSTEM_PROMPT,
+    messages: sanitizedMessages,
+    stream: true,
+  });
+
+  let reply = "";
+  let inputTokens = 0;
+  let outputTokens = 0;
+
+  for await (const event of stream) {
+    switch (event.type) {
+      case "message_start":
+        inputTokens = event.message.usage?.input_tokens ?? 0;
+        break;
+      case "content_block_delta":
+        if (event.delta.type === "text_delta" && event.delta.text) {
+          reply += event.delta.text;
+          yield { type: "text", text: event.delta.text };
+        }
+        break;
+      case "message_delta":
+        outputTokens = event.usage?.output_tokens ?? outputTokens;
+        break;
+    }
+  }
+
+  yield {
+    type: "done",
+    reply,
+    telemetry: { model, inputTokens, outputTokens },
   };
 }
