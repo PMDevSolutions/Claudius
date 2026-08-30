@@ -79,11 +79,15 @@ jobs:
       # diff against the base.
       - name: Size limit (PR comment + gate)
         if: github.event_name == 'pull_request'
-        uses: andresz1/size-limit-action@v1
+        uses: andresz1/size-limit-action@v1.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           package_manager: pnpm
           directory: widget
+          # The action defaults to `npx size-limit --json`, which installs a
+          # standalone size-limit that can't see the widget's local
+          # @size-limit/file plugin. Run the locally installed binary instead.
+          script: pnpm exec size-limit --json
 
       # On pushes to main there is no PR to comment on; just enforce budgets.
       - name: Install dependencies
