@@ -22,9 +22,11 @@ Whether you are fixing a bug, adding a feature, improving documentation, or sugg
    corepack prepare pnpm@latest --activate
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies.** The root install sets up the git pre-commit
+   hooks (see [Pre-commit Hooks](#pre-commit-hooks)), so do not skip it:
 
    ```bash
+   pnpm install
    cd widget && pnpm install
    cd ../worker && pnpm install
    ```
@@ -111,6 +113,32 @@ Translate these for tone and register, not word-for-word. A literal translation 
 - **`error*` strings** — error tone varies by culture between apologetic and matter-of-fact. Keep them reassuring and actionable rather than blunt, and match the formality you chose for the greetings.
 
 If you are unsure about register, note it in your pull request so a native speaker can weigh in during review.
+
+---
+
+## Pre-commit Hooks
+
+The repo uses [Husky](https://typicode.github.io/husky/) and
+[lint-staged](https://github.com/lint-staged/lint-staged) to catch lint and
+formatting problems before they reach CI. Running `pnpm install` at the repo
+root activates the hooks (via the root `prepare` script).
+
+On every `git commit`, staged files under `widget/src/` are run through
+`eslint --fix` and `prettier --write` (CSS files get Prettier only). Safe
+auto-fixes are applied and re-staged automatically; unfixable errors abort
+the commit so you can resolve them. Commits that touch no widget source are
+unaffected. This mirrors what the `pnpm lint` and `pnpm format:check` CI
+steps enforce, so a commit that passes the hook should also pass those checks.
+
+To skip the hook in an emergency (for example, an intentional work-in-progress
+commit on a private branch), use `git commit --no-verify`. CI still enforces
+lint and formatting on every push and pull request.
+
+**Windows note:** line endings are normalized to LF via `.gitattributes`
+(`* text=auto eol=lf`), which overrides `core.autocrlf`, so Prettier's
+`endOfLine: "lf"` and git agree inside the hook. If you cloned before this
+rule existed and see spurious formatting diffs, refresh your working tree
+with `git add --renormalize .` or a fresh checkout.
 
 ---
 
