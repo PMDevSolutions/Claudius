@@ -38,10 +38,12 @@ describe("ChatWidget", () => {
 
   it("preserves messages when toggling open/close", async () => {
     const user = userEvent.setup();
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ reply: "Hello!" }),
-    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ reply: "Hello!" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
     render(<ChatWidget apiUrl="https://test.workers.dev" />);
 

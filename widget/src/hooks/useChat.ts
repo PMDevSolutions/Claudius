@@ -13,14 +13,26 @@ interface UseChatOptions {
   timeoutMs?: number;
   translations?: ClaudiusTranslations;
   plugins?: readonly ClaudiusPlugin[];
+  /**
+   * Stream replies token-by-token via the Worker's SSE endpoint, falling
+   * back to the non-streaming API when unsupported.
+   * @defaultValue `true`
+   */
+  streaming?: boolean;
 }
 
 interface UseChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
+  /** True while an assistant reply is actively streaming in. */
+  isStreaming: boolean;
+  /** Id of the assistant message currently receiving streamed tokens. */
+  streamingMessageId: string | null;
   error: string | null;
   canRetry: boolean;
   sendMessage: (content: string) => Promise<void>;
+  /** Cancels the in-flight stream, keeping any partial reply. */
+  stop: () => void;
   retry: () => Promise<void>;
   clearMessages: () => void;
 }
@@ -67,6 +79,7 @@ export function useChat({
   timeoutMs,
   translations,
   plugins,
+  streaming = true,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
     () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs }),
@@ -79,12 +92,17 @@ export function useChat({
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
 
   const idCounterRef = useRef(initialMessages.length);
   const isLoadingRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(initialMessages);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Hold the latest plugins in a ref so the send callbacks stay stable while
   // always seeing the current array.
@@ -163,28 +181,102 @@ export function useChat({
       setError(null);
       setCanRetry(false);
 
+      // Custom or test clients may predate streamMessage; treat them as
+      // non-streaming rather than failing.
+      const canStream = streaming && typeof client.streamMessage === "function";
+
+      // Set once the first token arrives; the placeholder assistant message
+      // is created lazily so the typing indicator shows until then.
+      let placeholderId: string | null = null;
+
+      const renderPartial = (fullText: string) => {
+        if (placeholderId === null) {
+          placeholderId = nextId();
+          setStreamingMessageId(placeholderId);
+          const next: ChatMessage[] = [
+            ...messagesRef.current,
+            { id: placeholderId, role: "assistant", content: fullText },
+          ];
+          messagesRef.current = next;
+          setMessages(next);
+        } else {
+          const id = placeholderId;
+          const next = messagesRef.current.map((m) =>
+            m.id === id ? { ...m, content: fullText } : m,
+          );
+          messagesRef.current = next;
+          setMessages(next);
+        }
+      };
+
       try {
-        const data = await client.sendMessage(msgsToSend);
+        let reply: string;
+        let sources: ChatMessage["sources"];
+        let aborted = false;
+
+        if (canStream) {
+          const controller = new AbortController();
+          abortControllerRef.current = controller;
+          setIsStreaming(true);
+          const result = await client.streamMessage(msgsToSend, {
+            signal: controller.signal,
+            onChunk: (_text, fullText) => renderPartial(fullText),
+          });
+          reply = result.reply;
+          sources = result.sources;
+          aborted = result.aborted ?? false;
+        } else {
+          const result = await client.sendMessage(msgsToSend);
+          reply = result.reply;
+          sources = result.sources;
+        }
+
+        // Cancelled before any content arrived: drop the send silently.
+        if (aborted && !reply) return;
 
         let assistantMessage: ChatMessage = {
-          id: nextId(),
+          id: placeholderId ?? nextId(),
           role: "assistant",
-          content: data.reply,
-          sources: data.sources,
+          content: reply,
+          sources,
         };
-        if (pluginsRef.current.length > 0) {
+        // A cancelled reply is intentionally partial; don't hand it to
+        // afterReceive plugins as if it were a complete answer.
+        if (pluginsRef.current.length > 0 && !aborted) {
           assistantMessage = await runAfterReceive(
             pluginsRef.current,
             assistantMessage,
             { messages: msgsToSend, apiUrl },
           );
         }
-        const withReply = [...msgsToSend, assistantMessage];
+        const withReply =
+          placeholderId !== null
+            ? messagesRef.current.map((m) =>
+                m.id === assistantMessage.id ? assistantMessage : m,
+              )
+            : [...msgsToSend, assistantMessage];
         messagesRef.current = withReply;
         setMessages(withReply);
         saveMessages(withReply);
       } catch (err) {
         if (err instanceof DebounceError) return;
+
+        // The stream broke after partial content rendered: keep the partial
+        // text and surface the error beneath it. No retry button — retrying
+        // would resend the conversation and duplicate the partial reply.
+        if (placeholderId !== null) {
+          saveMessages(messagesRef.current);
+          if (err instanceof ChatApiError) {
+            setError(getErrorMessage(err.code, err.message));
+          } else {
+            setError(
+              translations?.errorConnection ??
+                "Failed to connect. Please try again.",
+            );
+          }
+          setCanRetry(false);
+          return;
+        }
 
         // Give plugins a chance to recover with a fallback reply before we
         // surface the error UI.
@@ -223,6 +315,9 @@ export function useChat({
       } finally {
         setIsLoading(false);
         isLoadingRef.current = false;
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        abortControllerRef.current = null;
       }
     },
     [
@@ -231,9 +326,14 @@ export function useChat({
       getErrorMessage,
       isRetryableError,
       saveMessages,
+      streaming,
       translations,
     ],
   );
+
+  const stop = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -318,9 +418,12 @@ export function useChat({
   return {
     messages,
     isLoading,
+    isStreaming,
+    streamingMessageId,
     error,
     canRetry,
     sendMessage,
+    stop,
     retry,
     clearMessages,
   };

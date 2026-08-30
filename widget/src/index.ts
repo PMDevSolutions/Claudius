@@ -27,6 +27,8 @@ export type {
   ChatRequest,
   ChatResponse,
   ChatErrorResponse,
+  ChatStreamOptions,
+  ChatStreamResult,
 } from "./api/types";
 
 // Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three

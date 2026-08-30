@@ -44,6 +44,32 @@ export interface ChatResponse {
 }
 
 /**
+ * Options for {@link ChatApiClient.streamMessage}.
+ */
+export interface ChatStreamOptions {
+  /**
+   * Called once per streamed text delta, as tokens arrive.
+   *
+   * @param text - The incremental text of this chunk.
+   * @param fullText - The full reply accumulated so far, including this chunk.
+   */
+  onChunk?: (text: string, fullText: string) => void;
+  /**
+   * Cancels the stream when aborted. Cancellation is not an error: the
+   * promise resolves with the partial reply and `aborted: true`.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Result of a completed or cancelled streaming chat request.
+ */
+export interface ChatStreamResult extends ChatResponse {
+  /** `true` when the caller cancelled the stream before it finished. */
+  aborted?: boolean;
+}
+
+/**
  * Error response body returned by the Worker when a chat request fails.
  */
 export interface ChatErrorResponse {
