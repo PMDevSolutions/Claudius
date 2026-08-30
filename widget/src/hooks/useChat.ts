@@ -185,33 +185,43 @@ export function useChat({
       // non-streaming rather than failing.
       const canStream = streaming && typeof client.streamMessage === "function";
 
-      // Set once the first token arrives; the placeholder assistant message
-      // is created lazily so the typing indicator shows until then.
+      // Set once the first token (or tool call) arrives; the placeholder
+      // assistant message is created lazily so the typing indicator shows
+      // until then.
       let placeholderId: string | null = null;
 
-      const renderPartial = (fullText: string) => {
+      const upsertPlaceholder = (patch: Partial<ChatMessage>) => {
         if (placeholderId === null) {
           placeholderId = nextId();
           setStreamingMessageId(placeholderId);
           const next: ChatMessage[] = [
             ...messagesRef.current,
-            { id: placeholderId, role: "assistant", content: fullText },
+            { id: placeholderId, role: "assistant", content: "", ...patch },
           ];
           messagesRef.current = next;
           setMessages(next);
         } else {
           const id = placeholderId;
           const next = messagesRef.current.map((m) =>
-            m.id === id ? { ...m, content: fullText } : m,
+            m.id === id ? { ...m, ...patch } : m,
           );
           messagesRef.current = next;
           setMessages(next);
         }
       };
 
+      const dropPlaceholder = () => {
+        if (placeholderId === null) return;
+        const id = placeholderId;
+        const next = messagesRef.current.filter((m) => m.id !== id);
+        messagesRef.current = next;
+        setMessages(next);
+      };
+
       try {
         let reply: string;
         let sources: ChatMessage["sources"];
+        let toolUses: ChatMessage["toolUses"];
         let aborted = false;
 
         if (canStream) {
@@ -220,25 +230,35 @@ export function useChat({
           setIsStreaming(true);
           const result = await client.streamMessage(msgsToSend, {
             signal: controller.signal,
-            onChunk: (_text, fullText) => renderPartial(fullText),
+            onChunk: (_text, fullText) =>
+              upsertPlaceholder({ content: fullText }),
+            onToolUse: (_toolUse, allToolUses) =>
+              upsertPlaceholder({ toolUses: [...allToolUses] }),
           });
           reply = result.reply;
           sources = result.sources;
+          toolUses = result.toolUses;
           aborted = result.aborted ?? false;
         } else {
           const result = await client.sendMessage(msgsToSend);
           reply = result.reply;
           sources = result.sources;
+          toolUses = result.toolUses;
         }
 
-        // Cancelled before any content arrived: drop the send silently.
-        if (aborted && !reply) return;
+        // Cancelled before any reply text arrived: drop the send silently
+        // (including a tool-only placeholder with nothing to show).
+        if (aborted && !reply) {
+          dropPlaceholder();
+          return;
+        }
 
         let assistantMessage: ChatMessage = {
           id: placeholderId ?? nextId(),
           role: "assistant",
           content: reply,
           sources,
+          toolUses,
         };
         // A cancelled reply is intentionally partial; don't hand it to
         // afterReceive plugins as if it were a complete answer.

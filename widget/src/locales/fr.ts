@@ -13,6 +13,8 @@ export const fr: ClaudiusTranslations = {
   placeholder: "Saisissez votre message...",
   sendMessage: "Envoyer le message",
   stopGenerating: "Arrêter la génération",
+  toolUsed: "Outil utilisé :",
+  toolDetails: "Détails de l'outil",
   typeYourMessage: "Saisissez votre message",
 
   // ChatToggleButton

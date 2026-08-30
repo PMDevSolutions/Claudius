@@ -169,6 +169,9 @@ export function ChatWindow({
               content={msg.content}
               isStreaming={msg.id === streamingMessageId}
               sources={msg.sources}
+              toolUses={msg.toolUses}
+              toolUsedLabel={translations?.toolUsed}
+              toolDetailsLabel={translations?.toolDetails}
               isSourceActive={activeSources?.messageId === msg.id}
               onSourceClick={() => {
                 if (activeSources?.messageId === msg.id) {
@@ -182,10 +185,13 @@ export function ChatWindow({
 
           {isLoading &&
             /* Once streamed tokens are rendering in a bubble, the typing
-               indicator is redundant — show it only until the first token. */
+               indicator is redundant — show it only until the first token.
+               A tool-only placeholder (no text yet) keeps the indicator. */
             !(
               streamingMessageId !== null &&
-              messages.some((m) => m.id === streamingMessageId)
+              messages.some(
+                (m) => m.id === streamingMessageId && m.content.length > 0,
+              )
             ) && (
               <TypingIndicator
                 label={translations?.typingIndicator ?? "Assistant is typing"}

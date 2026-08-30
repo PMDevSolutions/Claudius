@@ -186,6 +186,87 @@ describe("useChat streaming", () => {
     expect(result.current.isStreaming).toBe(false);
   });
 
+  it("attaches tool uses to the streaming message as tool events arrive", async () => {
+    const stream = sseStream();
+    mockFetch.mockResolvedValueOnce(stream.response);
+
+    const { result } = renderHook(() => useChat({ apiUrl: API_URL }));
+
+    let sendPromise!: Promise<void>;
+    act(() => {
+      sendPromise = result.current.sendMessage("What time is it?");
+    });
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+    // A tool call lands before any reply text: the affordance data shows up
+    // on a text-less placeholder message.
+    act(() =>
+      stream.emit("tool", {
+        name: "get_current_time",
+        input: {},
+        result: '{"iso":"2026-01-01T00:00:00Z"}',
+      }),
+    );
+    await waitFor(() => {
+      expect(result.current.messages).toHaveLength(2);
+      expect(result.current.messages[1].toolUses).toHaveLength(1);
+    });
+    expect(result.current.messages[1].content).toBe("");
+
+    act(() => stream.emit("chunk", { text: "It is midnight." }));
+    await waitFor(() =>
+      expect(result.current.messages[1].content).toBe("It is midnight."),
+    );
+
+    act(() => {
+      stream.emit("done", {
+        reply: "It is midnight.",
+        toolUses: [
+          {
+            name: "get_current_time",
+            input: {},
+            result: '{"iso":"2026-01-01T00:00:00Z"}',
+          },
+        ],
+      });
+      stream.close();
+    });
+    await act(async () => {
+      await sendPromise;
+    });
+
+    expect(result.current.messages[1]).toMatchObject({
+      role: "assistant",
+      content: "It is midnight.",
+      toolUses: [{ name: "get_current_time" }],
+    });
+  });
+
+  it("drops a tool-only placeholder when cancelled before any text", async () => {
+    const stream = sseStream();
+    mockFetch.mockResolvedValueOnce(stream.response);
+
+    const { result } = renderHook(() => useChat({ apiUrl: API_URL }));
+
+    let sendPromise!: Promise<void>;
+    act(() => {
+      sendPromise = result.current.sendMessage("Hi");
+    });
+    act(() => stream.emit("tool", { name: "get_current_time", input: {} }));
+    await waitFor(() =>
+      expect(result.current.messages[1]?.toolUses).toHaveLength(1),
+    );
+
+    act(() => result.current.stop());
+    await act(async () => {
+      await sendPromise;
+    });
+
+    // No reply text ever arrived: the tool-only placeholder is removed.
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.error).toBeNull();
+  });
+
   it("falls back to the non-streaming endpoint when the Worker has no stream route", async () => {
     mockFetch
       .mockResolvedValueOnce(jsonResponse(404, {}))
