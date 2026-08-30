@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0](https://github.com/PMDevSolutions/Claudius/compare/v1.12.0...v1.13.0) (2026-08-30)
+
+
+### Features
+
+* Anthropic tool use with a declarative tool registry ([ed00f58](https://github.com/PMDevSolutions/Claudius/commit/ed00f58a1e0ea8a6af9df56accce223a22b49ed4))
+* **widget:** render used-tool chips with details disclosure ([5070272](https://github.com/PMDevSolutions/Claudius/commit/50702727f5f188cbbbcde855d9a91e33070fcca2)), closes [#51](https://github.com/PMDevSolutions/Claudius/issues/51)
+* **worker:** declarative tool registry with transparent tool-use round trip ([815b1bf](https://github.com/PMDevSolutions/Claudius/commit/815b1bfc6a4dbe8d8411298042ab462c40a3d9de)), closes [#51](https://github.com/PMDevSolutions/Claudius/issues/51)
+
 ## [1.12.0](https://github.com/PMDevSolutions/Claudius/compare/v1.11.0...v1.12.0) (2026-08-30)
 
 
