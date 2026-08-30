@@ -144,6 +144,17 @@ Worker can't stream.
 error responses (400/429/500/503); failures mid-stream arrive as an in-band
 `error` SSE event.
 
+### Tool Use
+
+Tools live in `worker/src/tools/` (types, registry, reference tools) and are
+registered in `worker/src/tools/index.ts` (`chatTools`). Both chat endpoints
+run the Anthropic tool_use / tool_result round trip transparently (max 5
+rounds, then a forced text answer). Responses carry `toolUses` summaries
+(`{name, input, result, isError?}`); the stream emits `event: tool` between
+chunks. The widget renders a "used tool" chip with a details disclosure.
+Reference tools: `get_current_time` (enabled), `search_knowledge_base` and
+`submit_lead` (stubs — wire before registering). Docs: plugins/tools.md.
+
 ### Chat Request/Response
 
 ```typescript
