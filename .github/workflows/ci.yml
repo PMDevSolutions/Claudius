@@ -86,8 +86,11 @@ jobs:
           directory: widget
           # The action defaults to `npx size-limit --json`, which installs a
           # standalone size-limit that can't see the widget's local
-          # @size-limit/file plugin. Run the locally installed binary instead.
-          script: pnpm exec size-limit --json
+          # @size-limit/file plugin, so run the locally installed binary. The
+          # action also builds the base branch with the same script; fall back
+          # to an empty result set there if that commit predates size-limit
+          # (the action renders missing base entries as "+100%").
+          script: bash -c "if [ -x node_modules/.bin/size-limit ]; then node_modules/.bin/size-limit --json; else echo []; fi"
 
       # On pushes to main there is no PR to comment on; just enforce budgets.
       - name: Install dependencies
