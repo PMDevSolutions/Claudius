@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/PMDevSolutions/Claudius/compare/v1.9.0...v1.10.0) (2026-08-30)
+
+
+### Features
+
+* **playground:** public demo site with live config editor ([89bbc64](https://github.com/PMDevSolutions/Claudius/commit/89bbc64edde25b4a5b95ed9077c25ae87c8affa2))
+* **playground:** public demo site with live config editor ([34282c0](https://github.com/PMDevSolutions/Claudius/commit/34282c0a39b0d005f322e4c76ab9af00306c1029)), closes [#48](https://github.com/PMDevSolutions/Claudius/issues/48)
+* **widget:** enforce bundle-size budgets in CI with size-limit ([0616aec](https://github.com/PMDevSolutions/Claudius/commit/0616aec85c3998a0cd11a180f5c5efc4b8c2d8bc))
+* **widget:** enforce bundle-size budgets in CI with size-limit ([51c6c6b](https://github.com/PMDevSolutions/Claudius/commit/51c6c6b4b0e9ab47f48757d0be20d12133ab1ca2)), closes [#47](https://github.com/PMDevSolutions/Claudius/issues/47)
+
+
+### Bug Fixes
+
+* **ci:** run bundle-size job on Node 22 for size-limit v13 ([ab111fb](https://github.com/PMDevSolutions/Claudius/commit/ab111fb636f1ba1ce2db0afb25b63f6e12f437fe))
+* **ci:** run local size-limit binary in size-limit-action ([44d1a1c](https://github.com/PMDevSolutions/Claudius/commit/44d1a1c51873bce9dfb8a44bfe9706d9ecc6a54d))
+* **ci:** tolerate base branches without size-limit in size job ([57839fa](https://github.com/PMDevSolutions/Claudius/commit/57839faed1b578bcf6e1b50b15c046b590f01a7d))
+
 ## [1.9.0](https://github.com/PMDevSolutions/Claudius/compare/v1.8.2...v1.9.0) (2026-06-19)
 
 
