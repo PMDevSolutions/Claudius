@@ -12,6 +12,7 @@
     "release:patch": "standard-version --release-as patch",
     "release:dry": "standard-version --dry-run",
     "claudius": "tsx scripts/cli.ts",
+    "rag:ingest": "tsx scripts/rag-ingest.ts",
     "test:scripts": "cd scripts && npx vitest run --config vitest.config.ts"
   },
   "repository": {
