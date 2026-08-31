@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/PMDevSolutions/Claudius/compare/v1.13.0...v1.14.0) (2026-08-31)
+
+
+### Features
+
+* pluggable RAG with Cloudflare Vectorize reference implementation ([378c22e](https://github.com/PMDevSolutions/Claudius/commit/378c22e408583f081b45d3d468dad5931d5af574))
+* **scripts:** rag:ingest CLI for chunking and upserting content into Vectorize ([d0baaf1](https://github.com/PMDevSolutions/Claudius/commit/d0baaf1f13c483036911a48b372ac913d99cef92)), closes [#52](https://github.com/PMDevSolutions/Claudius/issues/52)
+* **worker:** pluggable RAG retriever with Vectorize reference implementation ([6f88a46](https://github.com/PMDevSolutions/Claudius/commit/6f88a46d5e95f51a358f584a0063d820438b6895)), closes [#52](https://github.com/PMDevSolutions/Claudius/issues/52)
+
+
+### Bug Fixes
+
+* **ci:** untrack local pnpm-workspace.yaml scaffold that broke worker install ([35ecf82](https://github.com/PMDevSolutions/Claudius/commit/35ecf82b620864fb04d461f3a428115831619b84))
+
 ## [1.13.0](https://github.com/PMDevSolutions/Claudius/compare/v1.12.0...v1.13.0) (2026-08-30)
 
 
