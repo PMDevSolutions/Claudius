@@ -2,6 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./system-prompt";
 import { toAnthropicTools, executeTool } from "./tools";
 import type { ClaudiusTool, ToolContext, ToolUseSummary } from "./tools";
+import {
+  retrieveRagDocuments,
+  formatRagContext,
+  ragDocumentsToSources,
+} from "./rag";
+import type { RagConfig, ChatSource } from "./rag";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -17,6 +23,8 @@ export interface ChatResponse {
   reply: string;
   /** Tools the model called while producing this reply, in call order. */
   toolUses?: ToolUseSummary[];
+  /** Source links for retrieved documents the reply was grounded in. */
+  sources?: ChatSource[];
 }
 
 export interface ChatTelemetry {
@@ -39,6 +47,8 @@ export interface ChatConfig {
   tools?: readonly ClaudiusTool[];
   /** Context passed to every tool handler. */
   toolContext?: ToolContext;
+  /** Retrieval-augmented generation settings; unset disables RAG. */
+  rag?: RagConfig;
 }
 
 /**
@@ -54,6 +64,7 @@ export type ChatStreamEvent =
       type: "done";
       reply: string;
       toolUses?: ToolUseSummary[];
+      sources?: ChatSource[];
       telemetry: ChatTelemetry;
     };
 
@@ -66,6 +77,29 @@ const DEFAULT_MAX_TOKENS = 1024;
 // allowed round the request is sent with tool_choice "none", forcing a
 // text answer instead of an unbounded tool loop.
 const MAX_TOOL_ROUNDS = 5;
+
+/**
+ * Retrieves grounding context for the latest user message and renders it
+ * into a system-prompt suffix plus widget source links. No-ops (empty
+ * suffix, no sources) when RAG is not configured or retrieval yields
+ * nothing — including on retrieval errors, which are contained upstream.
+ */
+async function prepareRag(
+  config: ChatConfig,
+  messages: ChatMessage[]
+): Promise<{ systemSuffix: string; sources: ChatSource[] }> {
+  if (!config.rag) return { systemSuffix: "", sources: [] };
+
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  if (!lastUser?.content) return { systemSuffix: "", sources: [] };
+
+  const documents = await retrieveRagDocuments(config.rag, lastUser.content);
+  const context = formatRagContext(documents, config.rag);
+  return {
+    systemSuffix: context ?? "",
+    sources: ragDocumentsToSources(documents),
+  };
+}
 
 /** Runs each requested tool call, returning result blocks and summaries. */
 async function executeToolBlocks(
@@ -137,6 +171,8 @@ export async function handleChat(
   const conversation: Anthropic.Messages.MessageParam[] = [
     ...sanitizedMessages,
   ];
+  const rag = await prepareRag(config, sanitizedMessages);
+  const system = (config.systemPrompt ?? SYSTEM_PROMPT) + rag.systemSuffix;
   const toolUses: ToolUseSummary[] = [];
   const replyParts: string[] = [];
   let inputTokens = 0;
@@ -148,7 +184,7 @@ export async function handleChat(
     const response = await client.messages.create({
       model,
       max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: config.systemPrompt ?? SYSTEM_PROMPT,
+      system,
       messages: conversation,
       ...(anthropicTools
         ? {
@@ -199,6 +235,7 @@ export async function handleChat(
       response: {
         reply,
         ...(toolUses.length > 0 ? { toolUses } : {}),
+        ...(rag.sources.length > 0 ? { sources: rag.sources } : {}),
       },
       telemetry: { model, inputTokens, outputTokens },
     };
@@ -229,6 +266,8 @@ export async function* streamChat(
   const conversation: Anthropic.Messages.MessageParam[] = [
     ...sanitizedMessages,
   ];
+  const rag = await prepareRag(config, sanitizedMessages);
+  const system = (config.systemPrompt ?? SYSTEM_PROMPT) + rag.systemSuffix;
   const toolUses: ToolUseSummary[] = [];
   let reply = "";
   let inputTokens = 0;
@@ -240,7 +279,7 @@ export async function* streamChat(
     const stream = await client.messages.create({
       model,
       max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
-      system: config.systemPrompt ?? SYSTEM_PROMPT,
+      system,
       messages: conversation,
       stream: true,
       ...(anthropicTools
@@ -356,6 +395,7 @@ export async function* streamChat(
       type: "done",
       reply,
       ...(toolUses.length > 0 ? { toolUses } : {}),
+      ...(rag.sources.length > 0 ? { sources: rag.sources } : {}),
       telemetry: { model, inputTokens, outputTokens },
     };
     return;

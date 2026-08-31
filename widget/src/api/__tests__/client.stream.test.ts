@@ -136,6 +136,22 @@ describe("ChatApiClient.streamMessage", () => {
     expect(controller).toBeDefined();
   });
 
+  it("passes sources from the done event through to the result", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([
+        'event: chunk\ndata: {"text":"Grounded."}\n\n',
+        'event: done\ndata: {"reply":"Grounded.","sources":[{"url":"https://e.com/pricing","title":"Pricing","type":"page"}]}\n\n',
+      ]),
+    );
+
+    const result = await newClient().streamMessage(mockMessages);
+
+    expect(result.reply).toBe("Grounded.");
+    expect(result.sources).toEqual([
+      { url: "https://e.com/pricing", title: "Pricing", type: "page" },
+    ]);
+  });
+
   it("delivers tool events via onToolUse and attaches toolUses to the result", async () => {
     mockFetch.mockResolvedValueOnce(
       sseResponse([

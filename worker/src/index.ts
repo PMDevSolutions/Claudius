@@ -3,6 +3,8 @@ import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { handleChat, streamChat, ChatRequest, ChatTelemetry } from "./chat";
 import { chatTools } from "./tools";
+import { createRagFromEnv } from "./rag";
+import type { VectorizeIndexLike, WorkersAiLike } from "./rag";
 import { checkRateLimit } from "./rate-limit";
 import { recordEvent } from "./analytics";
 import { chatPlugins } from "./plugins";
@@ -19,6 +21,13 @@ interface Env {
   SYSTEM_PROMPT?: string;
   RATE_LIMIT_MINUTE?: string;
   RATE_LIMIT_HOUR?: string;
+  // RAG (optional): both bindings present activates retrieval. See
+  // wrangler.toml and the RAG docs page.
+  VECTORIZE_INDEX?: VectorizeIndexLike;
+  AI?: WorkersAiLike;
+  RAG_TOP_K?: string;
+  RAG_SCORE_THRESHOLD?: string;
+  RAG_CONTEXT_TEMPLATE?: string;
 }
 
 export interface ErrorResponse {
@@ -105,6 +114,8 @@ function getChatConfig(env: Env, body?: ChatRequest) {
       env: env as unknown as Record<string, unknown>,
       conversationId: body?.conversationId,
     },
+    // Retrieval config, active only when the Vectorize + AI bindings exist.
+    rag: createRagFromEnv(env),
   };
 }
 
@@ -310,6 +321,7 @@ app.post("/api/chat/stream", async (c) => {
               data: JSON.stringify({
                 reply: event.reply,
                 ...(event.toolUses ? { toolUses: event.toolUses } : {}),
+                ...(event.sources ? { sources: event.sources } : {}),
               }),
             });
           }

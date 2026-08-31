@@ -13,6 +13,11 @@ ALLOWED_ORIGIN = "http://localhost:5173"
 # Optional: Configure rate limits (defaults: 10/min, 50/hr)
 # RATE_LIMIT_MINUTE = "10"
 # RATE_LIMIT_HOUR = "50"
+# Optional: RAG tuning (used only when the Vectorize + AI bindings below are
+# enabled). See docs: /rag.
+# RAG_TOP_K = "4"
+# RAG_SCORE_THRESHOLD = "0.5"
+# RAG_CONTEXT_TEMPLATE = "...{context}..."
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
@@ -27,3 +32,17 @@ preview_id = "placeholder"
 # binding = "ANALYTICS_DB"
 # database_name = "claudius-analytics"
 # database_id = "your-d1-database-id"
+
+# RAG (retrieval-augmented generation). Uncomment BOTH blocks to activate:
+# the Worker embeds each question with Workers AI, queries the Vectorize
+# index, and grounds replies in the retrieved chunks (with source links).
+# Create the index (dimensions must match the embedding model, 768 for
+# @cf/baai/bge-base-en-v1.5):
+#   wrangler vectorize create claudius-rag --dimensions=768 --metric=cosine
+# then ingest content with:  pnpm rag:ingest ./content
+# [[vectorize]]
+# binding = "VECTORIZE_INDEX"
+# index_name = "claudius-rag"
+#
+# [ai]
+# binding = "AI"
