@@ -4,6 +4,7 @@ import type { Trigger } from "./hooks/useTriggers";
 import type { LocaleCode } from "./locales";
 import type { ClaudiusTranslations } from "./i18n";
 import type { ClaudiusThemeInput } from "./theme/types";
+import type { AttachmentsOptions } from "./utils/attachments";
 import "./styles.css";
 
 // Injected at build time by vite.config.embed.ts; undefined under unit tests.
@@ -27,6 +28,7 @@ interface ClaudiusConfig {
   locale?: LocaleCode;
   translations?: Partial<ClaudiusTranslations>;
   triggers?: Trigger[];
+  attachments?: boolean | AttachmentsOptions;
 }
 
 declare global {
@@ -68,6 +70,7 @@ function init() {
       locale={config.locale}
       translations={config.translations}
       triggers={config.triggers}
+      attachments={config.attachments}
     />,
   );
 }
@@ -90,6 +93,7 @@ class ClaudiusChat extends HTMLElement {
       "theme",
       "accent-color",
       "position",
+      "attachments",
     ];
   }
 
@@ -132,6 +136,11 @@ class ClaudiusChat extends HTMLElement {
     const requestTimeoutMs =
       timeoutAttr === null ? undefined : Number(timeoutAttr);
 
+    // `attachments` / `attachments="true"` enable the defaults; "false" disables.
+    const attachmentsAttr = this.getAttribute("attachments");
+    const attachments =
+      attachmentsAttr === null ? undefined : attachmentsAttr !== "false";
+
     this.root.render(
       <ChatWidget
         apiUrl={apiUrl}
@@ -153,6 +162,7 @@ class ClaudiusChat extends HTMLElement {
         position={
           (this.getAttribute("position") as WidgetPosition) ?? undefined
         }
+        attachments={attachments}
       />,
     );
   }

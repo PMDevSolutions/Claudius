@@ -45,6 +45,9 @@ API key can access, and `MAX_TOKENS` to control response length (default
 - **Analytics** (optional, off unless you bind `ANALYTICS_DB`): metadata only —
   timing, token counts, status and error codes, message counts/lengths.
 - **Rate limiting**: short-lived per-IP counters in KV.
+- **Attachments** (optional): forwarded to Anthropic and discarded by default;
+  with the R2 backend they are kept for a configurable retention window behind
+  signed URLs. Details in [Attachments](/configuration/attachments/#privacy-posture).
 
 ## How big is the embed?
 

@@ -1,12 +1,14 @@
 import { memo, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
-import type { Source } from "../api/types";
+import { AttachmentPreview } from "./AttachmentPreview";
+import type { ChatAttachment, Source } from "../api/types";
 import { sanitizeUrl } from "../utils/sanitize";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
+  attachments?: ChatAttachment[];
   onSourceClick?: () => void;
   isSourceActive?: boolean;
 }
@@ -99,10 +101,12 @@ export const ChatMessage = memo(function ChatMessage({
   role,
   content,
   sources,
+  attachments,
   onSourceClick,
   isSourceActive,
 }: ChatMessageProps) {
   const isUser = role === "user";
+  const hasAttachments = !!attachments && attachments.length > 0;
 
   return (
     <div className={`${isUser ? "ml-auto" : "mr-auto"} max-w-[85%]`}>
@@ -113,7 +117,19 @@ export const ChatMessage = memo(function ChatMessage({
             : "bg-claudius-assistant-bubble text-claudius-assistant-bubble-text rounded-bl-claudius-tail"
         }`}
       >
-        {renderFormattedContent(content)}
+        {hasAttachments && (
+          <ul
+            className={`flex flex-wrap gap-2 ${content ? "mb-2" : ""}`}
+            aria-label="Attachments"
+          >
+            {attachments.map((att) => (
+              <li key={att.id}>
+                <AttachmentPreview attachment={att} variant="message" />
+              </li>
+            ))}
+          </ul>
+        )}
+        {content && renderFormattedContent(content)}
       </div>
       {!isUser && sources && sources.length > 0 && onSourceClick && (
         <div className="mt-1">

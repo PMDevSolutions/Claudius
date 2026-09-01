@@ -24,10 +24,17 @@ export { ChatApiError, DebounceError } from "./api/errors";
 export type {
   Source,
   ChatMessage,
+  ChatAttachment,
+  StoredAttachment,
   ChatRequest,
   ChatResponse,
   ChatErrorResponse,
 } from "./api/types";
+export { DEFAULT_ATTACHMENT_OPTIONS } from "./utils/attachments";
+export type {
+  AttachmentsOptions,
+  ResolvedAttachmentsConfig,
+} from "./utils/attachments";
 
 // Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three
 // reference plugins.

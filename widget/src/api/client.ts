@@ -28,10 +28,23 @@ export interface ChatApiClientOptions {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+function base64ToBlob(data: string, type: string): Blob {
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
 /**
  * Typed client for the Claudius Worker chat API. Handles debouncing,
  * per-attempt timeouts, and automatic retries with backoff for transient
  * failures (HTTP 429/503, network errors, timeouts).
+ *
+ * Conversations without inline attachment bytes are posted as JSON. When any
+ * message carries an attachment with `data`, the request is sent as
+ * `multipart/form-data`: a `payload` field holding the JSON body (attachment
+ * refs without their bytes) plus one file part per attachment, named after
+ * the attachment id.
  *
  * @example
  * ```ts
@@ -142,12 +155,57 @@ export class ChatApiClient {
     throw lastError!;
   }
 
+  /**
+   * Build the request body: JSON by default, multipart when any attachment
+   * still carries inline bytes. A fresh body is built per attempt so retries
+   * never reuse a consumed stream.
+   */
+  private buildRequest(messages: ChatMessage[]): {
+    headers?: Record<string, string>;
+    body: BodyInit;
+  } {
+    const needsMultipart = messages.some((m) =>
+      m.attachments?.some((a) => !!a.data),
+    );
+    if (!needsMultipart) {
+      return {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      };
+    }
+
+    const form = new FormData();
+    const payloadMessages = messages.map((m) => {
+      if (!m.attachments) return m;
+      return {
+        ...m,
+        attachments: m.attachments.map((a) => {
+          const ref = { ...a };
+          delete ref.data;
+          return ref;
+        }),
+      };
+    });
+    form.append("payload", JSON.stringify({ messages: payloadMessages }));
+    for (const m of messages) {
+      for (const a of m.attachments ?? []) {
+        if (a.data) {
+          form.append(a.id, base64ToBlob(a.data, a.mediaType), a.name);
+        }
+      }
+    }
+    // No Content-Type: fetch sets the multipart boundary itself.
+    return { body: form };
+  }
+
   private async fetchWithTimeout(messages: ChatMessage[]): Promise<Response> {
+    const { headers, body } = this.buildRequest(messages);
+
     if (this.timeoutMs <= 0) {
       return fetch(`${this.baseUrl}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        headers,
+        body,
       });
     }
 
@@ -156,8 +214,8 @@ export class ChatApiClient {
     try {
       return await fetch(`${this.baseUrl}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        headers,
+        body,
         signal: controller.signal,
       });
     } catch (err) {

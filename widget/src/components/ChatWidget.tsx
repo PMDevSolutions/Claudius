@@ -14,6 +14,10 @@ import { resolveTranslations, type LocaleCode } from "../locales";
 import { useTheme } from "../theme/useTheme";
 import type { ClaudiusThemeInput } from "../theme/types";
 import type { ClaudiusPlugin } from "../plugins/types";
+import {
+  resolveAttachmentsConfig,
+  type AttachmentsOptions,
+} from "../utils/attachments";
 
 /** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
@@ -73,6 +77,14 @@ export interface ChatWidgetProps {
    * short-circuit messages. See {@link ClaudiusPlugin}.
    */
   plugins?: ClaudiusPlugin[];
+  /**
+   * Let visitors attach images and PDFs (click, drag-and-drop, or paste).
+   * `true` enables the defaults (5 MB per file, 5 files per message, JPEG /
+   * PNG / GIF / WebP / PDF); pass an {@link AttachmentsOptions} to tune them.
+   * The worker must allow attachments too (it does by default).
+   * @defaultValue `false`
+   */
+  attachments?: boolean | AttachmentsOptions;
 }
 
 function readDismissed(): boolean {
@@ -119,8 +131,13 @@ export function ChatWidget({
   translations: translationOverrides,
   triggers,
   plugins,
+  attachments = false,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const attachmentsConfig = useMemo(
+    () => resolveAttachmentsConfig(attachments),
+    [attachments],
+  );
   const [greeting, setGreeting] = useState<string | null>(null);
   const [triggersDismissed, setTriggersDismissed] = useState(readDismissed);
   const openedByTriggerRef = useRef(false);
@@ -256,6 +273,7 @@ export function ChatWidget({
             position={position}
             translations={translations}
             isMobile={isMobile}
+            attachments={attachmentsConfig}
           />
         )}
         {!(isOpen && isMobile) && (

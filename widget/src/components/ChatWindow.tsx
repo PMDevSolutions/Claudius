@@ -10,14 +10,19 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
-import type { ChatMessage as ChatMessageData, Source } from "../api/types";
+import type {
+  ChatAttachment,
+  ChatMessage as ChatMessageData,
+  Source,
+} from "../api/types";
+import type { ResolvedAttachmentsConfig } from "../utils/attachments";
 
 interface ChatWindowProps {
   messages: ChatMessageData[];
   isLoading: boolean;
   error: string | null;
   canRetry?: boolean;
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: ChatAttachment[]) => void;
   onRetry?: () => void;
   onClose: () => void;
   title?: string;
@@ -27,6 +32,8 @@ interface ChatWindowProps {
   position?: WidgetPosition;
   translations?: ClaudiusTranslations;
   isMobile?: boolean;
+  /** Attachment limits, or `null` to hide file controls. */
+  attachments?: ResolvedAttachmentsConfig | null;
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -51,6 +58,7 @@ export function ChatWindow({
   position = "bottom-right",
   translations,
   isMobile = false,
+  attachments = null,
 }: ChatWindowProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -159,6 +167,7 @@ export function ChatWindow({
               role={msg.role}
               content={msg.content}
               sources={msg.sources}
+              attachments={msg.attachments}
               isSourceActive={activeSources?.messageId === msg.id}
               onSourceClick={() => {
                 if (activeSources?.messageId === msg.id) {
@@ -208,6 +217,7 @@ export function ChatWindow({
         isLoading={isLoading}
         placeholder={placeholder}
         translations={translations}
+        attachments={attachments}
       />
     </div>
   );

@@ -1,10 +1,14 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import type { ClaudiusTranslations } from "../i18n";
-import type { ChatMessage } from "../api/types";
+import type { ChatAttachment, ChatMessage } from "../api/types";
 import { ChatApiClient } from "../api/client";
 import { ChatApiError, DebounceError } from "../api/errors";
 import type { ClaudiusPlugin } from "../plugins/types";
 import { runBeforeSend, runAfterReceive, runError } from "../plugins/runner";
+import {
+  applyStoredAttachments,
+  stripAttachmentData,
+} from "../utils/attachments";
 
 interface UseChatOptions {
   apiUrl: string;
@@ -20,7 +24,10 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   canRetry: boolean;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (
+    content: string,
+    attachments?: ChatAttachment[],
+  ) => Promise<void>;
   retry: () => Promise<void>;
   clearMessages: () => void;
 }
@@ -97,7 +104,9 @@ export function useChat({
       const storage = getSessionStorage();
       if (!storage) return;
       try {
-        const toSave = msgs.slice(-MAX_PERSISTED_MESSAGES);
+        // Inline attachment bytes are never persisted: they would blow the
+        // storage quota and are unnecessary once the worker has seen them.
+        const toSave = stripAttachmentData(msgs.slice(-MAX_PERSISTED_MESSAGES));
         storage.setItem(storageKey, JSON.stringify(toSave));
       } catch {
         // sessionStorage may be unavailable or quota-exceeded
@@ -127,6 +136,12 @@ export function useChat({
             return translations.errorRateLimitMinute;
           }
           return translations.errorRateLimitHour;
+        case "ATTACHMENT_QUOTA_EXCEEDED":
+          return translations.errorAttachmentQuota;
+        case "ATTACHMENTS_DISABLED":
+        case "ATTACHMENT_INVALID":
+        case "ATTACHMENT_TOO_LARGE":
+          return translations.errorAttachmentRejected;
         case "VALIDATION_ERROR":
         case "CONFIG_ERROR":
         case "SERVICE_ERROR":
@@ -179,12 +194,33 @@ export function useChat({
             { messages: msgsToSend, apiUrl },
           );
         }
-        const withReply = [...msgsToSend, assistantMessage];
+        // When the worker stored uploads (R2 backend), swap inline bytes for
+        // the storage key + signed URL so later turns reference the copy.
+        const withReply = applyStoredAttachments(
+          [...msgsToSend, assistantMessage],
+          data.attachments,
+        );
         messagesRef.current = withReply;
         setMessages(withReply);
         saveMessages(withReply);
       } catch (err) {
         if (err instanceof DebounceError) return;
+
+        // An attachment the worker refused would poison every later turn, so
+        // drop the offending user message rather than keep it in history.
+        if (
+          err instanceof ChatApiError &&
+          err.code?.startsWith("ATTACHMENT") &&
+          msgsToSend.length > 0
+        ) {
+          const last = msgsToSend[msgsToSend.length - 1];
+          if (last.role === "user" && last.attachments?.length) {
+            const rolledBack = msgsToSend.slice(0, -1);
+            messagesRef.current = rolledBack;
+            setMessages(rolledBack);
+            saveMessages(rolledBack);
+          }
+        }
 
         // Give plugins a chance to recover with a fallback reply before we
         // surface the error UI.
@@ -236,14 +272,16 @@ export function useChat({
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments?: ChatAttachment[]) => {
       const trimmed = content.trim();
-      if (!trimmed || isLoadingRef.current) return;
+      const files = attachments?.filter((a) => a && a.id) ?? [];
+      if ((!trimmed && files.length === 0) || isLoadingRef.current) return;
 
       const userMessage: ChatMessage = {
         id: nextId(),
         role: "user",
         content: trimmed,
+        ...(files.length > 0 ? { attachments: files } : {}),
       };
 
       let outgoing = userMessage;
