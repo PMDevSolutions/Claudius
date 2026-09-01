@@ -22,9 +22,11 @@ Whether you are fixing a bug, adding a feature, improving documentation, or sugg
    corepack prepare pnpm@latest --activate
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies.** The root install sets up the git pre-commit
+   hooks (see [Pre-commit Hooks](#pre-commit-hooks)), so do not skip it:
 
    ```bash
+   pnpm install
    cd widget && pnpm install
    cd ../worker && pnpm install
    ```
@@ -114,6 +116,32 @@ If you are unsure about register, note it in your pull request so a native speak
 
 ---
 
+## Pre-commit Hooks
+
+The repo uses [Husky](https://typicode.github.io/husky/) and
+[lint-staged](https://github.com/lint-staged/lint-staged) to catch lint and
+formatting problems before they reach CI. Running `pnpm install` at the repo
+root activates the hooks (via the root `prepare` script).
+
+On every `git commit`, staged files under `widget/src/` are run through
+`eslint --fix` and `prettier --write` (CSS files get Prettier only). Safe
+auto-fixes are applied and re-staged automatically; unfixable errors abort
+the commit so you can resolve them. Commits that touch no widget source are
+unaffected. This mirrors what the `pnpm lint` and `pnpm format:check` CI
+steps enforce, so a commit that passes the hook should also pass those checks.
+
+To skip the hook in an emergency (for example, an intentional work-in-progress
+commit on a private branch), use `git commit --no-verify`. CI still enforces
+lint and formatting on every push and pull request.
+
+**Windows note:** line endings are normalized to LF via `.gitattributes`
+(`* text=auto eol=lf`), which overrides `core.autocrlf`, so Prettier's
+`endOfLine: "lf"` and git agree inside the hook. If you cloned before this
+rule existed and see spurious formatting diffs, refresh your working tree
+with `git add --renormalize .` or a fresh checkout.
+
+---
+
 ## Branch Naming Conventions
 
 Use the following prefixes when creating branches:
@@ -161,6 +189,29 @@ Branch names should be lowercase, use hyphens as separators, and be descriptive.
 7. **All CI checks must pass.** Pull requests with failing tests will not be merged until resolved.
 
 8. **Be responsive to review feedback.** Reviewers may request changes.
+
+---
+
+## Bundle-Size Budgets
+
+The widget's build outputs are guarded by [size-limit](https://github.com/ai/size-limit).
+Budgets live in `widget/.size-limit.json`, with entries for the raw, gzip, and
+brotli size of each artifact (`dist/claudius.iife.js`, `dist/claudius.js`, and
+`dist/claudius.css`).
+
+- The **Bundle size** CI job fails any pull request that exceeds a budget, and
+  posts a PR comment with the raw/gzip/brotli sizes and the diff against `main`.
+- Check sizes locally with:
+
+  ```bash
+  cd widget && pnpm build && pnpm size
+  ```
+
+- **Raising a budget is a deliberate act.** If your change legitimately needs
+  more room (e.g., a new feature that justifies its weight), update the limits
+  in `widget/.size-limit.json` in an explicit commit and explain the increase in
+  your PR description. Never bump a budget just to silence the check, and avoid
+  bundling budget changes into unrelated commits.
 
 ---
 

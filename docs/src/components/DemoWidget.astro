@@ -1,16 +1,14 @@
 ---
 /**
  * Loads the real Claudius widget from the version-pinned jsDelivr channel and
- * points it at the production worker, so docs visitors can chat immediately.
- *
- * Chat requests work once the worker's ALLOWED_ORIGIN list includes this
- * site's origin (the worker accepts a comma-separated list).
+ * points it at the dedicated public demo worker (worker/wrangler.demo.toml),
+ * which allows this site's origin, so docs visitors can chat immediately.
  */
 ---
 
 <script is:inline>
   window.ClaudiusConfig = {
-    apiUrl: "https://pmds-chat-worker.paul-130.workers.dev",
+    apiUrl: "https://claudius-demo-worker.paul-130.workers.dev",
     title: "Claudius demo",
     subtitle: "Ask me anything",
     welcomeMessage:

@@ -1,6 +1,10 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
-import { handleChat, ChatRequest, ChatTelemetry } from "./chat";
+import { streamSSE } from "hono/streaming";
+import { handleChat, streamChat, ChatRequest, ChatTelemetry } from "./chat";
+import { chatTools } from "./tools";
+import { createRagFromEnv } from "./rag";
+import type { VectorizeIndexLike, WorkersAiLike } from "./rag";
 import { checkRateLimit } from "./rate-limit";
 import { recordEvent } from "./analytics";
 import { chatPlugins } from "./plugins";
@@ -14,6 +18,7 @@ import {
   newUploadBytes,
   parseChatRequest,
   validateAttachments,
+  type AttachmentErrorCode,
 } from "./attachments";
 import {
   AttachmentStorageConfigError,
@@ -32,6 +37,7 @@ interface Env {
   // Optional configuration
   CLAUDE_MODEL?: string;
   MAX_TOKENS?: string;
+  SYSTEM_PROMPT?: string;
   RATE_LIMIT_MINUTE?: string;
   RATE_LIMIT_HOUR?: string;
   // Attachments (see attachments.ts / attachment-storage.ts / attachment-quota.ts)
@@ -47,6 +53,13 @@ interface Env {
   ATTACHMENT_SIGNING_SECRET?: string;
   ATTACHMENTS?: R2Bucket;
   TENANT_ID?: string;
+  // RAG (optional): both bindings present activates retrieval. See
+  // wrangler.toml and the RAG docs page.
+  VECTORIZE_INDEX?: VectorizeIndexLike;
+  AI?: WorkersAiLike;
+  RAG_TOP_K?: string;
+  RAG_SCORE_THRESHOLD?: string;
+  RAG_CONTEXT_TEMPLATE?: string;
 }
 
 export interface ErrorResponse {
@@ -55,16 +68,217 @@ export interface ErrorResponse {
   limitType?: "minute" | "hour";
 }
 
-const app = new Hono<{
-  Bindings: Env;
-  Variables: { chatRequest?: ChatRequest };
-}>();
+type AppEnv = { Bindings: Env; Variables: { chatRequest?: ChatRequest } };
+type AppContext = Context<AppEnv>;
+
+const app = new Hono<AppEnv>();
 
 // Server-side plugins run around POST /api/chat as Hono middleware — the
 // equivalent of the widget's `plugins` prop. Empty by default (behavior
 // unchanged); add plugins here to enable PII redaction, canned responses,
 // analytics, model routing, etc. See docs: /plugins.
 const serverPlugins: ClaudiusServerPlugin[] = [];
+
+interface ClassifiedChatError {
+  status: 400 | 413 | 500 | 503;
+  code:
+    | "VALIDATION_ERROR"
+    | "CONFIG_ERROR"
+    | "SERVICE_ERROR"
+    | "UNKNOWN_ERROR"
+    | AttachmentErrorCode;
+  error: string;
+  /** Seconds until the client may retry, when the failure is time-bound. */
+  retryAfter?: number;
+}
+
+/** Anthropic rejects malformed media with a 400; duck-type so SDK mocks work. */
+function isUpstreamBadRequest(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { status?: unknown }).status === 400
+  );
+}
+
+/**
+ * Maps a thrown chat error to an HTTP status, machine code, and safe message.
+ * `hadAttachments` lets an upstream 400 be reported as a media problem rather
+ * than a generic failure.
+ */
+function classifyChatError(
+  error: unknown,
+  hadAttachments = false
+): ClassifiedChatError {
+  // Attachment problems the client can fix (type, size, count, quota)
+  if (error instanceof AttachmentError) {
+    return {
+      status: error.status,
+      code: error.code,
+      error: error.message,
+      ...(error.retryAfter !== undefined ? { retryAfter: error.retryAfter } : {}),
+    };
+  }
+
+  const message = error instanceof Error ? error.message : "";
+
+  // Client errors (bad input)
+  if (
+    message.includes("required") ||
+    message.includes("Too many") ||
+    message.includes("Invalid message role")
+  ) {
+    return { status: 400, code: "VALIDATION_ERROR", error: message };
+  }
+
+  // Storage misconfiguration or API key issues
+  if (
+    error instanceof AttachmentStorageConfigError ||
+    message.includes("authentication") ||
+    message.includes("api_key")
+  ) {
+    return {
+      status: 500,
+      code: "CONFIG_ERROR",
+      error: "Service configuration error. Please try again later.",
+    };
+  }
+
+  // Claude rejected the media itself (corrupt file, unsupported PDF, ...)
+  if (hadAttachments && isUpstreamBadRequest(error)) {
+    return {
+      status: 400,
+      code: "ATTACHMENT_INVALID",
+      error: "An attachment could not be processed. Please try another file.",
+    };
+  }
+
+  // Model/API errors
+  if (message.includes("model") || message.includes("overloaded")) {
+    return {
+      status: 503,
+      code: "SERVICE_ERROR",
+      error: "AI service temporarily unavailable. Please try again.",
+    };
+  }
+
+  return {
+    status: 500,
+    code: "UNKNOWN_ERROR",
+    error: "Something went wrong. Please try again.",
+  };
+}
+
+function errorResponse(c: AppContext, classified: ClassifiedChatError) {
+  return c.json<ErrorResponse>(
+    { error: classified.error, code: classified.code },
+    {
+      status: classified.status,
+      ...(classified.retryAfter !== undefined
+        ? { headers: { "Retry-After": String(classified.retryAfter) } }
+        : {}),
+    }
+  );
+}
+
+function getRateLimitConfig(env: Env) {
+  return {
+    minuteLimit: env.RATE_LIMIT_MINUTE
+      ? parseInt(env.RATE_LIMIT_MINUTE, 10)
+      : undefined,
+    hourLimit: env.RATE_LIMIT_HOUR
+      ? parseInt(env.RATE_LIMIT_HOUR, 10)
+      : undefined,
+  };
+}
+
+function getChatConfig(env: Env, body?: ChatRequest) {
+  return {
+    model: env.CLAUDE_MODEL,
+    maxTokens: env.MAX_TOKENS ? parseInt(env.MAX_TOKENS, 10) : undefined,
+    systemPrompt: env.SYSTEM_PROMPT,
+    // Tools registered at startup (worker/src/tools/index.ts); the chat
+    // layer runs the tool_use / tool_result round trip transparently.
+    tools: chatTools,
+    toolContext: {
+      env: env as unknown as Record<string, unknown>,
+      conversationId: body?.conversationId,
+    },
+    // Retrieval config, active only when the Vectorize + AI bindings exist.
+    rag: createRagFromEnv(env),
+  };
+}
+
+/** Quota tenant: explicit TENANT_ID, else the embedding site's host. */
+function resolveTenant(env: Env, origin: string | undefined): string {
+  if (env.TENANT_ID) return env.TENANT_ID;
+  if (origin) {
+    try {
+      return new URL(origin).host;
+    } catch {
+      // fall through
+    }
+  }
+  return "default";
+}
+
+/**
+ * Validate, quota-check, store/hydrate, and budget the attachments on a
+ * request, mutating the message refs in place. Returns storage metadata for
+ * uploads persisted this turn (R2 mode). Throws {@link AttachmentError} or
+ * {@link AttachmentStorageConfigError}; a no-op for requests without files.
+ */
+async function prepareAttachments(
+  c: AppContext,
+  body: ChatRequest,
+  clientIp: string
+): Promise<StoredAttachment[]> {
+  if (!Array.isArray(body?.messages) || !hasAttachments(body.messages)) {
+    return [];
+  }
+
+  const attachmentConfig = attachmentConfigFromEnv(c.env);
+  if (!attachmentConfig.enabled) {
+    throw new AttachmentError(
+      "Attachments are not enabled on this worker",
+      "ATTACHMENTS_DISABLED",
+      400
+    );
+  }
+  validateAttachments(body.messages, attachmentConfig);
+
+  const tenant = resolveTenant(c.env, c.req.header("origin"));
+  const uploadBytes = newUploadBytes(body.messages);
+  if (uploadBytes > attachmentConfig.maxRequestBytes) {
+    throw new AttachmentError(
+      "Attachments on this message exceed the per-request limit",
+      "ATTACHMENT_TOO_LARGE",
+      413
+    );
+  }
+  if (uploadBytes > 0) {
+    const quota = await checkAttachmentQuota(
+      c.env.RATE_LIMIT,
+      { ip: clientIp, tenant, bytes: uploadBytes },
+      quotaConfigFromEnv(c.env)
+    );
+    if (!quota.allowed) {
+      throw new AttachmentError(
+        "Daily upload limit reached. Please try again later.",
+        "ATTACHMENT_QUOTA_EXCEEDED",
+        413,
+        quota.retryAfter ?? 3600
+      );
+    }
+  }
+
+  const storage = storageFromEnv(c.env, new URL(c.req.url).origin);
+  const stored = storage
+    ? await resolveAttachments(body.messages, storage, tenant)
+    : [];
+  enforceRequestBudget(body.messages, attachmentConfig.maxRequestBytes);
+  return stored;
+}
 
 app.use(
   "/api/*",
@@ -90,35 +304,13 @@ if (serverPlugins.length > 0) {
   app.use("/api/chat", chatPlugins(serverPlugins));
 }
 
-/** Quota tenant: explicit TENANT_ID, else the embedding site's host. */
-function resolveTenant(env: Env, origin: string | undefined): string {
-  if (env.TENANT_ID) return env.TENANT_ID;
-  if (origin) {
-    try {
-      return new URL(origin).host;
-    } catch {
-      // fall through
-    }
-  }
-  return "default";
-}
-
-/** Anthropic rejects malformed media with a 400; duck-type so SDK mocks work. */
-function isUpstreamBadRequest(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { status?: unknown }).status === 400
-  );
-}
-
 app.post("/api/chat", async (c) => {
   const startedAt = Date.now();
   let body: ChatRequest | undefined;
   let telemetry: ChatTelemetry | undefined;
   let statusCode = 200;
   let errorCode: string | undefined;
-  let requestHadAttachments = false;
+  let hadAttachments = false;
 
   try {
     const clientIp =
@@ -126,19 +318,10 @@ app.post("/api/chat", async (c) => {
       c.req.header("x-forwarded-for") ||
       "unknown";
 
-    const rateLimitConfig = {
-      minuteLimit: c.env.RATE_LIMIT_MINUTE
-        ? parseInt(c.env.RATE_LIMIT_MINUTE, 10)
-        : undefined,
-      hourLimit: c.env.RATE_LIMIT_HOUR
-        ? parseInt(c.env.RATE_LIMIT_HOUR, 10)
-        : undefined,
-    };
-
     const rateLimit = await checkRateLimit(
       c.env.RATE_LIMIT,
       clientIp,
-      rateLimitConfig
+      getRateLimitConfig(c.env)
     );
 
     if (!rateLimit.allowed) {
@@ -165,67 +348,15 @@ app.post("/api/chat", async (c) => {
       c.get("chatRequest") ??
       ((await parseChatRequest(c.req.raw)) as ChatRequest);
 
-    let storedAttachments: StoredAttachment[] = [];
-    if (Array.isArray(body?.messages) && hasAttachments(body.messages)) {
-      requestHadAttachments = true;
-      const attachmentConfig = attachmentConfigFromEnv(c.env);
-      if (!attachmentConfig.enabled) {
-        throw new AttachmentError(
-          "Attachments are not enabled on this worker",
-          "ATTACHMENTS_DISABLED",
-          400
-        );
-      }
-      validateAttachments(body.messages, attachmentConfig);
+    hadAttachments =
+      Array.isArray(body?.messages) && hasAttachments(body.messages);
+    const storedAttachments = await prepareAttachments(c, body, clientIp);
 
-      const tenant = resolveTenant(c.env, c.req.header("origin"));
-      const uploadBytes = newUploadBytes(body.messages);
-      if (uploadBytes > attachmentConfig.maxRequestBytes) {
-        throw new AttachmentError(
-          "Attachments on this message exceed the per-request limit",
-          "ATTACHMENT_TOO_LARGE",
-          413
-        );
-      }
-      if (uploadBytes > 0) {
-        const quota = await checkAttachmentQuota(
-          c.env.RATE_LIMIT,
-          { ip: clientIp, tenant, bytes: uploadBytes },
-          quotaConfigFromEnv(c.env)
-        );
-        if (!quota.allowed) {
-          statusCode = 413;
-          errorCode = "ATTACHMENT_QUOTA_EXCEEDED";
-          return c.json<ErrorResponse>(
-            {
-              error: "Daily upload limit reached. Please try again later.",
-              code: errorCode,
-            },
-            {
-              status: 413,
-              headers: { "Retry-After": String(quota.retryAfter ?? 3600) },
-            }
-          );
-        }
-      }
-
-      const storage = storageFromEnv(c.env, new URL(c.req.url).origin);
-      if (storage) {
-        storedAttachments = await resolveAttachments(
-          body.messages,
-          storage,
-          tenant
-        );
-      }
-      enforceRequestBudget(body.messages, attachmentConfig.maxRequestBytes);
-    }
-
-    const chatConfig = {
-      model: c.env.CLAUDE_MODEL,
-      maxTokens: c.env.MAX_TOKENS ? parseInt(c.env.MAX_TOKENS, 10) : undefined,
-    };
-
-    const result = await handleChat(body, c.env.ANTHROPIC_API_KEY, chatConfig);
+    const result = await handleChat(
+      body,
+      c.env.ANTHROPIC_API_KEY,
+      getChatConfig(c.env, body)
+    );
     telemetry = result.telemetry;
     return c.json(
       storedAttachments.length > 0
@@ -233,79 +364,10 @@ app.post("/api/chat", async (c) => {
         : result.response
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-
-    // Attachment problems the client can fix (type, size, count, quota)
-    if (error instanceof AttachmentError) {
-      statusCode = error.status;
-      errorCode = error.code;
-      return c.json<ErrorResponse>(
-        { error: error.message, code: errorCode },
-        error.status
-      );
-    }
-
-    // Client errors (bad input)
-    if (
-      message.includes("required") ||
-      message.includes("Too many") ||
-      message.includes("Invalid message role")
-    ) {
-      statusCode = 400;
-      errorCode = "VALIDATION_ERROR";
-      return c.json<ErrorResponse>({ error: message, code: errorCode }, 400);
-    }
-
-    // Storage misconfiguration or API key issues
-    if (
-      error instanceof AttachmentStorageConfigError ||
-      message.includes("authentication") ||
-      message.includes("api_key")
-    ) {
-      statusCode = 500;
-      errorCode = "CONFIG_ERROR";
-      return c.json<ErrorResponse>(
-        {
-          error: "Service configuration error. Please try again later.",
-          code: errorCode,
-        },
-        500
-      );
-    }
-
-    // Claude rejected the media itself (corrupt file, unsupported PDF, ...)
-    if (requestHadAttachments && isUpstreamBadRequest(error)) {
-      statusCode = 400;
-      errorCode = "ATTACHMENT_INVALID";
-      return c.json<ErrorResponse>(
-        {
-          error: "An attachment could not be processed. Please try another file.",
-          code: errorCode,
-        },
-        400
-      );
-    }
-
-    // Model/API errors
-    if (message.includes("model") || message.includes("overloaded")) {
-      statusCode = 503;
-      errorCode = "SERVICE_ERROR";
-      return c.json<ErrorResponse>(
-        {
-          error: "AI service temporarily unavailable. Please try again.",
-          code: errorCode,
-        },
-        503
-      );
-    }
-
-    // Generic fallback
-    statusCode = 500;
-    errorCode = "UNKNOWN_ERROR";
-    return c.json<ErrorResponse>(
-      { error: "Something went wrong. Please try again.", code: errorCode },
-      500
-    );
+    const classified = classifyChatError(error, hadAttachments);
+    statusCode = classified.status;
+    errorCode = classified.code;
+    return errorResponse(c, classified);
   } finally {
     const lastUserMsg = body?.messages
       ?.slice()
@@ -324,6 +386,146 @@ app.post("/api/chat", async (c) => {
         errorCode,
       })
     );
+  }
+});
+
+// Streaming variant of /api/chat. Emits SSE events:
+//   event: chunk  data: {"text": "..."}        one per model text delta
+//   event: tool   data: {...ToolUseSummary}    one per executed tool call
+//   event: done   data: {"reply": "..."}       full assembled reply, stream end
+//   event: error  data: {"error": ..., "code"} failure after streaming began
+// Failures before the first byte (rate limit, validation, attachments, bad
+// API key, model errors) return plain JSON with the same status codes and
+// shapes as /api/chat, so clients can share error handling and fall back
+// cleanly. Accepts the same JSON or multipart bodies as /api/chat.
+app.post("/api/chat/stream", async (c) => {
+  const startedAt = Date.now();
+  let body: ChatRequest | undefined;
+  let telemetry: ChatTelemetry | undefined;
+  let statusCode = 200;
+  let errorCode: string | undefined;
+  let hadAttachments = false;
+
+  const recordAnalytics = () => {
+    const lastUserMsg = body?.messages
+      ?.slice()
+      .reverse()
+      .find((m) => m.role === "user");
+    c.executionCtx.waitUntil(
+      recordEvent(c.env.ANALYTICS_DB, {
+        conversationId: body?.conversationId,
+        messageCount: body?.messages?.length ?? 0,
+        lastUserMsgLength: lastUserMsg?.content?.length ?? 0,
+        model: telemetry?.model,
+        inputTokens: telemetry?.inputTokens,
+        outputTokens: telemetry?.outputTokens,
+        latencyMs: Date.now() - startedAt,
+        statusCode,
+        errorCode,
+      })
+    );
+  };
+
+  try {
+    const clientIp =
+      c.req.header("cf-connecting-ip") ||
+      c.req.header("x-forwarded-for") ||
+      "unknown";
+
+    // One streaming request consumes one rate-limit slot, exactly like a
+    // non-streaming request: the check runs before the stream opens, and the
+    // connection's lifetime doesn't count extra.
+    const rateLimit = await checkRateLimit(
+      c.env.RATE_LIMIT,
+      clientIp,
+      getRateLimitConfig(c.env)
+    );
+
+    if (!rateLimit.allowed) {
+      const errorMessage =
+        rateLimit.limitType === "minute"
+          ? "Too many requests. Please wait a minute before trying again."
+          : "Hourly limit reached. Please try again later.";
+
+      statusCode = 429;
+      errorCode = "RATE_LIMITED";
+      recordAnalytics();
+      return c.json<ErrorResponse>(
+        { error: errorMessage, code: errorCode, limitType: rateLimit.limitType },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfter) },
+        }
+      );
+    }
+
+    body = (await parseChatRequest(c.req.raw)) as ChatRequest;
+
+    hadAttachments =
+      Array.isArray(body?.messages) && hasAttachments(body.messages);
+    const storedAttachments = await prepareAttachments(c, body, clientIp);
+
+    const stream = streamChat(
+      body,
+      c.env.ANTHROPIC_API_KEY,
+      getChatConfig(c.env, body)
+    );
+
+    // Pull the first event before opening the SSE response: validation and
+    // upstream connection errors surface here as regular JSON error responses
+    // instead of a 200 stream that dies immediately.
+    const first = await stream.next();
+
+    return streamSSE(c, async (sse) => {
+      try {
+        let result = first;
+        while (!result.done) {
+          const event = result.value;
+          if (event.type === "text") {
+            await sse.writeSSE({
+              event: "chunk",
+              data: JSON.stringify({ text: event.text }),
+            });
+          } else if (event.type === "tool") {
+            await sse.writeSSE({
+              event: "tool",
+              data: JSON.stringify(event.toolUse),
+            });
+          } else {
+            telemetry = event.telemetry;
+            await sse.writeSSE({
+              event: "done",
+              data: JSON.stringify({
+                reply: event.reply,
+                ...(event.toolUses ? { toolUses: event.toolUses } : {}),
+                ...(event.sources ? { sources: event.sources } : {}),
+                ...(storedAttachments.length > 0
+                  ? { attachments: storedAttachments }
+                  : {}),
+              }),
+            });
+          }
+          result = await stream.next();
+        }
+      } catch (error) {
+        // The stream broke after bytes were sent; the HTTP status is already
+        // 200, so signal the failure in-band.
+        errorCode = "STREAM_ERROR";
+        const classified = classifyChatError(error, hadAttachments);
+        await sse.writeSSE({
+          event: "error",
+          data: JSON.stringify({ error: classified.error, code: errorCode }),
+        });
+      } finally {
+        recordAnalytics();
+      }
+    });
+  } catch (error) {
+    const classified = classifyChatError(error, hadAttachments);
+    statusCode = classified.status;
+    errorCode = classified.code;
+    recordAnalytics();
+    return errorResponse(c, classified);
   }
 });
 

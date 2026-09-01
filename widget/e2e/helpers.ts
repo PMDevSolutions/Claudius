@@ -10,7 +10,10 @@ import type { Page, Route } from "@playwright/test";
  */
 export interface ApiMockHandle {
   enqueueReply: (reply: string, sources?: unknown) => void;
-  enqueueError: (status: number, body: { error: string; code?: string }) => void;
+  enqueueError: (
+    status: number,
+    body: { error: string; code?: string },
+  ) => void;
   callCount: () => number;
 }
 
@@ -24,6 +27,21 @@ const CORS_HEADERS = {
 export async function mockChatApi(page: Page): Promise<ApiMockHandle> {
   const queue: Array<(route: Route) => Promise<void>> = [];
   let calls = 0;
+
+  // The widget probes the streaming endpoint first; answer 404 so it falls
+  // back to the JSON endpoint these mocks serve. (Streaming behavior itself
+  // is covered by chat-streaming.spec.ts against a real SSE server.)
+  await page.route("**/api/chat/stream", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    await route.fulfill({
+      status: 404,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "no stream endpoint" }),
+    });
+  });
 
   await page.route("**/api/chat", async (route) => {
     if (route.request().method() === "OPTIONS") {

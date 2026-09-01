@@ -1,3 +1,8 @@
+# Normalize line endings to LF, including in Windows working trees, so
+# Prettier (endOfLine: "lf") and git agree in the pre-commit hook even
+# when core.autocrlf is set.
+* text=auto eol=lf
+
 # Language statistics overrides for GitHub Linguist
 # Mark pipeline/build scripts as generated so TypeScript/JavaScript
 # shows as the primary language instead of Shell

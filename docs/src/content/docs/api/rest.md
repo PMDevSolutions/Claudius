@@ -82,6 +82,11 @@ curl https://<worker>/api/chat \
 Stray file parts that match no attachment are rejected. The widget's client
 switches to multipart automatically whenever a message carries inline bytes.
 
+`POST /api/chat/stream` accepts the same JSON or multipart body. Attachment
+errors are returned as plain JSON before the stream opens, and when the R2
+backend stored uploads the `done` event carries the same `attachments` array
+as the non-streaming response below.
+
 ### Response `200`
 
 ```json

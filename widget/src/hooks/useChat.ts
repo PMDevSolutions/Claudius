@@ -1,6 +1,10 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import type { ClaudiusTranslations } from "../i18n";
-import type { ChatAttachment, ChatMessage } from "../api/types";
+import type {
+  ChatAttachment,
+  ChatMessage,
+  StoredAttachment,
+} from "../api/types";
 import { ChatApiClient } from "../api/client";
 import { ChatApiError, DebounceError } from "../api/errors";
 import type { ClaudiusPlugin } from "../plugins/types";
@@ -17,17 +21,29 @@ interface UseChatOptions {
   timeoutMs?: number;
   translations?: ClaudiusTranslations;
   plugins?: readonly ClaudiusPlugin[];
+  /**
+   * Stream replies token-by-token via the Worker's SSE endpoint, falling
+   * back to the non-streaming API when unsupported.
+   * @defaultValue `true`
+   */
+  streaming?: boolean;
 }
 
 interface UseChatReturn {
   messages: ChatMessage[];
   isLoading: boolean;
+  /** True while an assistant reply is actively streaming in. */
+  isStreaming: boolean;
+  /** Id of the assistant message currently receiving streamed tokens. */
+  streamingMessageId: string | null;
   error: string | null;
   canRetry: boolean;
   sendMessage: (
     content: string,
     attachments?: ChatAttachment[],
   ) => Promise<void>;
+  /** Cancels the in-flight stream, keeping any partial reply. */
+  stop: () => void;
   retry: () => Promise<void>;
   clearMessages: () => void;
 }
@@ -74,6 +90,7 @@ export function useChat({
   timeoutMs,
   translations,
   plugins,
+  streaming = true,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
     () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs }),
@@ -86,12 +103,17 @@ export function useChat({
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
 
   const idCounterRef = useRef(initialMessages.length);
   const isLoadingRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(initialMessages);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Hold the latest plugins in a ref so the send callbacks stay stable while
   // always seeing the current array.
@@ -178,28 +200,106 @@ export function useChat({
       setError(null);
       setCanRetry(false);
 
+      // Custom or test clients may predate streamMessage; treat them as
+      // non-streaming rather than failing.
+      const canStream = streaming && typeof client.streamMessage === "function";
+
+      // Set once the first token (or tool call) arrives; the placeholder
+      // assistant message is created lazily so the typing indicator shows
+      // until then.
+      let placeholderId: string | null = null;
+
+      const upsertPlaceholder = (patch: Partial<ChatMessage>) => {
+        if (placeholderId === null) {
+          placeholderId = nextId();
+          setStreamingMessageId(placeholderId);
+          const next: ChatMessage[] = [
+            ...messagesRef.current,
+            { id: placeholderId, role: "assistant", content: "", ...patch },
+          ];
+          messagesRef.current = next;
+          setMessages(next);
+        } else {
+          const id = placeholderId;
+          const next = messagesRef.current.map((m) =>
+            m.id === id ? { ...m, ...patch } : m,
+          );
+          messagesRef.current = next;
+          setMessages(next);
+        }
+      };
+
+      const dropPlaceholder = () => {
+        if (placeholderId === null) return;
+        const id = placeholderId;
+        const next = messagesRef.current.filter((m) => m.id !== id);
+        messagesRef.current = next;
+        setMessages(next);
+      };
+
       try {
-        const data = await client.sendMessage(msgsToSend);
+        let reply: string;
+        let sources: ChatMessage["sources"];
+        let toolUses: ChatMessage["toolUses"];
+        let storedAttachments: StoredAttachment[] | undefined;
+        let aborted = false;
+
+        if (canStream) {
+          const controller = new AbortController();
+          abortControllerRef.current = controller;
+          setIsStreaming(true);
+          const result = await client.streamMessage(msgsToSend, {
+            signal: controller.signal,
+            onChunk: (_text, fullText) =>
+              upsertPlaceholder({ content: fullText }),
+            onToolUse: (_toolUse, allToolUses) =>
+              upsertPlaceholder({ toolUses: [...allToolUses] }),
+          });
+          reply = result.reply;
+          sources = result.sources;
+          toolUses = result.toolUses;
+          storedAttachments = result.attachments;
+          aborted = result.aborted ?? false;
+        } else {
+          const result = await client.sendMessage(msgsToSend);
+          reply = result.reply;
+          sources = result.sources;
+          toolUses = result.toolUses;
+          storedAttachments = result.attachments;
+        }
+
+        // Cancelled before any reply text arrived: drop the send silently
+        // (including a tool-only placeholder with nothing to show).
+        if (aborted && !reply) {
+          dropPlaceholder();
+          return;
+        }
 
         let assistantMessage: ChatMessage = {
-          id: nextId(),
+          id: placeholderId ?? nextId(),
           role: "assistant",
-          content: data.reply,
-          sources: data.sources,
+          content: reply,
+          sources,
+          toolUses,
         };
-        if (pluginsRef.current.length > 0) {
+        // A cancelled reply is intentionally partial; don't hand it to
+        // afterReceive plugins as if it were a complete answer.
+        if (pluginsRef.current.length > 0 && !aborted) {
           assistantMessage = await runAfterReceive(
             pluginsRef.current,
             assistantMessage,
             { messages: msgsToSend, apiUrl },
           );
         }
+        const settled =
+          placeholderId !== null
+            ? messagesRef.current.map((m) =>
+                m.id === assistantMessage.id ? assistantMessage : m,
+              )
+            : [...msgsToSend, assistantMessage];
         // When the worker stored uploads (R2 backend), swap inline bytes for
         // the storage key + signed URL so later turns reference the copy.
-        const withReply = applyStoredAttachments(
-          [...msgsToSend, assistantMessage],
-          data.attachments,
-        );
+        const withReply = applyStoredAttachments(settled, storedAttachments);
         messagesRef.current = withReply;
         setMessages(withReply);
         saveMessages(withReply);
@@ -220,6 +320,23 @@ export function useChat({
             setMessages(rolledBack);
             saveMessages(rolledBack);
           }
+        }
+
+        // The stream broke after partial content rendered: keep the partial
+        // text and surface the error beneath it. No retry button — retrying
+        // would resend the conversation and duplicate the partial reply.
+        if (placeholderId !== null) {
+          saveMessages(messagesRef.current);
+          if (err instanceof ChatApiError) {
+            setError(getErrorMessage(err.code, err.message));
+          } else {
+            setError(
+              translations?.errorConnection ??
+                "Failed to connect. Please try again.",
+            );
+          }
+          setCanRetry(false);
+          return;
         }
 
         // Give plugins a chance to recover with a fallback reply before we
@@ -259,6 +376,9 @@ export function useChat({
       } finally {
         setIsLoading(false);
         isLoadingRef.current = false;
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        abortControllerRef.current = null;
       }
     },
     [
@@ -267,9 +387,14 @@ export function useChat({
       getErrorMessage,
       isRetryableError,
       saveMessages,
+      streaming,
       translations,
     ],
   );
+
+  const stop = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string, attachments?: ChatAttachment[]) => {
@@ -356,9 +481,12 @@ export function useChat({
   return {
     messages,
     isLoading,
+    isStreaming,
+    streamingMessageId,
     error,
     canRetry,
     sendMessage,
+    stop,
     retry,
     clearMessages,
   };

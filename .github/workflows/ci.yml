@@ -54,6 +54,61 @@ jobs:
       - name: Validate package exports (attw + publint)
         run: pnpm check:exports
 
+  bundle-size:
+    name: Bundle size
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          # size-limit v13 needs Node >= 22 (uses node:fs/promises glob)
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: widget/pnpm-lock.yaml
+
+      # On pull requests, size-limit-action builds this branch and the base
+      # branch, fails the job if any budget in widget/.size-limit.json is
+      # exceeded, and posts a PR comment with raw/gzip/brotli sizes and the
+      # diff against the base.
+      - name: Size limit (PR comment + gate)
+        if: github.event_name == 'pull_request'
+        uses: andresz1/size-limit-action@v1.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          package_manager: pnpm
+          directory: widget
+          # The action defaults to `npx size-limit --json`, which installs a
+          # standalone size-limit that can't see the widget's local
+          # @size-limit/file plugin, so run the locally installed binary. The
+          # action also builds the base branch with the same script; fall back
+          # to an empty result set there if that commit predates size-limit
+          # (the action renders missing base entries as "+100%").
+          script: bash -c "if [ -x node_modules/.bin/size-limit ]; then node_modules/.bin/size-limit --json; else echo []; fi"
+
+      # On pushes to main there is no PR to comment on; just enforce budgets.
+      - name: Install dependencies
+        if: github.event_name != 'pull_request'
+        working-directory: widget
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: github.event_name != 'pull_request'
+        working-directory: widget
+        run: pnpm build
+
+      - name: Size limit (gate)
+        if: github.event_name != 'pull_request'
+        working-directory: widget
+        run: pnpm size
+
   worker:
     name: Validate Worker
     runs-on: ubuntu-latest

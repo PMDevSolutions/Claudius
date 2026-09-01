@@ -148,3 +148,45 @@ describe("ChatApiClient with attachments", () => {
     expect(result.attachments?.[0].key).toBe("att/t/u");
   });
 });
+
+describe("ChatApiClient.streamMessage with attachments", () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends the same multipart body to the stream endpoint", async () => {
+    // A non-SSE OK response makes streamMessage resolve via the JSON path.
+    mockFetch.mockResolvedValueOnce(okResponse({ reply: "ok" }));
+    const client = new ChatApiClient(BASE_URL, { debounceMs: 0 });
+    const result = await client.streamMessage([
+      {
+        id: "1",
+        role: "user",
+        content: "",
+        attachments: [
+          {
+            id: "att-1",
+            name: "s.png",
+            mediaType: "image/png",
+            size: 8,
+            data: PNG_B64,
+          },
+        ],
+      },
+    ]);
+
+    expect(result.reply).toBe("ok");
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${BASE_URL}/api/chat/stream`);
+    expect(init.headers).toBeUndefined();
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("att-1")).toBeInstanceOf(Blob);
+  });
+});

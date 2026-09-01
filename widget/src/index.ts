@@ -23,12 +23,15 @@ export type { ChatApiClientOptions } from "./api/client";
 export { ChatApiError, DebounceError } from "./api/errors";
 export type {
   Source,
+  ToolUse,
   ChatMessage,
   ChatAttachment,
   StoredAttachment,
   ChatRequest,
   ChatResponse,
   ChatErrorResponse,
+  ChatStreamOptions,
+  ChatStreamResult,
 } from "./api/types";
 export { DEFAULT_ATTACHMENT_OPTIONS } from "./utils/attachments";
 export type {

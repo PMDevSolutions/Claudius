@@ -1,20 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Mock the Anthropic SDK
+// Mock the Anthropic SDK with a shared spy so tests can assert call arguments
+const createSpy = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    content: [{ type: "text", text: "Hello! How can I help?" }],
+    usage: { input_tokens: 12, output_tokens: 7 },
+  }),
+);
 vi.mock("@anthropic-ai/sdk", () => {
   return {
     default: class MockAnthropic {
-      messages = {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "text", text: "Hello! How can I help?" }],
-          usage: { input_tokens: 12, output_tokens: 7 },
-        }),
-      };
+      messages = { create: createSpy };
     },
   };
 });
 
 import { handleChat, ChatRequest } from "../chat";
+import { SYSTEM_PROMPT } from "../system-prompt";
 
 describe("handleChat", () => {
   it("returns assistant response and telemetry for valid request", async () => {
@@ -37,6 +39,32 @@ describe("handleChat", () => {
 
     await expect(handleChat(request, "test-api-key")).rejects.toThrow(
       "Messages array is required",
+    );
+  });
+
+  it("uses the compiled-in system prompt by default", async () => {
+    const request: ChatRequest = {
+      messages: [{ role: "user", content: "Hi" }],
+    };
+
+    await handleChat(request, "test-api-key");
+
+    expect(createSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ system: SYSTEM_PROMPT }),
+    );
+  });
+
+  it("prefers config.systemPrompt over the compiled-in prompt", async () => {
+    const request: ChatRequest = {
+      messages: [{ role: "user", content: "Hi" }],
+    };
+
+    await handleChat(request, "test-api-key", {
+      systemPrompt: "You are a demo bot.",
+    });
+
+    expect(createSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ system: "You are a demo bot." }),
     );
   });
 

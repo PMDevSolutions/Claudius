@@ -100,3 +100,11 @@ experiments/
 # Taskmaster Files
 .taskmaster/tasks/*.json.bak
 .taskmaster/logs/
+
+# Local pnpm 10+/11 scaffolds (verify-deps / allowBuilds workarounds on dev
+# machines). Never commit these: CI runs pnpm 9, which requires a packages
+# field and fails on them. Each package installs standalone, not as a workspace.
+/pnpm-workspace.yaml
+/widget/pnpm-workspace.yaml
+/worker/pnpm-workspace.yaml
+/docs/pnpm-workspace.yaml

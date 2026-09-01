@@ -3,6 +3,8 @@
 [![npm](https://img.shields.io/npm/v/claudius-chat-widget.svg)](https://www.npmjs.com/package/claudius-chat-widget)
 [![create-claudius](https://img.shields.io/npm/v/create-claudius.svg?label=create-claudius)](https://www.npmjs.com/package/create-claudius)
 [![Storybook](https://img.shields.io/badge/Storybook-live-ff4785?logo=storybook&logoColor=white)](https://claudius-storybook.pages.dev)
+[![Playground](https://img.shields.io/badge/Playground-live-2563eb)](https://claudius-playground.pages.dev)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/claudius-chat-widget?label=bundle%20size)](https://bundlephobia.com/package/claudius-chat-widget)
 [![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
@@ -10,7 +12,9 @@ website with a single script tag, or install it as a React component.
 
 **Full documentation: [claudius-docs.pages.dev](https://claudius-docs.pages.dev)**
 
-> Try it live at [pmds.info](https://pmds.info) or on the
+> Try it live in the [playground](https://claudius-playground.pages.dev) —
+> tweak every prop and copy a ready-made embed snippet — at
+> [pmds.info](https://pmds.info), or on the
 > [docs home page](https://claudius-docs.pages.dev).
 
 ## Quick start

@@ -46,12 +46,20 @@ export type AttachmentErrorCode =
 export class AttachmentError extends Error {
   readonly code: AttachmentErrorCode;
   readonly status: 400 | 413;
+  /** Seconds until the client may retry (quota errors only). */
+  readonly retryAfter?: number;
 
-  constructor(message: string, code: AttachmentErrorCode, status: 400 | 413) {
+  constructor(
+    message: string,
+    code: AttachmentErrorCode,
+    status: 400 | 413,
+    retryAfter?: number
+  ) {
     super(message);
     this.name = "AttachmentError";
     this.code = code;
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 

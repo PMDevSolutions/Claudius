@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/PMDevSolutions/Claudius/compare/v1.13.0...v1.14.0) (2026-08-31)
+
+
+### Features
+
+* pluggable RAG with Cloudflare Vectorize reference implementation ([378c22e](https://github.com/PMDevSolutions/Claudius/commit/378c22e408583f081b45d3d468dad5931d5af574))
+* **scripts:** rag:ingest CLI for chunking and upserting content into Vectorize ([d0baaf1](https://github.com/PMDevSolutions/Claudius/commit/d0baaf1f13c483036911a48b372ac913d99cef92)), closes [#52](https://github.com/PMDevSolutions/Claudius/issues/52)
+* **worker:** pluggable RAG retriever with Vectorize reference implementation ([6f88a46](https://github.com/PMDevSolutions/Claudius/commit/6f88a46d5e95f51a358f584a0063d820438b6895)), closes [#52](https://github.com/PMDevSolutions/Claudius/issues/52)
+
+
+### Bug Fixes
+
+* **ci:** untrack local pnpm-workspace.yaml scaffold that broke worker install ([35ecf82](https://github.com/PMDevSolutions/Claudius/commit/35ecf82b620864fb04d461f3a428115831619b84))
+
+## [1.13.0](https://github.com/PMDevSolutions/Claudius/compare/v1.12.0...v1.13.0) (2026-08-30)
+
+
+### Features
+
+* Anthropic tool use with a declarative tool registry ([ed00f58](https://github.com/PMDevSolutions/Claudius/commit/ed00f58a1e0ea8a6af9df56accce223a22b49ed4))
+* **widget:** render used-tool chips with details disclosure ([5070272](https://github.com/PMDevSolutions/Claudius/commit/50702727f5f188cbbbcde855d9a91e33070fcca2)), closes [#51](https://github.com/PMDevSolutions/Claudius/issues/51)
+* **worker:** declarative tool registry with transparent tool-use round trip ([815b1bf](https://github.com/PMDevSolutions/Claudius/commit/815b1bfc6a4dbe8d8411298042ab462c40a3d9de)), closes [#51](https://github.com/PMDevSolutions/Claudius/issues/51)
+
+## [1.12.0](https://github.com/PMDevSolutions/Claudius/compare/v1.11.0...v1.12.0) (2026-08-30)
+
+
+### Features
+
+* SSE streaming responses with token-by-token rendering ([6ce4a26](https://github.com/PMDevSolutions/Claudius/commit/6ce4a26d9154dec9beb792f6cc96cb7f93c3b99b))
+* **widget:** token-by-token streaming with stop button ([ab0360b](https://github.com/PMDevSolutions/Claudius/commit/ab0360b08994f9b01113c6f25d917dda43aa1648)), closes [#50](https://github.com/PMDevSolutions/Claudius/issues/50)
+* **worker:** SSE streaming endpoint /api/chat/stream ([1e72c7b](https://github.com/PMDevSolutions/Claudius/commit/1e72c7becebce1db2053124abddfe8bab53cc5ee)), closes [#50](https://github.com/PMDevSolutions/Claudius/issues/50)
+
+## [1.11.0](https://github.com/PMDevSolutions/Claudius/compare/v1.10.0...v1.11.0) (2026-08-30)
+
+
+### Features
+
+* **worker:** SYSTEM_PROMPT override + dedicated demo worker for playground/docs ([492140e](https://github.com/PMDevSolutions/Claudius/commit/492140e8b1c252dd70713dc362c50ce25df137cd))
+
+## [1.10.0](https://github.com/PMDevSolutions/Claudius/compare/v1.9.0...v1.10.0) (2026-08-30)
+
+
+### Features
+
+* **playground:** public demo site with live config editor ([89bbc64](https://github.com/PMDevSolutions/Claudius/commit/89bbc64edde25b4a5b95ed9077c25ae87c8affa2))
+* **playground:** public demo site with live config editor ([34282c0](https://github.com/PMDevSolutions/Claudius/commit/34282c0a39b0d005f322e4c76ab9af00306c1029)), closes [#48](https://github.com/PMDevSolutions/Claudius/issues/48)
+* **widget:** enforce bundle-size budgets in CI with size-limit ([0616aec](https://github.com/PMDevSolutions/Claudius/commit/0616aec85c3998a0cd11a180f5c5efc4b8c2d8bc))
+* **widget:** enforce bundle-size budgets in CI with size-limit ([51c6c6b](https://github.com/PMDevSolutions/Claudius/commit/51c6c6b4b0e9ab47f48757d0be20d12133ab1ca2)), closes [#47](https://github.com/PMDevSolutions/Claudius/issues/47)
+
+
+### Bug Fixes
+
+* **ci:** run bundle-size job on Node 22 for size-limit v13 ([ab111fb](https://github.com/PMDevSolutions/Claudius/commit/ab111fb636f1ba1ce2db0afb25b63f6e12f437fe))
+* **ci:** run local size-limit binary in size-limit-action ([44d1a1c](https://github.com/PMDevSolutions/Claudius/commit/44d1a1c51873bce9dfb8a44bfe9706d9ecc6a54d))
+* **ci:** tolerate base branches without size-limit in size job ([57839fa](https://github.com/PMDevSolutions/Claudius/commit/57839faed1b578bcf6e1b50b15c046b590f01a7d))
+
 ## [1.9.0](https://github.com/PMDevSolutions/Claudius/compare/v1.8.2...v1.9.0) (2026-06-19)
 
 

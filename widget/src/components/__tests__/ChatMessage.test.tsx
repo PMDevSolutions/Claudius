@@ -148,4 +148,79 @@ describe("ChatMessage", () => {
       expect(link).toHaveAttribute("href", "https://safe-site.com");
     });
   });
+
+  describe("tool-use affordance", () => {
+    const toolUse = {
+      name: "get_current_time",
+      input: { timezone: "UTC" },
+      result: '{"iso":"2026-01-01T00:00:00Z"}',
+    };
+
+    it("renders a compact chip naming the tool", () => {
+      render(
+        <ChatMessage role="assistant" content="Hi" toolUses={[toolUse]} />,
+      );
+      const chip = screen.getByRole("button", { name: /used tool:/i });
+      expect(chip).toHaveTextContent("get_current_time");
+      expect(chip).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("discloses input and result details on click and collapses again", async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatMessage role="assistant" content="Hi" toolUses={[toolUse]} />,
+      );
+
+      const chip = screen.getByRole("button", { name: /used tool:/i });
+      expect(screen.queryByText(/"timezone": "UTC"/)).not.toBeInTheDocument();
+
+      await user.click(chip);
+      expect(chip).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText(/"timezone": "UTC"/)).toBeInTheDocument();
+      expect(screen.getByText(/2026-01-01T00:00:00Z/)).toBeInTheDocument();
+
+      await user.click(chip);
+      expect(chip).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText(/"timezone": "UTC"/)).not.toBeInTheDocument();
+    });
+
+    it("renders one chip per tool call", () => {
+      render(
+        <ChatMessage
+          role="assistant"
+          content="Hi"
+          toolUses={[toolUse, { name: "submit_lead", isError: true }]}
+        />,
+      );
+      const chips = screen.getAllByRole("button", { name: /used tool:/i });
+      expect(chips).toHaveLength(2);
+      // The failed tool has no details to disclose: its chip is disabled.
+      expect(screen.getByText("submit_lead")).toBeInTheDocument();
+      expect(chips[1]).toBeDisabled();
+    });
+
+    it("hides the empty bubble while only tool calls have arrived", () => {
+      const { container } = render(
+        <ChatMessage
+          role="assistant"
+          content=""
+          isStreaming={true}
+          toolUses={[toolUse]}
+        />,
+      );
+      expect(
+        container.querySelector(".rounded-claudius-bubble"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /used tool:/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not render chips for user messages", () => {
+      render(<ChatMessage role="user" content="Hi" toolUses={[toolUse]} />);
+      expect(
+        screen.queryByRole("button", { name: /used tool:/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

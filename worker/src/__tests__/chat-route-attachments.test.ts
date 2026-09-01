@@ -226,8 +226,11 @@ describe("R2 storage mode", () => {
     expect(download.headers.get("Content-Disposition")).toContain('filename="receipt.png"');
     expect(new Uint8Array(await download.arrayBuffer())).toEqual(PNG);
 
-    // Tampering with the signature is rejected; a bad key 404s.
-    const tampered = stored.url.replace(/sig=\w/, "sig=0");
+    // Tampering with the signature is rejected; a bad key 404s. Flip the
+    // first hex digit so the result always differs from the real signature.
+    const tampered = stored.url.replace(/sig=(\w)/, (_m: string, ch: string) =>
+      `sig=${ch === "0" ? "1" : "0"}`
+    );
     const denied = await app.fetch(new Request(tampered), env, createMockCtx());
     expect(denied.status).toBe(403);
     const missing = await app.fetch(new Request("http://localhost/api/attachments/not-a-key"), env, createMockCtx());
@@ -263,5 +266,72 @@ describe("R2 storage mode", () => {
       createMockCtx()
     );
     expect(res.status).toBe(404);
+  });
+});
+
+describe("POST /api/chat/stream with attachments", () => {
+  // Minimal Anthropic streaming shape: one text block then end_turn.
+  async function* fakeStream() {
+    yield { type: "message_start", message: { usage: { input_tokens: 9 } } };
+    yield { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } };
+    yield { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "A receipt." } };
+    yield { type: "content_block_stop", index: 0 };
+    yield { type: "message_delta", usage: { output_tokens: 3 }, delta: { stop_reason: "end_turn" } };
+  }
+
+  function streamRequest(payload: unknown, files: Array<[string, Uint8Array, string]>) {
+    const form = new FormData();
+    form.append("payload", JSON.stringify(payload));
+    for (const [id, bytes, name] of files) {
+      form.append(id, new Blob([bytes], { type: "image/png" }), name);
+    }
+    return new Request("http://localhost/api/chat/stream", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "1.2.3.4", Origin: "https://site.example" },
+      body: form,
+    });
+  }
+
+  it("accepts multipart uploads and reports stored attachments on the done event", async () => {
+    createMock.mockImplementationOnce(async (params: { stream?: boolean }) =>
+      params.stream ? fakeStream() : { content: [], usage: {} }
+    );
+    const env = baseEnv({
+      ATTACHMENT_STORAGE: "r2",
+      ATTACHMENTS: createMockBucket(),
+      ATTACHMENT_SIGNING_SECRET: "s3cret",
+    });
+
+    const res = await app.fetch(
+      streamRequest(attachedMessage(), [["f1", PNG, "receipt.png"]]),
+      env,
+      createMockCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("text/event-stream");
+
+    const text = await res.text();
+    expect(text).toContain("event: chunk");
+    const doneLine = text
+      .split("\n")
+      .find((line, i, lines) => lines[i - 1]?.trim() === "event: done" && line.startsWith("data:"));
+    const done = JSON.parse(doneLine!.replace(/^data:\s*/, ""));
+    expect(done.reply).toBe("A receipt.");
+    expect(done.attachments).toHaveLength(1);
+    expect(done.attachments[0].key).toMatch(/^att\/site\.example\//);
+
+    // The model saw the image block, not just text.
+    const content = createMock.mock.calls.at(-1)![0].messages[0].content;
+    expect(content[0].type).toBe("image");
+  });
+
+  it("rejects attachment problems as plain JSON before the stream opens", async () => {
+    const res = await app.fetch(
+      streamRequest(attachedMessage(), [["f1", PNG, "receipt.png"]]),
+      baseEnv({ ATTACHMENT_MAX_BYTES: "4" }),
+      createMockCtx()
+    );
+    expect(res.status).toBe(413);
+    expect((await res.json()).code).toBe("ATTACHMENT_TOO_LARGE");
   });
 });

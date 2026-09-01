@@ -26,6 +26,10 @@ const WARNING_THRESHOLD = 1800;
 interface ChatInputProps {
   onSend: (message: string, attachments?: ChatAttachment[]) => void;
   isLoading: boolean;
+  /** True while an assistant reply is streaming; swaps send for a stop button. */
+  isStreaming?: boolean;
+  /** Cancels the in-flight stream. Required for the stop button to render. */
+  onStop?: () => void;
   placeholder?: string;
   translations?: ClaudiusTranslations;
   /**
@@ -43,6 +47,8 @@ function dragHasFiles(e: DragEvent): boolean {
 export function ChatInput({
   onSend,
   isLoading,
+  isStreaming = false,
+  onStop,
   placeholder,
   translations,
   attachments = null,
@@ -62,6 +68,7 @@ export function ChatInput({
   const isAtLimit = charCount >= MAX_MESSAGE_LENGTH;
   const placeholderText = placeholder ?? t.placeholder;
   const canAttachMore = !!attachments && pending.length < attachments.maxCount;
+  const showStop = isStreaming && !!onStop;
 
   useEffect(() => {
     if (!isLoading) {
@@ -268,27 +275,46 @@ export function ChatInput({
           aria-describedby={isNearLimit ? "char-count" : undefined}
           className="min-w-0 flex-1 rounded-claudius-sm border border-claudius-border bg-claudius-field px-3 py-2 text-sm font-body text-claudius-text placeholder:text-claudius-text-muted focus:border-claudius-accent focus:outline-none focus:ring-1 focus:ring-claudius-accent disabled:opacity-50"
         />
-        <button
-          type="submit"
-          disabled={isLoading || isAtLimit}
-          aria-label={t.sendMessage}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-claudius-sm bg-claudius-accent text-claudius-accent-text transition-colors hover:opacity-90 disabled:opacity-50"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+        {showStop ? (
+          <button
+            type="button"
+            onClick={onStop}
+            aria-label={t.stopGenerating}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-claudius-sm bg-claudius-accent text-claudius-accent-text transition-colors hover:opacity-90"
           >
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <rect x="6" y="6" width="12" height="12" rx="1.5" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={isLoading || isAtLimit}
+            aria-label={t.sendMessage}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-claudius-sm bg-claudius-accent text-claudius-accent-text transition-colors hover:opacity-90 disabled:opacity-50"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        )}
       </div>
       {attachmentError && (
         <div role="alert" className="mt-1 text-xs text-claudius-error">

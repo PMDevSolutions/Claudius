@@ -8,6 +8,8 @@ component, or use the standalone script embed on any website.
 
 **Full documentation: [claudius-docs.pages.dev](https://claudius-docs.pages.dev)**
 
+**Live playground: [claudius-playground.pages.dev](https://claudius-playground.pages.dev)** — tweak every prop and copy an embed snippet.
+
 > Claudius is two pieces: a **Cloudflare Worker** that keeps your Anthropic API
 > key server-side, and this **widget**. You point the widget at your deployed
 > worker via `apiUrl`. See the

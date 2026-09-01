@@ -112,14 +112,24 @@ pnpm test             # Run tests
 Manages chat state:
 - `messages` - Array of chat messages
 - `isLoading` - Loading state during API calls
+- `isStreaming` - True while an assistant reply is streaming in
+- `streamingMessageId` - Id of the message currently receiving tokens
 - `error` - Error message if API call fails
 - `sendMessage(text)` - Send a message to the API
+- `stop()` - Cancel the in-flight stream, keeping the partial reply
 - `clearMessages()` - Clear chat history
+
+Streaming is on by default (`streaming: false` disables it); the client
+falls back to the blocking endpoint automatically when the browser or
+Worker can't stream.
 
 ### API Client
 
 `ChatApiClient` in `widget/src/api/client.ts` handles communication with the Worker:
 - Typed requests/responses (`ChatRequest`, `ChatResponse`)
+- SSE streaming via `streamMessage()` (fetch + `ReadableStream`), with
+  automatic fallback to `sendMessage()` on older browsers or Workers
+  without `/api/chat/stream`
 - Retry on 429 (respects `Retry-After`) and 503 (exponential backoff: 1s, 3s)
 - Max 2 retries (3 total attempts)
 - Debounced sends (configurable, default 300ms)
@@ -130,8 +140,38 @@ Manages chat state:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | POST | Send message, get AI response (JSON, or multipart when uploading files) |
+| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`chunk`/`tool`/`done`/`error` events) |
 | `/api/attachments/*` | GET | Serve a stored attachment via signed URL (R2 mode only) |
 | `/api/health` | GET | Health check |
+
+`/api/chat/stream` shares the rate limiter, validation, and error shapes with
+`/api/chat`: failures before the first streamed byte return the same JSON
+error responses (400/429/500/503); failures mid-stream arrive as an in-band
+`error` SSE event.
+
+### Tool Use
+
+Tools live in `worker/src/tools/` (types, registry, reference tools) and are
+registered in `worker/src/tools/index.ts` (`chatTools`). Both chat endpoints
+run the Anthropic tool_use / tool_result round trip transparently (max 5
+rounds, then a forced text answer). Responses carry `toolUses` summaries
+(`{name, input, result, isError?}`); the stream emits `event: tool` between
+chunks. The widget renders a "used tool" chip with a details disclosure.
+Reference tools: `get_current_time` (enabled), `search_knowledge_base` and
+`submit_lead` (stubs — wire before registering). Docs: plugins/tools.md.
+
+### RAG
+
+RAG lives in `worker/src/rag/` (Retriever interface, retrieval pipeline,
+VectorizeRetriever reference implementation) and activates only when the
+`VECTORIZE_INDEX` + `AI` bindings exist (see wrangler.toml). Per request the
+worker retrieves for the latest user message (`RAG_TOP_K`,
+`RAG_SCORE_THRESHOLD`, optional reranker hook in `createRagFromEnv`), appends
+a `RAG_CONTEXT_TEMPLATE` context block to the system prompt, and returns
+deduplicated `sources` (JSON body / SSE done event) that the widget already
+renders. Retrieval failures degrade to ungrounded replies. Ingestion:
+`pnpm rag:ingest ./content --index <name>` (chunking helpers in
+`scripts/lib/rag-ingest.ts`). Docs: rag/index.md.
 
 ### Chat Request/Response
 

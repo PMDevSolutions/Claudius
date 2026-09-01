@@ -1,16 +1,18 @@
 {
   "name": "claudius",
-  "version": "1.9.0",
+  "version": "1.14.0",
   "description": "Embeddable AI chat widget for PMDS and client sites. React component + standalone script embed, powered by Cloudflare Workers and Claude.",
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
     "release:patch": "standard-version --release-as patch",
     "release:dry": "standard-version --dry-run",
     "claudius": "tsx scripts/cli.ts",
+    "rag:ingest": "tsx scripts/rag-ingest.ts",
     "test:scripts": "cd scripts && npx vitest run --config vitest.config.ts"
   },
   "repository": {
@@ -29,6 +31,8 @@
   "author": "PAMulligan",
   "license": "MIT",
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
     "standard-version": "^9.5.0",
     "tsx": "^4.19.0",
     "vitest": "^4.1.0"

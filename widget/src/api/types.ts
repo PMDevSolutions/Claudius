@@ -55,6 +55,21 @@ export interface StoredAttachment {
 }
 
 /**
+ * One tool call the assistant made while producing a reply. Rendered as a
+ * compact "used tool" affordance with an optional details disclosure.
+ */
+export interface ToolUse {
+  /** Tool name (e.g. `"get_current_time"`). */
+  name: string;
+  /** Input the model supplied to the tool. */
+  input?: Record<string, unknown>;
+  /** Serialized tool result, as the model saw it. */
+  result?: string;
+  /** Present when the tool call failed. */
+  isError?: boolean;
+}
+
+/**
  * A single chat message exchanged between the user and the assistant.
  */
 export interface ChatMessage {
@@ -68,6 +83,8 @@ export interface ChatMessage {
   sources?: Source[];
   /** Files attached by the user to this message, when any. */
   attachments?: ChatAttachment[];
+  /** Tools the assistant called while producing this message, when any. */
+  toolUses?: ToolUse[];
 }
 
 /**
@@ -86,8 +103,41 @@ export interface ChatResponse {
   reply: string;
   /** Sources the assistant cited, when any. */
   sources?: Source[];
+  /** Tools the assistant called while producing the reply, when any. */
+  toolUses?: ToolUse[];
   /** Attachments the worker stored while handling this request, when any. */
   attachments?: StoredAttachment[];
+}
+
+/**
+ * Options for {@link ChatApiClient.streamMessage}.
+ */
+export interface ChatStreamOptions {
+  /**
+   * Called once per streamed text delta, as tokens arrive.
+   *
+   * @param text - The incremental text of this chunk.
+   * @param fullText - The full reply accumulated so far, including this chunk.
+   */
+  onChunk?: (text: string, fullText: string) => void;
+  /**
+   * Called when the assistant finishes a tool call mid-stream, so the UI can
+   * show a "used tool" affordance before the reply completes.
+   */
+  onToolUse?: (toolUse: ToolUse, allToolUses: ToolUse[]) => void;
+  /**
+   * Cancels the stream when aborted. Cancellation is not an error: the
+   * promise resolves with the partial reply and `aborted: true`.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Result of a completed or cancelled streaming chat request.
+ */
+export interface ChatStreamResult extends ChatResponse {
+  /** `true` when the caller cancelled the stream before it finished. */
+  aborted?: boolean;
 }
 
 /**
