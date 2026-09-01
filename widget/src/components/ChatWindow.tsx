@@ -10,7 +10,12 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
-import type { ChatMessage as ChatMessageData, Source } from "../api/types";
+import type {
+  ChatAttachment,
+  ChatMessage as ChatMessageData,
+  Source,
+} from "../api/types";
+import type { ResolvedAttachmentsConfig } from "../utils/attachments";
 
 interface ChatWindowProps {
   messages: ChatMessageData[];
@@ -21,7 +26,7 @@ interface ChatWindowProps {
   streamingMessageId?: string | null;
   error: string | null;
   canRetry?: boolean;
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: ChatAttachment[]) => void;
   /** Cancels the in-flight stream (renders the stop button when provided). */
   onStop?: () => void;
   onRetry?: () => void;
@@ -33,6 +38,8 @@ interface ChatWindowProps {
   position?: WidgetPosition;
   translations?: ClaudiusTranslations;
   isMobile?: boolean;
+  /** Attachment limits, or `null` to hide file controls. */
+  attachments?: ResolvedAttachmentsConfig | null;
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -60,6 +67,7 @@ export function ChatWindow({
   position = "bottom-right",
   translations,
   isMobile = false,
+  attachments = null,
 }: ChatWindowProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -169,6 +177,7 @@ export function ChatWindow({
               content={msg.content}
               isStreaming={msg.id === streamingMessageId}
               sources={msg.sources}
+              attachments={msg.attachments}
               toolUses={msg.toolUses}
               toolUsedLabel={translations?.toolUsed}
               toolDetailsLabel={translations?.toolDetails}
@@ -234,6 +243,7 @@ export function ChatWindow({
         onStop={onStop}
         placeholder={placeholder}
         translations={translations}
+        attachments={attachments}
       />
     </div>
   );

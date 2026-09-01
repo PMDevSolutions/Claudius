@@ -39,3 +39,41 @@ describe("embed init via window.ClaudiusConfig", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("embed attachments option", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    document.body.innerHTML = "";
+    window.sessionStorage.clear();
+    window.ClaudiusConfig = undefined;
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    window.ClaudiusConfig = undefined;
+  });
+
+  it("enables the attach button from ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      attachments: true,
+    };
+    await import("../embed");
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    expect(
+      await screen.findByRole("button", { name: /attach a file/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("enables attachments via the web component attribute", async () => {
+    await import("../embed");
+    const el = document.createElement("claudius-chat");
+    el.setAttribute("api-url", "https://test.example/api");
+    el.setAttribute("attachments", "true");
+    document.body.appendChild(el);
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    expect(
+      await screen.findByRole("button", { name: /attach a file/i }),
+    ).toBeInTheDocument();
+  });
+});

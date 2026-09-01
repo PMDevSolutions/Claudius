@@ -35,6 +35,9 @@ claudius/
 │   ├── src/
 │   │   ├── index.ts                 # Hono API routes
 │   │   ├── chat.ts                  # Claude API integration
+│   │   ├── attachments.ts           # Attachment parsing/validation/content blocks
+│   │   ├── attachment-storage.ts    # Passthrough vs R2 storage, signed URLs
+│   │   ├── attachment-quota.ts      # Per-IP / per-tenant daily upload quotas (KV)
 │   │   ├── system-prompt.ts         # Bot personality/knowledge
 │   │   └── __tests__/               # Worker tests
 │   ├── wrangler.toml                # Cloudflare config
@@ -102,6 +105,7 @@ pnpm test             # Run tests
 | `ChatMessage` | Renders individual messages with URL linking |
 | `ChatSources` | Slide-out sidebar displaying grouped source links |
 | `SourceIcon` | Icon button with badge count to trigger source sidebar |
+| `AttachmentPreview` | Image thumbnail / file chip for pending and sent attachments |
 
 ### useChat Hook
 
@@ -135,8 +139,9 @@ Worker can't stream.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/chat` | POST | Send message, get AI response |
-| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`chunk`/`done`/`error` events) |
+| `/api/chat` | POST | Send message, get AI response (JSON, or multipart when uploading files) |
+| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`chunk`/`tool`/`done`/`error` events) |
+| `/api/attachments/*` | GET | Serve a stored attachment via signed URL (R2 mode only) |
 | `/api/health` | GET | Health check |
 
 `/api/chat/stream` shares the rate limiter, validation, and error shapes with
@@ -175,7 +180,14 @@ renders. Retrieval failures degrade to ungrounded replies. Ingestion:
 {
   messages: [
     { role: "user", content: "Hello" },
-    { role: "assistant", content: "Hi there!" }
+    { role: "assistant", content: "Hi there!" },
+    {
+      role: "user",
+      content: "What's on this receipt?",
+      attachments?: [
+        { id: "att-1", name: "receipt.png", mediaType: "image/png", size: 1234, data?: "<base64>", key?: "att/<tenant>/<uuid>" }
+      ]
+    }
   ]
 }
 
@@ -184,9 +196,16 @@ renders. Retrieval failures degrade to ungrounded replies. Ingestion:
   reply: "How can I help you today?",
   sources?: [
     { url: "https://...", title: "...", type: "blog" | "page" | "external" }
-  ]
+  ],
+  attachments?: [ { id: "att-1", key: "att/...", url: "https://.../api/attachments/...?exp=&sig=", expiresAt: "..." } ]
 }
 ```
+
+Attachments (images + PDFs) are opt-in on the widget (`attachments` prop) and on by
+default in the worker in passthrough mode (forward to Anthropic, store nothing).
+Set `ATTACHMENT_STORAGE=r2` plus an `ATTACHMENTS` R2 binding and
+`ATTACHMENT_SIGNING_SECRET` to keep uploads for `ATTACHMENT_RETENTION_HOURS`.
+See `docs/src/content/docs/configuration/attachments.md`.
 
 ## Customization
 
@@ -324,3 +343,6 @@ When finishing a development branch (via the `finishing-a-development-branch` sk
 |----------|-------------|
 | `ANTHROPIC_API_KEY` | Anthropic API key for Claude |
 | `ALLOWED_ORIGIN` | CORS allowed origin (set in wrangler.toml for local dev) |
+| `ATTACHMENTS_ENABLED`, `ATTACHMENT_TYPES`, `ATTACHMENT_MAX_BYTES`, `ATTACHMENT_MAX_COUNT`, `ATTACHMENT_MAX_REQUEST_BYTES` | Attachment acceptance limits (all optional) |
+| `ATTACHMENT_QUOTA_IP_BYTES`, `ATTACHMENT_QUOTA_TENANT_BYTES`, `TENANT_ID` | Daily upload quotas enforced via the `RATE_LIMIT` KV |
+| `ATTACHMENT_STORAGE`, `ATTACHMENT_RETENTION_HOURS`, `ATTACHMENT_SIGNING_SECRET` | `passthrough` (default) or `r2` storage; R2 needs the `ATTACHMENTS` bucket binding and the secret |

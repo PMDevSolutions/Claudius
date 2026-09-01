@@ -18,11 +18,35 @@ ALLOWED_ORIGIN = "http://localhost:5173"
 # RAG_TOP_K = "4"
 # RAG_SCORE_THRESHOLD = "0.5"
 # RAG_CONTEXT_TEMPLATE = "...{context}..."
+#
+# Attachments (images + PDFs on user messages). Enabled by default in
+# "passthrough" mode: files are forwarded to Anthropic and never stored.
+# ATTACHMENTS_ENABLED = "true"
+# ATTACHMENT_TYPES = "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+# ATTACHMENT_MAX_BYTES = "5242880"            # per file (5 MB)
+# ATTACHMENT_MAX_COUNT = "5"                  # per message
+# ATTACHMENT_MAX_REQUEST_BYTES = "20971520"   # forwarded per request (20 MB)
+# ATTACHMENT_QUOTA_IP_BYTES = "52428800"      # per IP per UTC day; 0 disables
+# ATTACHMENT_QUOTA_TENANT_BYTES = "524288000" # per tenant per UTC day; 0 disables
+# TENANT_ID = "acme"                          # quota tenant; defaults to the Origin host
+#
+# Optional R2 storage: keeps uploads for ATTACHMENT_RETENTION_HOURS so later
+# turns reference them by key instead of re-uploading. Requires the
+# [[r2_buckets]] binding below and `wrangler secret put ATTACHMENT_SIGNING_SECRET`.
+# ATTACHMENT_STORAGE = "r2"
+# ATTACHMENT_RETENTION_HOURS = "24"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
 id = "placeholder"
 preview_id = "placeholder"
+
+# R2 bucket for attachment storage (only when ATTACHMENT_STORAGE = "r2").
+# Create with `npx wrangler r2 bucket create claudius-attachments` and add an
+# object lifecycle rule that deletes objects after your retention window.
+# [[r2_buckets]]
+# binding = "ATTACHMENTS"
+# bucket_name = "claudius-attachments"
 
 # D1 database for analytics events. Optional: if omitted, the chat
 # endpoint still works but no events are recorded. See DEPLOY.md for

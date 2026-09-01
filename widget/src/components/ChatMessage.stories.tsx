@@ -59,3 +59,26 @@ export const WithSources: Story = {
     onSourceClick: fn(),
   },
 };
+
+// A user message carrying an image preview and a PDF chip.
+export const WithAttachments: Story = {
+  args: {
+    role: "user",
+    content: "Can you read the total on this receipt?",
+    attachments: [
+      {
+        id: "att-1",
+        name: "receipt.png",
+        mediaType: "image/png",
+        size: 68,
+        data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      },
+      {
+        id: "att-2",
+        name: "invoice-2026-06.pdf",
+        mediaType: "application/pdf",
+        size: 184_320,
+      },
+    ],
+  },
+};

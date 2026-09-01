@@ -23,6 +23,15 @@ export const de: ClaudiusTranslations = {
   // GreetingBubble
   dismissGreeting: "Begrüßung schließen",
 
+  // Attachments
+  attachFile: "Datei anhängen",
+  removeAttachment: "Anhang entfernen",
+  attachmentsLabel: "Anhänge",
+  dropFilesHint: "Dateien hier ablegen, um sie anzuhängen",
+  attachmentTooLarge: "{name} ist zu groß. Die maximale Größe beträgt {max}.",
+  attachmentTypeNotAllowed: "{name} ist kein unterstützter Dateityp.",
+  attachmentTooMany: "Sie können bis zu {max} Dateien pro Nachricht anhängen.",
+
   // Errors
   errorGeneric: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   errorConnection: "Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.",
@@ -31,5 +40,9 @@ export const de: ClaudiusTranslations = {
   errorRateLimitMinute: "Zu viele Anfragen. Bitte warten Sie eine Minute.",
   errorRateLimitHour:
     "Stündliches Limit erreicht. Bitte versuchen Sie es später erneut.",
+  errorAttachmentRejected:
+    "Ein Anhang wurde abgelehnt. Bitte entfernen Sie ihn und versuchen Sie es erneut.",
+  errorAttachmentQuota:
+    "Upload-Limit erreicht. Bitte versuchen Sie es später erneut.",
   errorRetry: "Erneut versuchen",
 };

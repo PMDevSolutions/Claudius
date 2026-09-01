@@ -3,6 +3,12 @@ import { resolve } from "node:path";
 
 // --- Types ---
 
+export interface WidgetAttachmentsConfig {
+  maxSizeBytes?: number;
+  maxCount?: number;
+  allowedTypes?: string[];
+}
+
 export interface WidgetConfig {
   title?: string;
   subtitle?: string;
@@ -11,6 +17,19 @@ export interface WidgetConfig {
   theme?: "light" | "dark" | "auto";
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   accentColor?: string;
+  attachments?: boolean | WidgetAttachmentsConfig;
+}
+
+export interface WorkerAttachmentsConfig {
+  enabled?: boolean;
+  maxBytes?: number;
+  maxCount?: number;
+  maxRequestBytes?: number;
+  allowedTypes?: string[];
+  storage?: "passthrough" | "r2";
+  retentionHours?: number;
+  quotaIpBytesPerDay?: number;
+  quotaTenantBytesPerDay?: number;
 }
 
 export interface WorkerConfig {
@@ -19,6 +38,7 @@ export interface WorkerConfig {
   rateLimitMinute?: number;
   rateLimitHour?: number;
   systemPrompt?: string;
+  attachments?: WorkerAttachmentsConfig;
 }
 
 export interface ClientConfig {
@@ -47,6 +67,66 @@ const VALID_POSITIONS = [
   "top-right",
   "top-left",
 ] as const;
+const VALID_STORAGE = ["passthrough", "r2"] as const;
+
+function isPositiveInt(value: unknown): boolean {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1;
+}
+
+function isNonNegativeInt(value: unknown): boolean {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isStringList(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((v) => typeof v === "string" && v.trim() !== "")
+  );
+}
+
+function validateAttachmentLimits(
+  obj: Record<string, unknown>,
+  prefix: string,
+  errors: ValidationError[],
+  fields: Record<string, "positive" | "nonNegative" | "types" | "boolean" | "storage">,
+): void {
+  for (const [key, kind] of Object.entries(fields)) {
+    const value = obj[key];
+    if (value === undefined) continue;
+    const field = `${prefix}.${key}`;
+    switch (kind) {
+      case "positive":
+        if (!isPositiveInt(value)) {
+          errors.push({ field, message: `${field} must be a positive integer` });
+        }
+        break;
+      case "nonNegative":
+        if (!isNonNegativeInt(value)) {
+          errors.push({ field, message: `${field} must be an integer >= 0 (0 disables)` });
+        }
+        break;
+      case "types":
+        if (!isStringList(value)) {
+          errors.push({ field, message: `${field} must be a non-empty array of MIME types` });
+        }
+        break;
+      case "boolean":
+        if (typeof value !== "boolean") {
+          errors.push({ field, message: `${field} must be a boolean` });
+        }
+        break;
+      case "storage":
+        if (!(VALID_STORAGE as readonly string[]).includes(value as string)) {
+          errors.push({
+            field,
+            message: `${field} must be one of: ${VALID_STORAGE.join(", ")}`,
+          });
+        }
+        break;
+    }
+  }
+}
 
 // --- Validation ---
 
@@ -128,6 +208,51 @@ export function validateConfig(
         errors.push({
           field: "widget.accentColor",
           message: "widget.accentColor must match pattern #RRGGBB (6-digit hex color)",
+        });
+      }
+    }
+
+    if (widget.attachments !== undefined) {
+      const att = widget.attachments;
+      if (typeof att === "boolean") {
+        // fine
+      } else if (att && typeof att === "object" && !Array.isArray(att)) {
+        validateAttachmentLimits(att as Record<string, unknown>, "widget.attachments", errors, {
+          maxSizeBytes: "positive",
+          maxCount: "positive",
+          allowedTypes: "types",
+        });
+      } else {
+        errors.push({
+          field: "widget.attachments",
+          message: "widget.attachments must be a boolean or an object",
+        });
+      }
+    }
+  }
+
+  // worker (optional)
+  if (config.worker !== undefined) {
+    const worker = config.worker as Record<string, unknown>;
+
+    if (worker.attachments !== undefined) {
+      const att = worker.attachments;
+      if (att && typeof att === "object" && !Array.isArray(att)) {
+        validateAttachmentLimits(att as Record<string, unknown>, "worker.attachments", errors, {
+          enabled: "boolean",
+          maxBytes: "positive",
+          maxCount: "positive",
+          maxRequestBytes: "positive",
+          allowedTypes: "types",
+          storage: "storage",
+          retentionHours: "positive",
+          quotaIpBytesPerDay: "nonNegative",
+          quotaTenantBytesPerDay: "nonNegative",
+        });
+      } else {
+        errors.push({
+          field: "worker.attachments",
+          message: "worker.attachments must be an object",
         });
       }
     }

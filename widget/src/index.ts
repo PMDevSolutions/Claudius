@@ -25,12 +25,19 @@ export type {
   Source,
   ToolUse,
   ChatMessage,
+  ChatAttachment,
+  StoredAttachment,
   ChatRequest,
   ChatResponse,
   ChatErrorResponse,
   ChatStreamOptions,
   ChatStreamResult,
 } from "./api/types";
+export { DEFAULT_ATTACHMENT_OPTIONS } from "./utils/attachments";
+export type {
+  AttachmentsOptions,
+  ResolvedAttachmentsConfig,
+} from "./utils/attachments";
 
 // Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three
 // reference plugins.

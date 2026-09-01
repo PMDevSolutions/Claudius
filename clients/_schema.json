@@ -43,7 +43,26 @@
           "type": "string",
           "enum": ["bottom-right", "bottom-left", "top-right", "top-left"]
         },
-        "accentColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+        "accentColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "attachments": {
+          "description": "Let visitors attach images and PDFs. true enables the defaults (5 MB, 5 files per message).",
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "maxSizeBytes": { "type": "integer", "minimum": 1 },
+                "maxCount": { "type": "integer", "minimum": 1 },
+                "allowedTypes": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "worker": {
@@ -57,6 +76,26 @@
         "systemPrompt": {
           "type": "string",
           "description": "Relative path to a markdown file containing the system prompt"
+        },
+        "attachments": {
+          "type": "object",
+          "description": "Worker-side attachment settings; map to the ATTACHMENT_* variables",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "maxBytes": { "type": "integer", "minimum": 1 },
+            "maxCount": { "type": "integer", "minimum": 1 },
+            "maxRequestBytes": { "type": "integer", "minimum": 1 },
+            "allowedTypes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "storage": { "type": "string", "enum": ["passthrough", "r2"] },
+            "retentionHours": { "type": "integer", "minimum": 1 },
+            "quotaIpBytesPerDay": { "type": "integer", "minimum": 0 },
+            "quotaTenantBytesPerDay": { "type": "integer", "minimum": 0 }
+          }
         }
       }
     }

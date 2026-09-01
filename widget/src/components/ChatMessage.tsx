@@ -1,6 +1,7 @@
 import { memo, useState, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
-import type { Source, ToolUse } from "../api/types";
+import { AttachmentPreview } from "./AttachmentPreview";
+import type { ChatAttachment, Source, ToolUse } from "../api/types";
 import { sanitizeUrl } from "../utils/sanitize";
 import { stabilizeStreamingMarkdown } from "../utils/stabilizeStreamingMarkdown";
 
@@ -14,6 +15,8 @@ interface ChatMessageProps {
    */
   isStreaming?: boolean;
   sources?: Source[];
+  /** Files the user attached to this message; rendered inside the bubble. */
+  attachments?: ChatAttachment[];
   /** Tools the assistant called for this message; rendered as compact chips. */
   toolUses?: ToolUse[];
   /** Label prefix for the tool affordance (e.g. "Used tool:"). */
@@ -195,6 +198,7 @@ export const ChatMessage = memo(function ChatMessage({
   content,
   isStreaming = false,
   sources,
+  attachments,
   toolUses,
   toolUsedLabel = "Used tool:",
   toolDetailsLabel = "Tool details",
@@ -202,6 +206,7 @@ export const ChatMessage = memo(function ChatMessage({
   isSourceActive,
 }: ChatMessageProps) {
   const isUser = role === "user";
+  const hasAttachments = !!attachments && attachments.length > 0;
   const displayContent = isStreaming
     ? stabilizeStreamingMarkdown(content)
     : content;
@@ -219,7 +224,20 @@ export const ChatMessage = memo(function ChatMessage({
               : "bg-claudius-assistant-bubble text-claudius-assistant-bubble-text rounded-bl-claudius-tail"
           }`}
         >
-          {renderFormattedContent(displayContent)}
+          {hasAttachments && (
+            <ul
+              className={`flex flex-wrap gap-2 ${content ? "mb-2" : ""}`}
+              aria-label="Attachments"
+            >
+              {attachments.map((att) => (
+                <li key={att.id}>
+                  <AttachmentPreview attachment={att} variant="message" />
+                </li>
+              ))}
+            </ul>
+          )}
+          {(content !== "" || !hasAttachments) &&
+            renderFormattedContent(displayContent)}
         </div>
       )}
       {!isUser && toolUses && toolUses.length > 0 && (

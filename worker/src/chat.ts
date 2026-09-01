@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./system-prompt";
+import { attachmentToBlock, type AttachmentRef } from "./attachments";
+import type { StoredAttachment } from "./attachment-storage";
 import { toAnthropicTools, executeTool } from "./tools";
 import type { ClaudiusTool, ToolContext, ToolUseSummary } from "./tools";
 import {
@@ -12,6 +14,8 @@ import type { RagConfig, ChatSource } from "./rag";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Files attached to a user message. See `attachments.ts`. */
+  attachments?: AttachmentRef[];
 }
 
 export interface ChatRequest {
@@ -25,6 +29,8 @@ export interface ChatResponse {
   toolUses?: ToolUseSummary[];
   /** Source links for retrieved documents the reply was grounded in. */
   sources?: ChatSource[];
+  /** Storage metadata for attachments persisted by this request (R2 mode). */
+  attachments?: StoredAttachment[];
 }
 
 export interface ChatTelemetry {
@@ -77,6 +83,35 @@ const DEFAULT_MAX_TOKENS = 1024;
 // allowed round the request is sent with tool_choice "none", forcing a
 // text answer instead of an unbounded tool loop.
 const MAX_TOOL_ROUNDS = 5;
+
+/**
+ * Convert a sanitized message into the SDK's `content` shape. Plain-text
+ * messages stay strings (unchanged wire format); messages with attachments
+ * become a block array with the files first and the text last, which is the
+ * ordering Anthropic recommends for vision and document prompts.
+ */
+function toContent(
+  message: ChatMessage
+): string | Anthropic.Messages.ContentBlockParam[] {
+  const attachments = message.attachments ?? [];
+  if (message.role !== "user" || attachments.length === 0) {
+    return message.content;
+  }
+  const blocks: Anthropic.Messages.ContentBlockParam[] = attachments.map(
+    (att) => attachmentToBlock(att) as Anthropic.Messages.ContentBlockParam
+  );
+  if (message.content) {
+    blocks.push({ type: "text", text: message.content });
+  }
+  return blocks;
+}
+
+/** Sanitized messages → SDK message params (attachments become blocks). */
+function toConversation(
+  messages: readonly ChatMessage[]
+): Anthropic.Messages.MessageParam[] {
+  return messages.map((msg) => ({ role: msg.role, content: toContent(msg) }));
+}
 
 /**
  * Retrieves grounding context for the latest user message and renders it
@@ -133,7 +168,11 @@ async function executeToolBlocks(
   return { results, summaries };
 }
 
-/** Validates the request shape and returns role-checked, length-capped messages. */
+/**
+ * Validates the request shape and returns role-checked, length-capped
+ * messages. Attachments are kept on user messages only; a message must carry
+ * text, attachments, or both.
+ */
 function validateMessages(request: ChatRequest): ChatMessage[] {
   if (!request.messages || request.messages.length === 0) {
     throw new Error("Messages array is required");
@@ -148,10 +187,20 @@ function validateMessages(request: ChatRequest): ChatMessage[] {
     if (!validRoles.has(msg.role)) {
       throw new Error("Invalid message role");
     }
-    return {
-      role: msg.role,
-      content: msg.content.slice(0, MAX_MESSAGE_LENGTH).trim(),
-    };
+    const content =
+      typeof msg.content === "string"
+        ? msg.content.slice(0, MAX_MESSAGE_LENGTH).trim()
+        : "";
+    const attachments =
+      msg.role === "user" && msg.attachments && msg.attachments.length > 0
+        ? msg.attachments
+        : undefined;
+    if (!content && !attachments) {
+      throw new Error("Message content is required");
+    }
+    return attachments
+      ? { role: msg.role, content, attachments }
+      : { role: msg.role, content };
   });
 }
 
@@ -168,9 +217,7 @@ export async function handleChat(
   const anthropicTools = tools.length > 0 ? toAnthropicTools(tools) : undefined;
   const toolCtx = config.toolContext ?? {};
 
-  const conversation: Anthropic.Messages.MessageParam[] = [
-    ...sanitizedMessages,
-  ];
+  const conversation = toConversation(sanitizedMessages);
   const rag = await prepareRag(config, sanitizedMessages);
   const system = (config.systemPrompt ?? SYSTEM_PROMPT) + rag.systemSuffix;
   const toolUses: ToolUseSummary[] = [];
@@ -263,9 +310,7 @@ export async function* streamChat(
   const anthropicTools = tools.length > 0 ? toAnthropicTools(tools) : undefined;
   const toolCtx = config.toolContext ?? {};
 
-  const conversation: Anthropic.Messages.MessageParam[] = [
-    ...sanitizedMessages,
-  ];
+  const conversation = toConversation(sanitizedMessages);
   const rag = await prepareRag(config, sanitizedMessages);
   const system = (config.systemPrompt ?? SYSTEM_PROMPT) + rag.systemSuffix;
   const toolUses: ToolUseSummary[] = [];

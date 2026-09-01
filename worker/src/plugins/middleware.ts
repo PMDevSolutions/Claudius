@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import type { ChatRequest, ChatResponse } from "../chat";
+import { parseChatRequest } from "../attachments";
 import type { ClaudiusServerPlugin, ServerPluginContext } from "./types";
 import {
   runServerBeforeSend,
@@ -18,7 +19,7 @@ function asError(value: unknown): Error {
  * Hono middleware that runs a list of {@link ClaudiusServerPlugin}s around the
  * chat route — the server-side equivalent of the widget's `plugins` prop.
  *
- * It parses the JSON body, runs `onBeforeSend` (which may transform the
+ * It parses the body (JSON or multipart with attachments), runs `onBeforeSend` (which may transform the
  * messages or short-circuit with `respondWith`), stashes the transformed
  * request under `c.get("chatRequest")` for the route handler, then runs
  * `onAfterReceive` over the reply in a successful JSON response.
@@ -42,9 +43,9 @@ export function chatPlugins(
 
     let body: ChatRequest;
     try {
-      body = await c.req.json<ChatRequest>();
+      body = (await parseChatRequest(c.req.raw)) as ChatRequest;
     } catch {
-      // Not a JSON body we can introspect; let the route handle it as usual.
+      // Not a body we can introspect; let the route handle it as usual.
       return next();
     }
 

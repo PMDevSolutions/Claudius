@@ -24,7 +24,7 @@ export function generateScriptSnippet(
   config: ClientConfig,
   scriptUrl: string,
 ): string {
-  const configObj: Record<string, string> = { apiUrl: config.apiUrl };
+  const configObj: Record<string, unknown> = { apiUrl: config.apiUrl };
 
   if (config.widget) {
     for (const field of WIDGET_FIELDS) {
@@ -32,6 +32,10 @@ export function generateScriptSnippet(
       if (value !== undefined) {
         configObj[field] = value;
       }
+    }
+    // `true` or a limits object both pass straight through to ClaudiusConfig.
+    if (config.widget.attachments !== undefined && config.widget.attachments !== false) {
+      configObj.attachments = config.widget.attachments;
     }
   }
 
@@ -66,6 +70,11 @@ export function generateWebComponentSnippet(
       if (value !== undefined) {
         attrs.push([toKebab(field), value]);
       }
+    }
+    // The attribute form only toggles the defaults; custom limits need the
+    // script snippet (ClaudiusConfig) or the React prop.
+    if (config.widget.attachments !== undefined && config.widget.attachments !== false) {
+      attrs.push(["attachments", "true"]);
     }
   }
 

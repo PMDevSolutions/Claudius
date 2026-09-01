@@ -5,6 +5,9 @@ import { en } from "./locales/en";
  * Every user-facing string the widget renders. Pass a {@link ClaudiusTranslations}
  * (or a partial override) to localize the UI. English is the source of truth;
  * see {@link defaultTranslations}.
+ *
+ * Strings containing `{name}` / `{max}` placeholders are interpolated at
+ * render time.
  */
 export interface ClaudiusTranslations {
   /** Chat window header title. */
@@ -35,6 +38,20 @@ export interface ClaudiusTranslations {
   openChat: string;
   /** Accessible label for dismissing the greeting bubble. */
   dismissGreeting: string;
+  /** Accessible label for the attach-file button and file picker. */
+  attachFile: string;
+  /** Accessible label prefix for removing a pending attachment (filename is appended). */
+  removeAttachment: string;
+  /** Accessible label for the list of pending attachments. */
+  attachmentsLabel: string;
+  /** Overlay hint shown while dragging files over the composer. */
+  dropFilesHint: string;
+  /** Validation message for an oversized file; supports `{name}` and `{max}`. */
+  attachmentTooLarge: string;
+  /** Validation message for a disallowed file type; supports `{name}`. */
+  attachmentTypeNotAllowed: string;
+  /** Validation message when the per-message file limit is hit; supports `{max}`. */
+  attachmentTooMany: string;
   /** Generic fallback error message. */
   errorGeneric: string;
   /** Error shown when the network request fails. */
@@ -45,6 +62,10 @@ export interface ClaudiusTranslations {
   errorRateLimitMinute: string;
   /** Error shown when rate-limited (per-hour limit). */
   errorRateLimitHour: string;
+  /** Error shown when the worker rejects an attachment (type, size, count, or content). */
+  errorAttachmentRejected: string;
+  /** Error shown when the worker's daily upload quota is exhausted. */
+  errorAttachmentQuota: string;
   /** Label for the retry action on a failed message. */
   errorRetry: string;
 }

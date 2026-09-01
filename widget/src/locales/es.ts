@@ -23,11 +23,23 @@ export const es: ClaudiusTranslations = {
   // GreetingBubble
   dismissGreeting: "Descartar saludo",
 
+  // Attachments
+  attachFile: "Adjuntar un archivo",
+  removeAttachment: "Quitar adjunto",
+  attachmentsLabel: "Adjuntos",
+  dropFilesHint: "Suelta los archivos para adjuntarlos",
+  attachmentTooLarge: "{name} es demasiado grande. El tamaño máximo es {max}.",
+  attachmentTypeNotAllowed: "{name} no es un tipo de archivo compatible.",
+  attachmentTooMany: "Puedes adjuntar hasta {max} archivos por mensaje.",
+
   // Errors
   errorGeneric: "Algo salió mal. Inténtalo de nuevo.",
   errorConnection: "No se pudo conectar. Inténtalo de nuevo.",
   errorTimeout: "La solicitud tardó demasiado. Inténtalo de nuevo.",
   errorRateLimitMinute: "Demasiadas solicitudes. Espera un minuto.",
   errorRateLimitHour: "Has alcanzado el límite por hora. Inténtalo más tarde.",
+  errorAttachmentRejected:
+    "Se rechazó un adjunto. Quítalo e inténtalo de nuevo.",
+  errorAttachmentQuota: "Límite de subida alcanzado. Inténtalo más tarde.",
   errorRetry: "Reintentar",
 };
