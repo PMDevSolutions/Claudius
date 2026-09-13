@@ -226,26 +226,43 @@ history, not plans**.
 
 ### Publishing to npm
 
-The same release also **publishes the widget to npm** as
-[`claudius-chat-widget`](https://www.npmjs.com/package/claudius-chat-widget). The
-publish step in `.github/workflows/release-please.yml` runs only when a release is
-cut, builds the dual ESM/CJS package, and authenticates with an `NPM_TOKEN`
-repository secret (publishing with provenance):
+The same release also **publishes two packages to npm**:
+[`claudius-chat-widget`](https://www.npmjs.com/package/claudius-chat-widget) and
+[`create-claudius`](https://www.npmjs.com/package/create-claudius). The publish
+steps in `.github/workflows/release-please.yml` run only when a release is cut,
+build each package (the widget as a dual ESM/CJS bundle), and run
+`npm publish --provenance`.
 
-- Create an **Automation** access token — or a **granular** token scoped to
-  publish `claudius-chat-widget` — at npmjs.com → *Access Tokens*.
-- Store it as a repository Actions secret:
+Authentication is **tokenless**, via
+[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC).
+There is no `NPM_TOKEN` secret and nothing to rotate:
 
-  ```bash
-  gh secret set NPM_TOKEN --repo PMDevSolutions/Claudius
-  ```
+- Each package has a trusted publisher configured on npmjs.com (package
+  *Settings*), bound to the repository `PMDevSolutions/Claudius` **and** the
+  workflow filename `release-please.yml`.
+- The workflow's `id-token: write` permission lets npm exchange a GitHub OIDC
+  token for a short-lived publish token, and provenance is attached
+  automatically.
+- OIDC needs npm >= 11.5.1, which is newer than the npm bundled with Node 22,
+  so the workflow upgrades npm and asserts the version before publishing.
 
-The very first version must be published manually once, because release-please
-only triggers the publish step on a *new* release after the workflow is wired up:
+Because the binding is keyed on the workflow **filename**:
+
+- Renaming `release-please.yml` breaks publishing until each package's trusted
+  publisher on npmjs.com is updated to the new filename.
+- `.github/workflows/publish-npm.yml` is a manual (`workflow_dispatch`) fallback
+  for re-publishing after a failed release publish. npm allows one trusted
+  publisher per package, so to use it, temporarily repoint the package's trusted
+  publisher to `publish-npm.yml`, dispatch the workflow, then point it back at
+  `release-please.yml`.
+
+A **brand-new package** cannot use OIDC for its first publish. Publish it once
+from a machine you are logged in on, then configure its trusted publisher on
+npmjs.com:
 
 ```bash
 npm login
-cd widget && pnpm build && npm publish --access public
+cd <package> && pnpm build && npm publish --access public
 ```
 
 (`--provenance` is omitted for the local manual publish; it requires the OIDC
