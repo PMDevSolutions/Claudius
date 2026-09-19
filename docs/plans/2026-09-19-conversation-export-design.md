@@ -333,9 +333,13 @@ Serialization never throws on message content.
   the trigger, and items are `role="menuitem"` buttons with `tabindex="-1"`.
 - Keys on the trigger: Enter, Space, and ArrowDown open the menu on its first
   item; ArrowUp opens it on its last. In the menu: ArrowDown and ArrowUp wrap,
-  Home and End jump, Enter and Space activate, Escape closes and returns focus
-  to the trigger, Tab closes and lets focus move on. A pointer press outside
-  closes it.
+  Home and End jump, Enter and Space activate, and Escape closes and returns
+  focus to the trigger. Tab is left to the browser, and the menu closes as
+  focus leaves it; closing on the keystroke instead would unmount the focused
+  item before the browser had moved on from it. Shift+Tab closes the menu and
+  returns to the trigger, where it would land anyway. A pointer press outside
+  closes it too, which a blur handler alone would miss in Safari, since Safari
+  does not focus a button when it is clicked.
 - **Escape closes only the menu.** The menu's handler calls `preventDefault()`
   and `stopPropagation()`, and the chat's document-level listener (fact 6)
   now also ignores events that are already `defaultPrevented`. With React 18
@@ -360,7 +364,8 @@ Twelve keys, translated in en, es, fr, and de (the parity test enforces it):
 `transcriptAttachments`, `transcriptSources`.
 
 The transcript is written in the widget's language, because the visitor is
-the one who reads it first.
+the one who reads it first. The two list labels carry their own colon, as the
+existing `toolUsed` string does, because French puts a space before it.
 
 ## Testing
 
