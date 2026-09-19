@@ -288,8 +288,10 @@ export function ChatWindow({
         translations={translations}
         attachments={attachments}
         voice={voice}
-        // The mic would otherwise transcribe the widget's own voice.
+        // The mic would otherwise transcribe the widget's own voice, so each
+        // of the two ends the other.
         onVoiceStart={reader.cancel}
+        isReadingAloud={reader.activeId !== null}
       />
     </div>
   );

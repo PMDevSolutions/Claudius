@@ -12,8 +12,12 @@ export function stripAnnouncementFormatting(content: string): string {
     .replace(BOLD, "$1")
     .replace(ITALIC, "$1")
     .replace(URL_PATTERN, (match) => {
+      // Punctuation that ends the sentence is not part of the link. Keep it,
+      // or "see example.com/pricing. Then..." loses its sentence break.
+      const trailing = match.match(/[.,;:!?'"]+$/)?.[0] ?? "";
+      const url = trailing ? match.slice(0, -trailing.length) : match;
       try {
-        return new URL(match).hostname;
+        return new URL(url).hostname + trailing;
       } catch {
         return match;
       }

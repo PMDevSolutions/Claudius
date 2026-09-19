@@ -49,9 +49,19 @@ export function useSpeechSynthesis(lang: string): UseSpeechSynthesisResult {
     setIsPaused(false);
   }, []);
 
+  // `speechSynthesis` is one global, shared with the host page and with any
+  // other widget on it. Only ever cancel speech this reader started: a reader
+  // that never spoke (voice switched off, say) must not silence the page when
+  // the chat closes.
   const cancel = useCallback(() => {
+    const ownsPlayback = utterancesRef.current.length > 0;
     reset();
-    getSpeechSynthesis()?.cancel();
+    const synth = getSpeechSynthesis();
+    if (!ownsPlayback || !synth) return;
+    synth.cancel();
+    // Per the spec cancel() leaves a paused engine paused, and the next reply
+    // would then queue in silence.
+    if (synth.paused) synth.resume();
   }, [reset]);
 
   const speak = useCallback(
@@ -63,6 +73,7 @@ export function useSpeechSynthesis(lang: string): UseSpeechSynthesisResult {
       // an earlier cutoff. An idle engine is left alone: in some browsers a
       // cancel() immediately before speak() swallows the new utterance.
       if (synth.speaking || synth.pending) synth.cancel();
+      if (synth.paused) synth.resume();
 
       const chunks = chunkSpeechText(text);
       if (chunks.length === 0) return;
@@ -73,8 +84,23 @@ export function useSpeechSynthesis(lang: string): UseSpeechSynthesisResult {
       utterancesRef.current = chunks.map((chunk, index) => {
         const utterance = new SpeechSynthesisUtterance(chunk);
         utterance.lang = lang;
-        utterance.onerror = () => {
-          if (isCurrent()) cancel();
+        utterance.onerror = (event) => {
+          if (!isCurrent()) return;
+          // "interrupted" / "canceled" with no pause of ours pending means
+          // someone else cancelled the engine: another widget, or the host
+          // page. The queue is theirs now, so forget ours and leave the engine
+          // alone. Cancelling again here would kill their speech.
+          const takenOver =
+            (event.error === "interrupted" || event.error === "canceled") &&
+            !pauseRequestedRef.current;
+          if (takenOver) reset();
+          else cancel();
+        };
+        utterance.onpause = () => {
+          if (isCurrent()) setIsPaused(true);
+        };
+        utterance.onresume = () => {
+          if (isCurrent()) setIsPaused(false);
         };
         utterance.onend = () => {
           if (!isCurrent()) return;
@@ -97,7 +123,10 @@ export function useSpeechSynthesis(lang: string): UseSpeechSynthesisResult {
     if (!synth) return;
     pauseRequestedRef.current = true;
     synth.pause();
-    setIsPaused(synth.paused);
+    // Firefox flips `paused` synchronously. Chrome and Safari flip it only
+    // once the engine confirms, which arrives as the utterance's `pause`
+    // event, handled above.
+    if (synth.paused) setIsPaused(true);
   }, []);
 
   const resume = useCallback(() => {

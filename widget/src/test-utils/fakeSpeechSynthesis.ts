@@ -37,10 +37,17 @@ export class FakeSpeechSynthesis {
   queue: FakeSpeechSynthesisUtterance[] = [];
   cancelCalls = 0;
   /**
-   * `"end-utterance"` reproduces Android, where `pause()` ends the current
-   * utterance instead of pausing it and never sets `paused`.
+   * How `pause()` behaves, which differs by browser:
+   * - `"async"` (the default; Chrome and Safari): nothing changes until the
+   *   engine confirms. The test plays the engine with `confirmPause()`, which
+   *   sets `paused` and fires the utterance's `pause` event.
+   * - `"sync"` (Firefox): `paused` is set immediately.
+   * - `"end-utterance"` / `"error-utterance"` (Android): `pause()` ends the
+   *   current utterance instead, by `end` or by `error`, and never sets
+   *   `paused`.
    */
-  pauseBehavior: "pause" | "end-utterance" = "pause";
+  pauseBehavior: "async" | "sync" | "end-utterance" | "error-utterance" =
+    "async";
 
   private cancelled: FakeSpeechSynthesisUtterance[] = [];
 
@@ -49,19 +56,32 @@ export class FakeSpeechSynthesis {
     this.sync();
   }
 
+  /** Per the spec, cancelling does not change the paused state. */
   cancel(): void {
     this.cancelCalls += 1;
     this.cancelled.push(...this.queue);
     this.queue = [];
-    this.paused = false;
     this.sync();
   }
 
   pause(): void {
-    if (this.pauseBehavior === "end-utterance") {
-      this.finishCurrent();
-      return;
+    switch (this.pauseBehavior) {
+      case "end-utterance":
+        this.finishCurrent();
+        return;
+      case "error-utterance":
+        this.failCurrent("interrupted");
+        return;
+      case "sync":
+        this.confirmPause();
+        return;
+      case "async":
+        return;
     }
+  }
+
+  /** The engine reports that the current utterance is now paused. */
+  confirmPause(): void {
     this.paused = true;
     this.queue[0]?.onpause?.({});
   }

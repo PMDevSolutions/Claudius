@@ -1,5 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { mockChatApi } from "./helpers";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const IIFE_PATH = resolve(__dirname, "..", "dist", "claudius.iife.js");
+const CSS_PATH = resolve(__dirname, "..", "dist", "claudius.css");
 
 /**
  * Voice features against fake speech engines, injected before the app loads.
@@ -31,6 +37,10 @@ async function installFakeSpeech(page: Page) {
         this.onend?.({});
       }
       abort() {}
+      /** The engine ends the session by itself, as it does at a pause. */
+      end() {
+        this.onend?.({});
+      }
       hear(transcript: string, isFinal: boolean) {
         this.onresult?.({
           results: [{ isFinal, length: 1, 0: { transcript } }],
@@ -39,6 +49,7 @@ async function installFakeSpeech(page: Page) {
     }
 
     const spoken: string[] = [];
+    let current: SpeechSynthesisUtterance | null = null;
     const synth = {
       speaking: false,
       pending: false,
@@ -46,17 +57,25 @@ async function installFakeSpeech(page: Page) {
       spoken,
       speak(utterance: SpeechSynthesisUtterance) {
         spoken.push(`${utterance.lang}|${utterance.text}`);
+        current = utterance;
         this.speaking = true;
       },
+      // Per the spec, cancel() does not clear the paused state.
       cancel() {
         this.speaking = false;
-        this.paused = false;
+        current = null;
       },
+      // Like Chrome and Safari: `paused` flips only when the engine confirms,
+      // which is also when the utterance gets its `pause` event.
       pause() {
-        this.paused = true;
+        setTimeout(() => {
+          this.paused = true;
+          current?.onpause?.call(current, new Event("pause") as never);
+        }, 0);
       },
       resume() {
         this.paused = false;
+        current?.onresume?.call(current, new Event("resume") as never);
       },
       getVoices: () => [],
     };
@@ -133,6 +152,54 @@ test.describe("voice input and read-aloud", () => {
     await expect
       .poll(() => input.evaluate((el: HTMLInputElement) => el.scrollLeft))
       .toBeGreaterThan(0);
+  });
+
+  test("hold-to-talk through the embed bundle: a real press and release", async ({
+    page,
+  }) => {
+    await installFakeSpeech(page);
+    const api = await mockChatApi(page);
+    api.enqueueReply("Yes, 20 percent.");
+    // Same approach as embed.spec.ts: the dev origin, minus the dev widget.
+    await page.goto("/");
+    await page.evaluate(() => {
+      document.getElementById("root")?.remove();
+      (window as unknown as { ClaudiusConfig: unknown }).ClaudiusConfig = {
+        apiUrl: "https://test.example",
+        voice: { mode: "hold", autoSubmit: true },
+      };
+    });
+    await page.addStyleTag({ path: CSS_PATH });
+    await page.addScriptTag({ path: IIFE_PATH });
+    await page.getByRole("button", { name: /open chat/i }).click();
+
+    const mic = page.getByRole("button", { name: "Hold to talk" });
+    const box = (await mic.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await expect(mic).toHaveAttribute("aria-pressed", "true");
+    await hear(page, "do you offer", true);
+
+    // The engine ends the session at a pause, with the button still down.
+    // A new session takes over, and nothing is sent yet.
+    await page.evaluate(() =>
+      (
+        window as unknown as { __recognition: { end(): void } }
+      ).__recognition.end(),
+    );
+    await expect(mic).toHaveAttribute("aria-pressed", "true");
+    expect(api.callCount()).toBe(0);
+    await hear(page, "a discount", true);
+
+    await page.mouse.up();
+
+    const log = page.getByRole("log");
+    await expect(log.getByText("do you offer a discount")).toBeVisible();
+    await expect(log.getByText("Yes, 20 percent.")).toBeVisible();
+    // Exactly one message: the click Chromium fires after the release carries
+    // a click count, so it must not have started another dictation.
+    expect(api.callCount()).toBe(1);
+    await expect(mic).toHaveAttribute("aria-pressed", "false");
   });
 
   test("reads a reply aloud with pause and stop controls", async ({ page }) => {

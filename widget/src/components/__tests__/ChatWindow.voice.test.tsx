@@ -11,6 +11,7 @@ import {
 import {
   installFakeSpeechRecognition,
   uninstallFakeSpeechRecognition,
+  latestRecognition,
 } from "../../test-utils/fakeSpeechRecognition";
 
 const VOICE: ResolvedVoiceConfig = {
@@ -151,7 +152,8 @@ describe("ChatWindow read-aloud", () => {
       fireEvent.click(screen.getByRole("button", { name: "Read aloud" }));
 
       fireEvent.click(screen.getByRole("button", { name: "Pause reading" }));
-      expect(synth.paused).toBe(true);
+      // Chrome and Safari confirm a pause asynchronously.
+      act(() => synth.confirmPause());
 
       fireEvent.click(screen.getByRole("button", { name: "Resume reading" }));
       expect(synth.paused).toBe(false);
@@ -184,6 +186,20 @@ describe("ChatWindow read-aloud", () => {
       expect(
         screen.getAllByRole("button", { name: "Stop reading" }),
       ).toHaveLength(1);
+    });
+
+    it("ends dictation when a reply starts being read, so the mic does not transcribe it", () => {
+      renderWindow([QUESTION, REPLY]);
+      const mic = screen.getByRole("button", { name: "Voice input" });
+      fireEvent.click(mic);
+      const session = latestRecognition();
+      expect(mic).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.click(screen.getByRole("button", { name: "Read aloud" }));
+
+      expect(session.abortCalls).toBe(1);
+      expect(mic).toHaveAttribute("aria-pressed", "false");
+      expect(synth.queuedText()).toEqual(["Plans start at $10."]);
     });
 
     it("falls silent when the visitor starts dictating, so the mic does not hear it", () => {

@@ -322,4 +322,95 @@ describe("useSpeechRecognition", () => {
       expect(onEnd).not.toHaveBeenCalled();
     });
   });
+
+  describe("telling the caller what happened", () => {
+    it("start() reports whether a session actually began", () => {
+      const { result } = setup();
+      let first = false;
+      let second = true;
+
+      act(() => {
+        first = result.current.start();
+      });
+      act(() => {
+        second = result.current.start();
+      });
+
+      expect(first).toBe(true);
+      // Refused: the first session is still open.
+      expect(second).toBe(false);
+    });
+
+    it("start() reports false when the engine refuses", () => {
+      FakeSpeechRecognition.startError = new Error("InvalidStateError");
+      const { result } = setup();
+      let started = true;
+
+      act(() => {
+        started = result.current.start();
+      });
+
+      expect(started).toBe(false);
+    });
+
+    it("stop() reports whether there was a session to stop", () => {
+      const { result } = setup();
+      let idle = true;
+      let open = false;
+
+      act(() => {
+        idle = result.current.stop();
+      });
+      act(() => result.current.start());
+      act(() => latestRecognition().emitStart());
+      act(() => {
+        open = result.current.stop();
+      });
+
+      expect(idle).toBe(false);
+      expect(open).toBe(true);
+    });
+  });
+
+  describe("engines that misbehave", () => {
+    it("treats an abort by the engine (another tab took the mic) as a failed session, silently", () => {
+      const { result, onEnd, onError } = setup();
+      act(() => result.current.start());
+      const session = latestRecognition();
+      act(() =>
+        session.emitResult([{ transcript: "half a thought", isFinal: true }]),
+      );
+
+      act(() => session.emitError("aborted"));
+      act(() => session.emitEnd());
+
+      expect(onError).not.toHaveBeenCalled();
+      // Not a normal end, so nothing may be auto-submitted from it.
+      expect(onEnd).not.toHaveBeenCalled();
+      expect(result.current.isListening).toBe(false);
+    });
+
+    it("stops listening on an error even if the engine never sends end", () => {
+      const { result } = setup();
+      act(() => result.current.start());
+      const session = latestRecognition();
+
+      act(() => session.emitError("network"));
+
+      expect(result.current.isListening).toBe(false);
+      expect(session.abortCalls).toBe(1);
+    });
+
+    it("still stops, rather than aborts, an engine that delivers results without ever firing start", () => {
+      const { result } = setup();
+      act(() => result.current.start());
+      const session = latestRecognition();
+      act(() => session.emitResult([{ transcript: "hi", isFinal: false }]));
+
+      act(() => result.current.stop());
+
+      expect(session.stopCalls).toBe(1);
+      expect(session.abortCalls).toBe(0);
+    });
+  });
 });

@@ -44,7 +44,7 @@ describe("VoiceInputButton", () => {
     it("starts on a click when idle", () => {
       const { button, onStart, onStop } = setup();
       fireEvent.click(button);
-      expect(onStart).toHaveBeenCalledTimes(1);
+      expect(onStart).toHaveBeenCalledExactlyOnceWith({ held: false });
       expect(onStop).not.toHaveBeenCalled();
     });
 
@@ -67,7 +67,7 @@ describe("VoiceInputButton", () => {
       const { button, onStart, onStop } = setup({ mode: "hold" });
 
       fireEvent.pointerDown(button, { button: 0 });
-      expect(onStart).toHaveBeenCalledTimes(1);
+      expect(onStart).toHaveBeenCalledExactlyOnceWith({ held: true });
       expect(onStop).not.toHaveBeenCalled();
 
       fireEvent.pointerUp(button);
@@ -105,7 +105,7 @@ describe("VoiceInputButton", () => {
 
         fireEvent.keyDown(button, { key });
         fireEvent.keyDown(button, { key, repeat: true });
-        expect(onStart).toHaveBeenCalledTimes(1);
+        expect(onStart).toHaveBeenCalledExactlyOnceWith({ held: true });
 
         fireEvent.keyUp(button, { key });
         expect(onStop).toHaveBeenCalledTimes(1);
@@ -128,7 +128,9 @@ describe("VoiceInputButton", () => {
     it("toggles on a bare click, which is how screen readers and switches activate it", () => {
       const { button, onStart } = setup({ mode: "hold" });
       fireEvent.click(button);
-      expect(onStart).toHaveBeenCalledTimes(1);
+      // Not a hold: nothing guarantees a release, so the parent must not keep
+      // the microphone open through pauses the way it does for a real hold.
+      expect(onStart).toHaveBeenCalledExactlyOnceWith({ held: false });
     });
 
     it("stops on a bare click while listening", () => {
