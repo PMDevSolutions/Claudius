@@ -9,6 +9,14 @@ export interface WidgetAttachmentsConfig {
   allowedTypes?: string[];
 }
 
+export interface WidgetVoiceConfig {
+  input?: boolean;
+  output?: boolean;
+  mode?: "toggle" | "hold";
+  autoSubmit?: boolean;
+  lang?: string;
+}
+
 export interface WidgetConfig {
   title?: string;
   subtitle?: string;
@@ -18,6 +26,7 @@ export interface WidgetConfig {
   position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
   accentColor?: string;
   attachments?: boolean | WidgetAttachmentsConfig;
+  voice?: boolean | WidgetVoiceConfig;
 }
 
 export interface WorkerAttachmentsConfig {
@@ -68,6 +77,7 @@ const VALID_POSITIONS = [
   "top-left",
 ] as const;
 const VALID_STORAGE = ["passthrough", "r2"] as const;
+const VALID_VOICE_MODES = ["toggle", "hold"] as const;
 
 function isPositiveInt(value: unknown): boolean {
   return typeof value === "number" && Number.isInteger(value) && value >= 1;
@@ -226,6 +236,52 @@ export function validateConfig(
         errors.push({
           field: "widget.attachments",
           message: "widget.attachments must be a boolean or an object",
+        });
+      }
+    }
+
+    if (widget.voice !== undefined) {
+      const voice = widget.voice;
+      if (typeof voice === "boolean") {
+        // fine
+      } else if (voice && typeof voice === "object" && !Array.isArray(voice)) {
+        const options = voice as Record<string, unknown>;
+        for (const key of ["input", "output"] as const) {
+          if (options[key] !== undefined && typeof options[key] !== "boolean") {
+            errors.push({
+              field: `widget.voice.${key}`,
+              message: `widget.voice.${key} must be a boolean`,
+            });
+          }
+        }
+        if (
+          options.mode !== undefined &&
+          !(VALID_VOICE_MODES as readonly string[]).includes(options.mode as string)
+        ) {
+          errors.push({
+            field: "widget.voice.mode",
+            message: `widget.voice.mode must be one of: ${VALID_VOICE_MODES.join(", ")}`,
+          });
+        }
+        if (options.autoSubmit !== undefined && typeof options.autoSubmit !== "boolean") {
+          errors.push({
+            field: "widget.voice.autoSubmit",
+            message: "widget.voice.autoSubmit must be a boolean",
+          });
+        }
+        if (
+          options.lang !== undefined &&
+          (typeof options.lang !== "string" || options.lang.trim() === "")
+        ) {
+          errors.push({
+            field: "widget.voice.lang",
+            message: "widget.voice.lang must be a non-empty BCP-47 language tag (e.g. en-GB)",
+          });
+        }
+      } else {
+        errors.push({
+          field: "widget.voice",
+          message: "widget.voice must be a boolean or an object",
         });
       }
     }

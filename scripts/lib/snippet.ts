@@ -37,6 +37,9 @@ export function generateScriptSnippet(
     if (config.widget.attachments !== undefined && config.widget.attachments !== false) {
       configObj.attachments = config.widget.attachments;
     }
+    if (config.widget.voice !== undefined && config.widget.voice !== false) {
+      configObj.voice = config.widget.voice;
+    }
   }
 
   // Build indented JSON: each line of the JSON body is indented to align under
@@ -75,6 +78,21 @@ export function generateWebComponentSnippet(
     // script snippet (ClaudiusConfig) or the React prop.
     if (config.widget.attachments !== undefined && config.widget.attachments !== false) {
       attrs.push(["attachments", "true"]);
+    }
+    // Voice options are plain enums and booleans, so unlike attachment limits
+    // each one has an attribute of its own.
+    const voice = config.widget.voice;
+    if (voice !== undefined && voice !== false) {
+      attrs.push(["voice", "true"]);
+      if (voice !== true) {
+        if (voice.mode !== undefined) attrs.push(["voice-mode", voice.mode]);
+        if (voice.autoSubmit !== undefined) {
+          attrs.push(["voice-auto-submit", String(voice.autoSubmit)]);
+        }
+        if (voice.input !== undefined) attrs.push(["voice-input", String(voice.input)]);
+        if (voice.output !== undefined) attrs.push(["voice-output", String(voice.output)]);
+        if (voice.lang !== undefined) attrs.push(["voice-lang", voice.lang]);
+      }
     }
   }
 
