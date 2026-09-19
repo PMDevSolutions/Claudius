@@ -10,7 +10,12 @@ interface VoiceInputButtonProps {
   mode: VoiceInputMode;
   isListening: boolean;
   disabled?: boolean;
-  onStart: () => void;
+  /**
+   * `held` is true only for a real press-and-hold, which is guaranteed to end
+   * with a release. A toggle start (including the assistive-technology click
+   * in hold mode) has no such guarantee.
+   */
+  onStart: (gesture: { held: boolean }) => void;
   onStop: () => void;
   /**
    * Accessible name. It stays the same in both states; `aria-pressed` carries
@@ -42,7 +47,7 @@ export function VoiceInputButton({
   const beginHold = () => {
     if (disabled || holdingRef.current) return;
     holdingRef.current = true;
-    onStart();
+    onStart({ held: true });
   };
 
   // Idempotent: a release is often reported twice (pointerup, then
@@ -59,7 +64,7 @@ export function VoiceInputButton({
     // the button, which cannot hold it down. Let those toggle.
     if (isHold && e.detail !== 0) return;
     if (isListening) onStop();
-    else onStart();
+    else onStart({ held: false });
   };
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
@@ -102,7 +107,9 @@ export function VoiceInputButton({
       style={isHold ? { WebkitTouchCallout: "none" } : undefined}
       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-claudius-sm border transition-colors focus:outline-none focus:ring-1 focus:ring-claudius-accent disabled:opacity-50 ${
         isListening
-          ? "border-claudius-accent bg-claudius-accent text-claudius-accent-text"
+          ? // An accent ring on an accent fill is invisible; offset it so
+            // keyboard users can still see where focus is.
+            "border-claudius-accent bg-claudius-accent text-claudius-accent-text focus:ring-2 focus:ring-offset-2 focus:ring-offset-claudius-surface"
           : "border-claudius-border bg-claudius-field text-claudius-text-muted hover:text-claudius-text focus:border-claudius-accent"
       } ${isHold ? "touch-none select-none" : ""}`}
     >

@@ -24,6 +24,18 @@ describe("stripAnnouncementFormatting", () => {
       ),
     ).toBe("Read pmds.info for more.");
   });
+  it("keeps the sentence end that follows a URL", () => {
+    expect(
+      stripAnnouncementFormatting(
+        "See https://example.com/pricing. Then call us.",
+      ),
+    ).toBe("See example.com. Then call us.");
+  });
+  it("keeps other punctuation that trails a URL", () => {
+    expect(
+      stripAnnouncementFormatting("Is it https://example.com/faq?! Yes."),
+    ).toBe("Is it example.com?! Yes.");
+  });
   it("leaves plain text unchanged", () => {
     expect(stripAnnouncementFormatting("Hello there!")).toBe("Hello there!");
   });

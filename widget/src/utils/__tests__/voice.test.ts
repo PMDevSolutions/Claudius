@@ -108,6 +108,15 @@ describe("resolveVoiceConfig", () => {
     ).toBeNull();
   });
 
+  it("stays off for anything that is not true or an options object", () => {
+    // A microphone feature must fail closed. `voice: "false"` from a CMS
+    // template is a truthy string, and must not switch the mic on.
+    expect(resolveVoiceConfig("false" as never, "en")).toBeNull();
+    expect(resolveVoiceConfig("true" as never, "en")).toBeNull();
+    expect(resolveVoiceConfig(1 as never, "en")).toBeNull();
+    expect(resolveVoiceConfig([] as never, "en")).toBeNull();
+  });
+
   it("falls back to toggle mode for an unknown mode", () => {
     expect(resolveVoiceConfig({ mode: "shout" as never }, "en")).toMatchObject({
       mode: "toggle",
@@ -177,8 +186,26 @@ describe("chunkSpeechText", () => {
     ]);
   });
 
-  it("never splits inside a word, even one longer than the limit", () => {
-    expect(chunkSpeechText("abcdefghij", 5)).toEqual(["abcdefghij"]);
+  it("splits a token longer than the limit as a last resort", () => {
+    // Unbroken runs this long are not words in spaced scripts, but they are
+    // ordinary sentences in Chinese or Japanese written without punctuation.
+    expect(chunkSpeechText("abcdefghijkl", 5)).toEqual([
+      "abcde",
+      "fghij",
+      "kl",
+    ]);
+  });
+
+  it("lets text after an over-long token share its last piece", () => {
+    expect(chunkSpeechText("abcdefg hi", 5)).toEqual(["abcde", "fg hi"]);
+  });
+
+  it("breaks Chinese and Japanese text at its own sentence marks, which have no space after them", () => {
+    expect(chunkSpeechText("こんにちは。元気ですか？はい！", 8)).toEqual([
+      "こんにちは。",
+      "元気ですか？",
+      "はい！",
+    ]);
   });
 
   it("does not treat a dot inside a word as a sentence end", () => {
@@ -199,15 +226,17 @@ describe("chunkSpeechText", () => {
     ]);
   });
 
-  it("keeps every chunk short enough to dodge Chrome's long-utterance cutoff", () => {
+  it("keeps every utterance to roughly ten seconds of speech, well inside Chrome's cutoff", () => {
     const sentence = "Alpha beta gamma delta epsilon zeta eta.";
     const text = Array(6).fill(sentence).join(" ");
 
     const chunks = chunkSpeechText(text);
 
-    expect(chunks.length).toBeGreaterThan(1);
-    for (const chunk of chunks) expect(chunk.length).toBeLessThanOrEqual(200);
-    expect(chunks.join(" ")).toBe(text);
+    // Forty-character sentences: three fit in 150 characters, four do not.
+    expect(chunks).toEqual([
+      Array(3).fill(sentence).join(" "),
+      Array(3).fill(sentence).join(" "),
+    ]);
   });
 });
 

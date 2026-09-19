@@ -33,20 +33,27 @@ const translations = createTranslations({
 
 function setup(
   voice: ResolvedVoiceConfig | null = VOICE,
-  props: { isLoading?: boolean } = {},
+  props: { isLoading?: boolean; isReadingAloud?: boolean } = {},
 ) {
   const onSend = vi.fn();
   const onVoiceStart = vi.fn();
-  const view = render(
+  const ui = (p: typeof props) => (
     <ChatInput
       onSend={onSend}
-      isLoading={props.isLoading ?? false}
+      isLoading={p.isLoading ?? false}
+      isReadingAloud={p.isReadingAloud ?? false}
       translations={translations}
       voice={voice}
       onVoiceStart={onVoiceStart}
-    />,
+    />
   );
-  return { ...view, onSend, onVoiceStart };
+  const view = render(ui(props));
+  return {
+    ...view,
+    onSend,
+    onVoiceStart,
+    update: (next: typeof props) => view.rerender(ui(next)),
+  };
 }
 
 const mic = () => screen.getByRole("button", { name: "MIC" });
@@ -341,5 +348,179 @@ describe("ChatInput voice input", () => {
 
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
+  });
+
+  describe("hold mode lasts as long as the hold", () => {
+    const HOLD = { ...VOICE, mode: "hold" as const };
+    const holdButton = () => screen.getByRole("button", { name: "MIC-HOLD" });
+
+    function press() {
+      fireEvent.pointerDown(holdButton(), { button: 0 });
+    }
+    function release() {
+      fireEvent.pointerUp(holdButton());
+    }
+    function sessions() {
+      return FakeSpeechRecognition.instances;
+    }
+
+    it("keeps listening when the engine ends a session at a pause in speech", () => {
+      setup(HOLD);
+      press();
+      act(() => latestRecognition().emitStart());
+      hear("I would like to know", true);
+
+      // The engine finalizes and ends at the pause; the button is still down.
+      act(() => latestRecognition().emitEnd());
+
+      expect(sessions()).toHaveLength(2);
+      expect(holdButton()).toHaveAttribute("aria-pressed", "true");
+      hear("your prices", true);
+      expect(field()).toHaveValue("I would like to know your prices");
+    });
+
+    it("does not restart a session that heard nothing, so a dead engine cannot spin", () => {
+      setup(HOLD);
+      press();
+
+      act(() => latestRecognition().emitEnd());
+
+      expect(sessions()).toHaveLength(1);
+      expect(holdButton()).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("does not keep a toggle start alive, since nothing guarantees it will be released", () => {
+      setup(HOLD);
+      // A click with no click count: a screen reader activating the button.
+      fireEvent.click(holdButton());
+      hear("hello", true);
+
+      act(() => latestRecognition().emitEnd());
+
+      expect(sessions()).toHaveLength(1);
+    });
+
+    it("does not duplicate the text when pressed again while the last session winds down", () => {
+      setup(HOLD);
+      press();
+      const first = latestRecognition();
+      act(() => first.emitStart());
+      hear("hello world", false);
+      release();
+
+      // Pressed again before the engine has delivered its final result.
+      press();
+      act(() =>
+        first.emitResult([{ transcript: "hello world", isFinal: true }]),
+      );
+      expect(field()).toHaveValue("hello world");
+
+      // The old session ends with the button down: the new hold takes over.
+      act(() => first.emitEnd());
+      expect(sessions()).toHaveLength(2);
+      hear("again", true);
+      expect(field()).toHaveValue("hello world again");
+    });
+
+    describe("with auto-submit", () => {
+      const HOLD_AUTO = { ...HOLD, autoSubmit: true };
+
+      it("waits for the release instead of sending at the first pause", () => {
+        const { onSend } = setup(HOLD_AUTO);
+        press();
+        act(() => latestRecognition().emitStart());
+        hear("I would like to know", true);
+        act(() => latestRecognition().emitEnd());
+        expect(onSend).not.toHaveBeenCalled();
+
+        act(() => latestRecognition().emitStart());
+        hear("your prices", true);
+        release();
+        act(() => latestRecognition().emitEnd());
+
+        expect(onSend).toHaveBeenCalledExactlyOnceWith(
+          "I would like to know your prices",
+        );
+      });
+
+      it("sends on release even if the last session timed out in silence, without an error", () => {
+        const { onSend } = setup(HOLD_AUTO);
+        press();
+        act(() => latestRecognition().emitStart());
+        hear("hello", true);
+        act(() => latestRecognition().emitEnd());
+
+        // The visitor goes quiet, still holding; the restarted session times out.
+        const second = latestRecognition();
+        act(() => second.emitError("no-speech"));
+        act(() => second.emitEnd());
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(onSend).not.toHaveBeenCalled();
+
+        release();
+
+        expect(onSend).toHaveBeenCalledExactlyOnceWith("hello");
+      });
+
+      it("does not send on release after a real failure mid-hold", () => {
+        const { onSend } = setup(HOLD_AUTO);
+        press();
+        act(() => latestRecognition().emitStart());
+        hear("hello", true);
+        act(() => latestRecognition().emitEnd());
+
+        act(() => latestRecognition().emitError("network"));
+        expect(screen.getByRole("alert")).toHaveTextContent("ERR-UNAVAILABLE");
+
+        release();
+
+        expect(onSend).not.toHaveBeenCalled();
+        expect(field()).toHaveValue("hello");
+      });
+    });
+  });
+
+  describe("things that must end a dictation", () => {
+    const AUTO = { ...VOICE, autoSubmit: true };
+
+    it("a reply starting to be read aloud, or the mic would transcribe it", () => {
+      const { onSend, update } = setup(AUTO);
+      fireEvent.click(mic());
+      const session = latestRecognition();
+      hear("hello", false);
+
+      update({ isReadingAloud: true });
+
+      expect(session.abortCalls).toBe(1);
+      expect(mic()).toHaveAttribute("aria-pressed", "false");
+      expect(field()).toHaveValue("hello");
+      expect(onSend).not.toHaveBeenCalled();
+    });
+
+    it("a request starting to load, or auto-submit would discard the text", () => {
+      const { onSend, update } = setup(AUTO);
+      fireEvent.click(mic());
+      const session = latestRecognition();
+      hear("hello", true);
+
+      update({ isLoading: true });
+
+      expect(session.abortCalls).toBe(1);
+      expect(field()).toHaveValue("hello");
+      expect(onSend).not.toHaveBeenCalled();
+    });
+  });
+
+  it("clears a voice error once a message has been sent", async () => {
+    const user = userEvent.setup();
+    setup();
+    fireEvent.click(mic());
+    hear("hello", true);
+    act(() => latestRecognition().emitError("network"));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /send message/i }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

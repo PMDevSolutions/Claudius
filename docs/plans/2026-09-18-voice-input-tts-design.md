@@ -92,6 +92,9 @@ voice?: boolean | VoiceOptions; // Default false
   Both `false` resolves to disabled.
 - An unknown `mode` falls back to `"toggle"` rather than throwing, since it
   can arrive from an HTML attribute.
+- The option **fails closed**: only `true` or an options object enables it.
+  The string `"false"` from a CMS template is truthy, and must not switch a
+  microphone on.
 - `<claudius-chat>` gains `voice`, `voice-mode`, `voice-auto-submit`,
   `voice-input`, `voice-output`, and `voice-lang`. Unlike attachment limits
   these are plain enums, booleans, and strings, and the web component cannot
@@ -146,8 +149,9 @@ message may speak at a time and it already holds `streamingMessageId`.
 - `interimResults = true` so words appear in the field as they are spoken.
   `continuous = false` in both modes. Continuous mode duplicates results on
   Chrome for Android and misreports `isFinal` in Safari; a single utterance
-  per session is what a chat message needs. If the engine ends the session
-  during a pause, pressing the mic again appends.
+  per session is what a chat message needs. In toggle mode, if the engine
+  ends the session during a pause, pressing the mic again appends. Hold mode
+  bridges the pause itself (below).
 - Dictation **appends** to whatever is already typed. The field value at
   `start()` is the base; each result renders `joinDictation(base, transcript)`
   clipped to the existing 2000 character limit.
@@ -167,16 +171,41 @@ message may speak at a time and it already holds `streamingMessageId`.
   stops; Space and Enter work the same way from the keyboard. Releasing
   before the engine has actually started calls `abort()` rather than
   `stop()`, so a permission prompt answered after release can never leave the
-  microphone open. A `click` with no preceding pointer or key press, which is
-  how screen readers and switch devices activate a button, toggles instead,
-  so hold mode stays usable without a sustained press.
-- **Auto-submit** fires only when the session ended normally and produced
-  final text. Never after an error, an abort, or silence. It goes through the
-  same submit path as the send button, so pending attachments, the length
-  limit, and plugins all apply.
-- Starting dictation **cancels any read-aloud** so the microphone does not
-  transcribe the widget's own voice.
+  microphone open. A `click` with no click count, which is how screen readers
+  and switch devices activate a button, toggles instead, so hold mode stays
+  usable without a sustained press.
+- **A hold is one dictation spanning several engine sessions.** With
+  `continuous = false` the engine ends a session at the first pause in
+  speech, which would silently drop whatever the visitor says next with the
+  button still down. So when a session ends mid-hold after hearing something,
+  `ChatInput` opens another and keeps appending. A session that heard nothing
+  is not replaced, so an engine that ends immediately cannot spin. Only a
+  real hold is bridged this way: a toggle start has no guaranteed release, so
+  bridging it could leave the microphone open indefinitely. The button tells
+  its parent which it was (`onStart({ held })`).
+- `start()` and `stop()` report whether they did anything. A press while the
+  previous session is still winding down is refused, and must not move the
+  dictation base: that session's final result is still to arrive against the
+  old base, and re-basing would duplicate the text. When it then ends with
+  the button down again, the bridge above picks the new hold up.
+- **Auto-submit** fires once per dictation, when it ends: never after a real
+  error or an abort, and only if something was heard. In hold mode that means
+  on release, not at the first pause. A later session of a hold timing out in
+  silence (`no-speech`) is not an error, just a visitor who stopped talking
+  while still holding; the text heard earlier is still sent on release. It
+  goes through the same submit path as the send button, so pending
+  attachments, the length limit, and plugins all apply.
+- **Dictation and read-aloud end each other**, in both directions, so the
+  microphone never transcribes the widget's own voice (which auto-submit
+  would then send as the visitor's message).
+- A request starting to load also ends dictation. The field is disabled then,
+  and an auto-submit would clear text that `useChat` refuses to send.
 - Unmounting (closing the chat) aborts the session.
+- Defensive against engines that misbehave: an error releases the session
+  without waiting for the `end` the spec promises; hearing anything counts as
+  "started" for engines that skip the `start` event; and an `aborted` raised
+  by the engine itself (another tab took the microphone) ends the dictation
+  quietly without running auto-submit.
 
 ### Listening indicator
 
@@ -203,10 +232,15 @@ in opacity.
   have text. Nothing plays automatically.
 - Text passes through the existing `stripAnnouncementFormatting`, so markdown
   markers are not read out and URLs collapse to hostnames.
-- The text is split at sentence boundaries into chunks of at most 200
-  characters and queued as separate utterances. That avoids Chrome's
-  15-second cutoff and gives clean pause points. Utterances are held in a ref
-  because Safari garbage-collects them mid-speech otherwise.
+- The text is split at sentence boundaries into chunks of at most 150
+  characters, about ten seconds of speech, and queued as separate utterances.
+  That avoids Chrome's 15-second cutoff, with room for numbers, which take
+  far longer to say than to write. Boundaries are newlines, `.` `!` `?`
+  followed by whitespace (so "example.com" and "$9.99" do not split), and the
+  full-width `。` `！` `？`, which have no space after them. An over-long
+  sentence splits between words and an over-long unbroken token is cut, since
+  that is what unpunctuated Chinese or Japanese looks like. Utterances are
+  held in a ref because Safari garbage-collects them mid-speech otherwise.
 - **The voice is left to the browser**: only `utterance.lang` is set. An
   earlier draft picked a local voice explicitly, for privacy and to avoid the
   cutoff. That was dropped. Voice lists are alphabetical, so "first local
@@ -222,8 +256,26 @@ in opacity.
   `speak()` fires `error: synthesis-failed`, which returns the control to
   idle rather than leaving it stuck.
 - Controls: idle shows Read aloud; speaking shows Pause and Stop; paused
-  shows Resume and Stop. Starting another message stops the current one.
-- A session counter makes late events from cancelled utterances harmless.
+  shows Resume and Stop. Starting another message stops the current one. The
+  first button is a single element that changes role, so keyboard focus
+  survives the swap; when Stop disappears with focus on it, focus moves to
+  the remaining button. Otherwise focus would fall to `<body>`, outside the
+  dialog's focus trap.
+- **Pause state comes from the utterance's `pause` / `resume` events**, plus
+  the `paused` flag for Firefox, which sets it synchronously. Chrome and
+  Safari set the flag only once the engine confirms, so reading it right
+  after `pause()` (the first implementation) left the UI on "Pause" with no
+  way to resume. Verified against Chrome 153.
+- **The engine is a shared global, so the reader only cancels speech it
+  started.** A reader that never spoke must not silence the host page when
+  the chat closes, which matters even with voice switched off, because the
+  hook always mounts. An `interrupted` / `canceled` error with no pause of
+  ours pending means another widget or the host page took over: the reader
+  forgets its own playback and leaves the engine alone, since cancelling
+  again would kill the newcomer's speech.
+- Per the spec `cancel()` leaves a paused engine paused, and the next reply
+  would queue in silence, so stopping while paused also resumes the engine.
+- A run counter makes late events from cancelled utterances harmless.
 - **Android pause:** if a chunk ends while a pause was requested and the
   engine does not report `paused`, the platform treated pause as cancel. The
   rest of the queue is cancelled and the control returns to idle, instead of
@@ -240,9 +292,10 @@ existing `role="alert"` slot:
 | `no-speech` | No speech was detected |
 | `audio-capture` | No microphone was found |
 | `network`, `language-not-supported`, anything else, `start()` throwing | Voice input is unavailable |
-| `aborted` | ignored |
+| `aborted` | no message |
+| `no-speech` on a later session of the same hold | no message |
 
-The message clears on the next start or edit. Synthesis errors return the
+The message clears on the next start, edit, or send. Synthesis errors return the
 control to idle silently; there is nothing useful to tell the user.
 
 ## Accessibility
@@ -276,9 +329,12 @@ implementations that tests drive event by event.
 - `useSpeechRecognition`: unsupported no-op, session setup, interim and final
   transcripts, stop versus abort, each error mapping, `start()` throwing,
   double start, unmount.
-- `useSpeechSynthesis`: chunk queue with language and voice, state from
-  events, pause and resume, the Android pause path, switching messages, stale
-  events after cancel, unmount, unsupported no-op.
+- `useSpeechSynthesis`: chunk queue with language, pause state as each
+  browser family reports it, the Android pause paths, switching messages,
+  stale events after cancel, speech it does not own, unmount, unsupported
+  no-op. The fake confirms a pause asynchronously by default, as Chrome and
+  Safari do; an earlier fake that set `paused` inside `pause()` hid a real
+  bug.
 - Components: visibility rules, both modes by pointer, keyboard, and bare
   click, appending, typing takes over, auto-submit and the cases where it
   must not fire, error display, read-aloud only on settled assistant

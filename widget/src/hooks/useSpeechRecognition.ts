@@ -24,9 +24,17 @@ export interface UseSpeechRecognitionResult {
   isListening: boolean;
   /** True while the engine reports hearing speech. Drives the level indicator. */
   isSpeechDetected: boolean;
-  start: () => void;
-  /** Finish the session and keep what was heard. */
-  stop: () => void;
+  /**
+   * Open a session. Returns whether one actually began: `false` when the
+   * browser is unsupported, the engine refused, or a previous session is still
+   * winding down.
+   */
+  start: () => boolean;
+  /**
+   * Finish the session and keep what was heard. Returns whether there was a
+   * session to stop.
+   */
+  stop: () => boolean;
   /** Drop the session; nothing more is reported for it. */
   abort: () => void;
 }
@@ -126,19 +134,17 @@ export function useSpeechRecognition(
 
   const stop = useCallback(() => {
     const session = sessionRef.current;
-    if (!session) return;
+    if (!session) return false;
     // stop() on an engine still waiting for microphone permission would let
     // a later "Allow" open the mic with nobody at the button. Abort instead.
-    if (!engineStartedRef.current) {
-      abort();
-      return;
-    }
-    session.stop();
+    if (!engineStartedRef.current) abort();
+    else session.stop();
+    return true;
   }, [abort]);
 
   const start = useCallback(() => {
     const Recognition = getSpeechRecognition();
-    if (!Recognition || sessionRef.current) return;
+    if (!Recognition || sessionRef.current) return false;
 
     const session = new Recognition();
     session.lang = optionsRef.current.lang;
@@ -146,12 +152,16 @@ export function useSpeechRecognition(
     session.continuous = false;
 
     let finalTranscript = "";
-    let failed = false;
 
-    session.onstart = () => {
+    // Some engines skip `start`; hearing anything proves the mic is open too.
+    const markStarted = () => {
       engineStartedRef.current = true;
     };
-    session.onspeechstart = () => setIsSpeechDetected(true);
+    session.onstart = markStarted;
+    session.onspeechstart = () => {
+      markStarted();
+      setIsSpeechDetected(true);
+    };
     session.onspeechend = () => setIsSpeechDetected(false);
     session.onresult = (event) => {
       let finals = "";
@@ -162,18 +172,26 @@ export function useSpeechRecognition(
         else interim += result[0].transcript;
       }
       finalTranscript = finals;
+      markStarted();
       setIsSpeechDetected(true);
       optionsRef.current.onTranscript?.(finals + interim);
     };
     session.onerror = (event) => {
-      // Chrome reports our own abort() this way; it is not a failure.
-      if (event.error === "aborted") return;
-      failed = true;
-      optionsRef.current.onError?.(toErrorKind(event.error));
+      // Our own abort() detaches these handlers first, so an "aborted" that
+      // arrives here came from the engine: another tab or widget took the
+      // microphone. Nothing to tell the visitor, but it was not a normal end,
+      // so onEnd (and any auto-submit hanging off it) must not run.
+      if (event.error !== "aborted") {
+        optionsRef.current.onError?.(toErrorKind(event.error));
+      }
+      // The spec promises an `end` after every error. Do not depend on it:
+      // an engine that forgets would leave the UI listening forever.
+      release(session);
+      session.abort();
     };
     session.onend = () => {
       release(session);
-      if (!failed) optionsRef.current.onEnd?.(finalTranscript);
+      optionsRef.current.onEnd?.(finalTranscript);
     };
 
     sessionRef.current = session;
@@ -185,7 +203,9 @@ export function useSpeechRecognition(
     } catch {
       release(session);
       optionsRef.current.onError?.("unavailable");
+      return false;
     }
+    return true;
   }, [release]);
 
   // Leaving the page or closing the chat must never leave the mic open.

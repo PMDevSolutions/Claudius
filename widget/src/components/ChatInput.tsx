@@ -51,6 +51,11 @@ interface ChatInputProps {
   voice?: ResolvedVoiceConfig | null;
   /** Called when dictation starts, so the parent can silence read-aloud. */
   onVoiceStart?: () => void;
+  /**
+   * True while a reply is being read aloud. Dictation ends when it turns
+   * true, or the microphone would transcribe the widget's own voice.
+   */
+  isReadingAloud?: boolean;
 }
 
 function dragHasFiles(e: DragEvent): boolean {
@@ -68,6 +73,7 @@ export function ChatInput({
   attachments = null,
   voice = null,
   onVoiceStart,
+  isReadingAloud = false,
 }: ChatInputProps) {
   const t = translations ?? defaultTranslations;
   const [value, setValue] = useState("");
@@ -81,8 +87,15 @@ export function ChatInput({
   const dragDepthRef = useRef(0);
   // Mirrors `value` for the speech callbacks, which fire outside a render.
   const valueRef = useRef("");
-  // What the field held when dictation began; speech is appended to it.
+  // What the field held when the current session began; speech is appended.
   const dictationBaseRef = useRef("");
+  // Hold mode: true from press to release. One dictation can span several
+  // engine sessions, because the engine ends a session at the first pause.
+  const heldRef = useRef(false);
+  // Whether this dictation has heard anything, and whether it really failed.
+  // Together they decide if auto-submit may fire when it ends.
+  const heardRef = useRef(false);
+  const failedRef = useRef(false);
 
   const updateValue = (next: string) => {
     valueRef.current = next;
@@ -167,6 +180,7 @@ export function ChatInput({
     pendingRef.current = [];
     setPending([]);
     setAttachmentError(null);
+    setVoiceError(null);
   };
 
   const describeVoiceError = (kind: SpeechRecognitionErrorKind): string => {
@@ -189,10 +203,24 @@ export function ChatInput({
         joinDictation(dictationBaseRef.current, transcript, MAX_MESSAGE_LENGTH),
       ),
     onEnd: (transcript) => {
-      // Only a session that ended normally and actually heard something.
-      if (voice?.autoSubmit && transcript.trim()) submit();
+      const heard = transcript.trim() !== "";
+      if (heard) heardRef.current = true;
+      if (!heldRef.current) {
+        finishDictation();
+        return;
+      }
+      // Still holding: the engine merely ended at a pause, so open another
+      // session and leave any auto-submit for the release. A session that
+      // heard nothing is not replaced, so a broken engine cannot spin.
+      if (heard) beginSession();
     },
-    onError: (kind) => setVoiceError(describeVoiceError(kind)),
+    onError: (kind) => {
+      // A later session of a hold timing out in silence is not a failure:
+      // the visitor stopped talking and is simply still holding the button.
+      if (kind === "no-speech" && heardRef.current) return;
+      failedRef.current = true;
+      setVoiceError(describeVoiceError(kind));
+    },
   });
   const showMic = !!voice?.input && recognition.isSupported;
   const isListening = recognition.isListening;
@@ -204,17 +232,54 @@ export function ChatInput({
     if (isListening && input) input.scrollLeft = input.scrollWidth;
   }, [isListening, value]);
 
-  const startDictation = () => {
-    setVoiceError(null);
-    dictationBaseRef.current = valueRef.current;
-    onVoiceStart?.();
-    recognition.start();
+  // Auto-submit fires only for a dictation that heard something and did not
+  // fail. It goes through the send button's own path.
+  const finishDictation = () => {
+    if (voice?.autoSubmit && heardRef.current && !failedRef.current) submit();
   };
+
+  const beginSession = () => {
+    const base = valueRef.current;
+    // Refused while the previous session is still winding down. Its results
+    // are still arriving against the old base, so that must not move.
+    if (recognition.start()) dictationBaseRef.current = base;
+  };
+
+  const startDictation = ({ held }: { held: boolean }) => {
+    setVoiceError(null);
+    heldRef.current = held;
+    heardRef.current = false;
+    failedRef.current = false;
+    onVoiceStart?.();
+    beginSession();
+  };
+
+  const stopDictation = () => {
+    const wasHeld = heldRef.current;
+    heldRef.current = false;
+    // Nothing left to stop means the last session already ended mid-hold; the
+    // auto-submit it deferred is due now.
+    if (!recognition.stop() && wasHeld) finishDictation();
+  };
+
+  const abortDictation = () => {
+    heldRef.current = false;
+    recognition.abort();
+  };
+
+  // A request going out disables the field, and auto-submit would then clear
+  // text it could not send. A reply being read aloud would be transcribed.
+  const { abort } = recognition;
+  useEffect(() => {
+    if (!isLoading && !isReadingAloud) return;
+    heldRef.current = false;
+    abort();
+  }, [isLoading, isReadingAloud, abort]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // Otherwise the next result would put the sent text back in the field.
-    recognition.abort();
+    abortDictation();
     submit();
   };
 
@@ -222,7 +287,7 @@ export function ChatInput({
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       // Typing takes over from dictation: keep the edit, drop the session.
-      recognition.abort();
+      abortDictation();
       setVoiceError(null);
       updateValue(newValue);
     }
@@ -368,7 +433,7 @@ export function ChatInput({
             isListening={isListening}
             disabled={isLoading}
             onStart={startDictation}
-            onStop={recognition.stop}
+            onStop={stopDictation}
             label={voice.mode === "hold" ? t.voiceInputHold : t.voiceInput}
           />
         )}

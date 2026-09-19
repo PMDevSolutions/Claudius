@@ -97,7 +97,12 @@ export function resolveVoiceConfig(
   input: boolean | VoiceOptions | undefined | null,
   locale: LocaleCode,
 ): ResolvedVoiceConfig | null {
-  if (!input) return null;
+  // Fail closed: this switches a microphone on. Only `true` or an options
+  // object enables it, so a stray truthy value such as the string "false"
+  // from a template cannot.
+  const isOptions =
+    typeof input === "object" && input !== null && !Array.isArray(input);
+  if (input !== true && !isOptions) return null;
   const options = input === true ? {} : input;
   const config: ResolvedVoiceConfig = {
     input: options.input ?? true,
@@ -162,7 +167,11 @@ export function joinDictation(
   return (typed ? `${typed} ${heard}` : heard).slice(0, maxLength);
 }
 
-/** Split after sentence punctuation that is followed by whitespace, and at newlines. */
+/**
+ * Split at newlines, after `.` `!` `?` when whitespace follows (so the dot in
+ * "example.com" or "$9.99" is not a break), and after the full-width marks
+ * Chinese and Japanese use, which have no space after them.
+ */
 function splitSentences(text: string): string[] {
   const pieces: string[] = [];
   let start = 0;
@@ -170,6 +179,9 @@ function splitSentences(text: string): string[] {
     const ch = text[i];
     const endsSentence =
       ch === "\n" ||
+      ch === "。" ||
+      ch === "！" ||
+      ch === "？" ||
       ((ch === "." || ch === "!" || ch === "?") &&
         (i + 1 === text.length || /\s/.test(text[i + 1])));
     if (endsSentence) {
@@ -185,10 +197,12 @@ function splitSentences(text: string): string[] {
  * Break text into utterance-sized chunks for `speechSynthesis`. Chrome stops
  * a long utterance after roughly 15 seconds when a network voice is in use,
  * so text is queued as several short utterances instead: whole sentences
- * packed up to `maxLength`, an over-long sentence split between words. Words
- * are never split.
+ * packed up to `maxLength`, an over-long sentence split between words, and a
+ * single over-long token cut as a last resort. The default is about ten
+ * seconds of speech, leaving room for numbers, which take far longer to say
+ * than to write.
  */
-export function chunkSpeechText(text: string, maxLength = 200): string[] {
+export function chunkSpeechText(text: string, maxLength = 150): string[] {
   const chunks: string[] = [];
   let current = "";
 
@@ -208,8 +222,14 @@ export function chunkSpeechText(text: string, maxLength = 200): string[] {
       current = piece;
       continue;
     }
-    for (const word of piece.trim().split(/\s+/)) {
+    for (let word of piece.trim().split(/\s+/)) {
       if (current && `${current} ${word}`.length > maxLength) flush();
+      // Not a word in a spaced script, but an ordinary unpunctuated sentence
+      // in Chinese or Japanese. Left whole it would hit the cutoff.
+      while (word.length > maxLength) {
+        chunks.push(word.slice(0, maxLength));
+        word = word.slice(maxLength);
+      }
       current = current ? `${current} ${word}` : word;
     }
   }
