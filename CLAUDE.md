@@ -105,6 +105,9 @@ pnpm test             # Run tests
 | `ChatMessage` | Renders individual messages with URL linking |
 | `ChatSources` | Slide-out sidebar displaying grouped source links |
 | `SourceIcon` | Icon button with badge count to trigger source sidebar |
+| `VoiceInputButton` | Mic button for dictation; toggle and hold-to-talk gestures |
+| `VoiceLevel` | Voice-activity indicator shown inside the input while listening |
+| `MessageSpeechControls` | Read aloud / pause / resume / stop buttons under assistant replies |
 | `AttachmentPreview` | Image thumbnail / file chip for pending and sent attachments |
 
 ### useChat Hook
@@ -172,6 +175,25 @@ deduplicated `sources` (JSON body / SSE done event) that the widget already
 renders. Retrieval failures degrade to ungrounded replies. Ingestion:
 `pnpm rag:ingest ./content --index <name>` (chunking helpers in
 `scripts/lib/rag-ingest.ts`). Docs: rag/index.md.
+
+### Voice
+
+Voice is widget-only and opt-in (`voice` prop / `ClaudiusConfig.voice` /
+`<claudius-chat voice voice-mode voice-auto-submit voice-input voice-output
+voice-lang>`), built on the browser's Web Speech API with no dependencies.
+`useSpeechRecognition` (owned by `ChatInput`) runs one single-utterance session
+at a time and streams interim results into the field; `useSpeechSynthesis`
+(owned by `ChatWindow`) reads one settled assistant reply at a time as
+sentence-sized utterances. Pure helpers live in `widget/src/utils/voice.ts`
+(`resolveVoiceConfig`, `resolveSpeechLang`, `joinDictation`,
+`chunkSpeechText`, `voiceOptionsFromAttributes`). Each half is feature
+detected separately and renders nothing when unsupported. jsdom has no speech
+engines, so tests drive `widget/src/test-utils/fakeSpeech*.ts`.
+
+Privacy: the widget never touches audio (no `getUserMedia`) and none reaches
+the worker, but browsers recognize speech on their vendor's servers by
+default. Do not describe it as on-device. Docs: configuration/voice.md;
+design: docs/plans/2026-09-18-voice-input-tts-design.md.
 
 ### Chat Request/Response
 

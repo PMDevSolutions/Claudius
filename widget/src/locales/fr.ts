@@ -34,6 +34,20 @@ export const fr: ClaudiusTranslations = {
     "{name} n'est pas un type de fichier pris en charge.",
   attachmentTooMany: "Vous pouvez joindre jusqu'à {max} fichiers par message.",
 
+  // Voice
+  voiceInput: "Saisie vocale",
+  voiceInputHold: "Maintenez pour parler",
+  voiceListening: "Écoute en cours...",
+  voicePermissionDenied:
+    "L'accès au microphone est bloqué. Autorisez-le dans les paramètres de votre navigateur pour utiliser la saisie vocale.",
+  voiceNoSpeech: "Aucune voix n'a été détectée. Veuillez réessayer.",
+  voiceNoMicrophone: "Aucun microphone n'a été trouvé.",
+  voiceUnavailable: "La saisie vocale n'est pas disponible pour le moment.",
+  readAloud: "Lire à voix haute",
+  pauseReading: "Mettre la lecture en pause",
+  resumeReading: "Reprendre la lecture",
+  stopReading: "Arrêter la lecture",
+
   // Errors
   errorGeneric: "Une erreur s'est produite. Veuillez réessayer.",
   errorConnection: "Échec de la connexion. Veuillez réessayer.",

@@ -1,6 +1,10 @@
 import { memo, useState, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
 import { AttachmentPreview } from "./AttachmentPreview";
+import {
+  MessageSpeechControls,
+  type MessageSpeechState,
+} from "./MessageSpeechControls";
 import type { ChatAttachment, Source, ToolUse } from "../api/types";
 import { sanitizeUrl } from "../utils/sanitize";
 import { stabilizeStreamingMarkdown } from "../utils/stabilizeStreamingMarkdown";
@@ -25,6 +29,21 @@ interface ChatMessageProps {
   toolDetailsLabel?: string;
   onSourceClick?: () => void;
   isSourceActive?: boolean;
+  /**
+   * Read-aloud state and handlers. Omit to hide the controls, as the parent
+   * does for messages that are still streaming or have nothing to read.
+   */
+  speech?: MessageSpeech;
+}
+
+/** Read-aloud wiring for one assistant message. */
+export interface MessageSpeech {
+  state: MessageSpeechState;
+  labels: { play: string; pause: string; resume: string; stop: string };
+  onPlay: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onStop: () => void;
 }
 
 /**
@@ -204,6 +223,7 @@ export const ChatMessage = memo(function ChatMessage({
   toolDetailsLabel = "Tool details",
   onSourceClick,
   isSourceActive,
+  speech,
 }: ChatMessageProps) {
   const isUser = role === "user";
   const hasAttachments = !!attachments && attachments.length > 0;
@@ -259,6 +279,11 @@ export const ChatMessage = memo(function ChatMessage({
             isActive={isSourceActive ?? false}
             onClick={onSourceClick}
           />
+        </div>
+      )}
+      {!isUser && speech && (
+        <div className="mt-1">
+          <MessageSpeechControls {...speech} />
         </div>
       )}
     </div>

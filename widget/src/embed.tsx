@@ -5,6 +5,7 @@ import type { LocaleCode } from "./locales";
 import type { ClaudiusTranslations } from "./i18n";
 import type { ClaudiusThemeInput } from "./theme/types";
 import type { AttachmentsOptions } from "./utils/attachments";
+import { voiceOptionsFromAttributes, type VoiceOptions } from "./utils/voice";
 import "./styles.css";
 
 // Injected at build time by vite.config.embed.ts; undefined under unit tests.
@@ -29,6 +30,7 @@ interface ClaudiusConfig {
   translations?: Partial<ClaudiusTranslations>;
   triggers?: Trigger[];
   attachments?: boolean | AttachmentsOptions;
+  voice?: boolean | VoiceOptions;
 }
 
 declare global {
@@ -71,6 +73,7 @@ function init() {
       translations={config.translations}
       triggers={config.triggers}
       attachments={config.attachments}
+      voice={config.voice}
     />,
   );
 }
@@ -94,6 +97,12 @@ class ClaudiusChat extends HTMLElement {
       "accent-color",
       "position",
       "attachments",
+      "voice",
+      "voice-mode",
+      "voice-auto-submit",
+      "voice-input",
+      "voice-output",
+      "voice-lang",
     ];
   }
 
@@ -163,6 +172,7 @@ class ClaudiusChat extends HTMLElement {
           (this.getAttribute("position") as WidgetPosition) ?? undefined
         }
         attachments={attachments}
+        voice={voiceOptionsFromAttributes((name) => this.getAttribute(name))}
       />,
     );
   }

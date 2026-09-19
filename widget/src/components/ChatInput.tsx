@@ -11,6 +11,8 @@ import {
 import { defaultTranslations, type ClaudiusTranslations } from "../i18n";
 import type { ChatAttachment } from "../api/types";
 import { AttachmentPreview } from "./AttachmentPreview";
+import { VoiceInputButton } from "./VoiceInputButton";
+import { VoiceLevel } from "./VoiceLevel";
 import {
   fileToAttachment,
   formatBytes,
@@ -19,6 +21,11 @@ import {
   type ResolvedAttachmentsConfig,
 } from "../utils/attachments";
 import { interpolate } from "../utils/interpolate";
+import { joinDictation, type ResolvedVoiceConfig } from "../utils/voice";
+import {
+  useSpeechRecognition,
+  type SpeechRecognitionErrorKind,
+} from "../hooks/useSpeechRecognition";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const WARNING_THRESHOLD = 1800;
@@ -37,6 +44,13 @@ interface ChatInputProps {
    * pasted or dropped files are ignored.
    */
   attachments?: ResolvedAttachmentsConfig | null;
+  /**
+   * Voice settings. The mic button renders only when `voice.input` is on and
+   * the browser supports speech recognition.
+   */
+  voice?: ResolvedVoiceConfig | null;
+  /** Called when dictation starts, so the parent can silence read-aloud. */
+  onVoiceStart?: () => void;
 }
 
 function dragHasFiles(e: DragEvent): boolean {
@@ -52,16 +66,28 @@ export function ChatInput({
   placeholder,
   translations,
   attachments = null,
+  voice = null,
+  onVoiceStart,
 }: ChatInputProps) {
   const t = translations ?? defaultTranslations;
   const [value, setValue] = useState("");
   const [pending, setPending] = useState<ChatAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef<ChatAttachment[]>([]);
   const dragDepthRef = useRef(0);
+  // Mirrors `value` for the speech callbacks, which fire outside a render.
+  const valueRef = useRef("");
+  // What the field held when dictation began; speech is appended to it.
+  const dictationBaseRef = useRef("");
+
+  const updateValue = (next: string) => {
+    valueRef.current = next;
+    setValue(next);
+  };
 
   const charCount = value.length;
   const isNearLimit = charCount >= WARNING_THRESHOLD;
@@ -123,26 +149,82 @@ export function ChatInput({
     setAttachmentError(null);
   }, []);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmed = value.trim();
+  const submit = () => {
+    const trimmed = valueRef.current.trim();
     const files = pendingRef.current;
-    if ((!trimmed && files.length === 0) || isAtLimit) return;
+    if (
+      (!trimmed && files.length === 0) ||
+      valueRef.current.length >= MAX_MESSAGE_LENGTH
+    ) {
+      return;
+    }
     if (files.length > 0) {
       onSend(trimmed, files);
     } else {
       onSend(trimmed);
     }
-    setValue("");
+    updateValue("");
     pendingRef.current = [];
     setPending([]);
     setAttachmentError(null);
   };
 
+  const describeVoiceError = (kind: SpeechRecognitionErrorKind): string => {
+    switch (kind) {
+      case "permission":
+        return t.voicePermissionDenied;
+      case "no-speech":
+        return t.voiceNoSpeech;
+      case "no-microphone":
+        return t.voiceNoMicrophone;
+      case "unavailable":
+        return t.voiceUnavailable;
+    }
+  };
+
+  const recognition = useSpeechRecognition({
+    lang: voice?.lang ?? "en-US",
+    onTranscript: (transcript) =>
+      updateValue(
+        joinDictation(dictationBaseRef.current, transcript, MAX_MESSAGE_LENGTH),
+      ),
+    onEnd: (transcript) => {
+      // Only a session that ended normally and actually heard something.
+      if (voice?.autoSubmit && transcript.trim()) submit();
+    },
+    onError: (kind) => setVoiceError(describeVoiceError(kind)),
+  });
+  const showMic = !!voice?.input && recognition.isSupported;
+  const isListening = recognition.isListening;
+
+  // The field is not focused while dictating, so the browser does not scroll
+  // it; without this only the first words of a long dictation are visible.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (isListening && input) input.scrollLeft = input.scrollWidth;
+  }, [isListening, value]);
+
+  const startDictation = () => {
+    setVoiceError(null);
+    dictationBaseRef.current = valueRef.current;
+    onVoiceStart?.();
+    recognition.start();
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Otherwise the next result would put the sent text back in the field.
+    recognition.abort();
+    submit();
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
-      setValue(newValue);
+      // Typing takes over from dictation: keep the edit, drop the session.
+      recognition.abort();
+      setVoiceError(null);
+      updateValue(newValue);
     }
   };
 
@@ -263,18 +345,33 @@ export function ChatInput({
             </button>
           </>
         )}
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={handleChange}
-          onPaste={handlePaste}
-          placeholder={placeholderText}
-          disabled={isLoading}
-          aria-label={t.typeYourMessage}
-          aria-describedby={isNearLimit ? "char-count" : undefined}
-          className="min-w-0 flex-1 rounded-claudius-sm border border-claudius-border bg-claudius-field px-3 py-2 text-sm font-body text-claudius-text placeholder:text-claudius-text-muted focus:border-claudius-accent focus:outline-none focus:ring-1 focus:ring-claudius-accent disabled:opacity-50"
-        />
+        <div className="relative min-w-0 flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={handleChange}
+            onPaste={handlePaste}
+            placeholder={isListening ? t.voiceListening : placeholderText}
+            disabled={isLoading}
+            aria-label={t.typeYourMessage}
+            aria-describedby={isNearLimit ? "char-count" : undefined}
+            className={`h-full w-full rounded-claudius-sm border border-claudius-border bg-claudius-field py-2 pl-3 text-sm font-body text-claudius-text placeholder:text-claudius-text-muted focus:border-claudius-accent focus:outline-none focus:ring-1 focus:ring-claudius-accent disabled:opacity-50 ${
+              isListening ? "pr-10" : "pr-3"
+            }`}
+          />
+          {isListening && <VoiceLevel active={recognition.isSpeechDetected} />}
+        </div>
+        {showMic && voice && (
+          <VoiceInputButton
+            mode={voice.mode}
+            isListening={isListening}
+            disabled={isLoading}
+            onStart={startDictation}
+            onStop={recognition.stop}
+            label={voice.mode === "hold" ? t.voiceInputHold : t.voiceInput}
+          />
+        )}
         {showStop ? (
           <button
             type="button"
@@ -316,9 +413,9 @@ export function ChatInput({
           </button>
         )}
       </div>
-      {attachmentError && (
+      {(attachmentError ?? voiceError) && (
         <div role="alert" className="mt-1 text-xs text-claudius-error">
-          {attachmentError}
+          {attachmentError ?? voiceError}
         </div>
       )}
       {isNearLimit && (

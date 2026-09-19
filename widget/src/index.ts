@@ -38,6 +38,11 @@ export type {
   AttachmentsOptions,
   ResolvedAttachmentsConfig,
 } from "./utils/attachments";
+export type {
+  VoiceOptions,
+  VoiceInputMode,
+  ResolvedVoiceConfig,
+} from "./utils/voice";
 
 // Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three
 // reference plugins.

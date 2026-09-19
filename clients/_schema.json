@@ -62,6 +62,23 @@
               }
             }
           ]
+        },
+        "voice": {
+          "description": "Voice input (mic button) and read-aloud via the browser's Web Speech API. true enables both with the defaults (click-to-toggle mic, no auto-submit).",
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "input": { "type": "boolean" },
+                "output": { "type": "boolean" },
+                "mode": { "type": "string", "enum": ["toggle", "hold"] },
+                "autoSubmit": { "type": "boolean" },
+                "lang": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
         }
       }
     },

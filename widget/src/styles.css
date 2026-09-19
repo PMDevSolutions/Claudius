@@ -60,6 +60,55 @@
   transition: opacity 300ms ease;
 }
 
+/* Voice input level indicator: bars idle gently while the mic waits and
+   swing fully while speech is heard. */
+.claudius-voice-level > span {
+  width: 3px;
+  height: 100%;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.5;
+  transform: scaleY(0.25);
+  animation: claudius-voice-idle 1.2s ease-in-out infinite;
+}
+
+.claudius-voice-level[data-claudius-voice-level="active"] > span {
+  opacity: 1;
+  animation: claudius-voice-active 0.6s ease-in-out infinite;
+}
+
+.claudius-voice-level > span:nth-child(2) {
+  animation-delay: -0.45s;
+}
+
+.claudius-voice-level > span:nth-child(3) {
+  animation-delay: -0.2s;
+}
+
+.claudius-voice-level > span:nth-child(4) {
+  animation-delay: -0.65s;
+}
+
+@keyframes claudius-voice-idle {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(0.4);
+  }
+}
+
+@keyframes claudius-voice-active {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
 /* Reduced motion: replace slide with opacity, skip transforms */
 @media (prefers-reduced-motion: reduce) {
   .claudius-bottom-sheet {
@@ -69,5 +118,12 @@
 
   .claudius-scrim {
     transition: opacity 150ms ease;
+  }
+
+  /* Still bars; the idle / active difference is carried by opacity alone. */
+  .claudius-voice-level > span,
+  .claudius-voice-level[data-claudius-voice-level="active"] > span {
+    animation: none;
+    transform: scaleY(0.6);
   }
 }
