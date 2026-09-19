@@ -77,3 +77,52 @@ describe("embed attachments option", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("embed voice option", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    document.body.innerHTML = "";
+    window.sessionStorage.clear();
+    window.ClaudiusConfig = undefined;
+    document.documentElement.lang = "en";
+    (window as unknown as Record<string, unknown>).webkitSpeechRecognition =
+      class {
+        start() {}
+        stop() {}
+        abort() {}
+      };
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    window.ClaudiusConfig = undefined;
+    document.documentElement.lang = "";
+    delete (window as unknown as Record<string, unknown>)
+      .webkitSpeechRecognition;
+  });
+
+  it("enables the mic from ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      voice: { mode: "hold" },
+    };
+    await import("../embed");
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    expect(
+      await screen.findByRole("button", { name: "Hold to talk" }),
+    ).toBeInTheDocument();
+  });
+
+  it("enables the mic via web component attributes", async () => {
+    await import("../embed");
+    const el = document.createElement("claudius-chat");
+    el.setAttribute("api-url", "https://test.example/api");
+    el.setAttribute("voice", "");
+    el.setAttribute("voice-mode", "hold");
+    document.body.appendChild(el);
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    expect(
+      await screen.findByRole("button", { name: "Hold to talk" }),
+    ).toBeInTheDocument();
+  });
+});

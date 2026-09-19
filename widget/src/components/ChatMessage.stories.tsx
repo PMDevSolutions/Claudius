@@ -82,3 +82,41 @@ export const WithAttachments: Story = {
     ],
   },
 };
+
+const speechLabels = {
+  play: "Read aloud",
+  pause: "Pause reading",
+  resume: "Resume reading",
+  stop: "Stop reading",
+};
+
+// Read-aloud control under a settled assistant reply.
+export const WithReadAloud: Story = {
+  args: {
+    role: "assistant",
+    content: "Our plans start at $10 a month. Want a quick comparison?",
+    speech: {
+      state: "idle",
+      labels: speechLabels,
+      onPlay: fn(),
+      onPause: fn(),
+      onResume: fn(),
+      onStop: fn(),
+    },
+  },
+};
+
+// While a reply is being read, the speaker becomes pause and stop.
+export const ReadingAloud: Story = {
+  args: {
+    ...WithReadAloud.args,
+    speech: {
+      state: "speaking",
+      labels: speechLabels,
+      onPlay: fn(),
+      onPause: fn(),
+      onResume: fn(),
+      onStop: fn(),
+    },
+  },
+};

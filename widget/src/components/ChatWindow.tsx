@@ -7,6 +7,7 @@ import { ErrorBanner } from "./ErrorBanner";
 import { TypingIndicator } from "./TypingIndicator";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
@@ -16,6 +17,7 @@ import type {
   Source,
 } from "../api/types";
 import type { ResolvedAttachmentsConfig } from "../utils/attachments";
+import type { ResolvedVoiceConfig } from "../utils/voice";
 
 interface ChatWindowProps {
   messages: ChatMessageData[];
@@ -40,6 +42,8 @@ interface ChatWindowProps {
   isMobile?: boolean;
   /** Attachment limits, or `null` to hide file controls. */
   attachments?: ResolvedAttachmentsConfig | null;
+  /** Voice settings, or `null` to hide the mic and read-aloud controls. */
+  voice?: ResolvedVoiceConfig | null;
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -68,6 +72,7 @@ export function ChatWindow({
   translations,
   isMobile = false,
   attachments = null,
+  voice = null,
 }: ChatWindowProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -78,6 +83,16 @@ export function ChatWindow({
   } | null>(null);
 
   useFocusTrap(dialogRef, true);
+
+  // One reader for the whole window, so only one reply speaks at a time.
+  const reader = useSpeechSynthesis(voice?.lang ?? "en-US");
+  const canReadAloud = !!voice?.output && reader.isSupported;
+  const speechLabels = {
+    play: translations?.readAloud ?? "Read aloud",
+    pause: translations?.pauseReading ?? "Pause reading",
+    resume: translations?.resumeReading ?? "Resume reading",
+    stop: translations?.stopReading ?? "Stop reading",
+  };
 
   const { offsetY } = useSwipeToDismiss(
     messagesContainerRef,
@@ -189,6 +204,34 @@ export function ChatWindow({
                   setActiveSources({ messageId: msg.id, sources: msg.sources });
                 }
               }}
+              speech={
+                // Only settled replies with something to say: reading a
+                // message that is still streaming would stop mid-sentence.
+                canReadAloud &&
+                msg.role === "assistant" &&
+                msg.id !== streamingMessageId &&
+                msg.content.trim() !== ""
+                  ? {
+                      state:
+                        reader.activeId !== msg.id
+                          ? "idle"
+                          : reader.isPaused
+                            ? "paused"
+                            : "speaking",
+                      labels: speechLabels,
+                      // Same cleanup as the screen-reader announcement:
+                      // no literal asterisks, URLs shortened to hostnames.
+                      onPlay: () =>
+                        reader.speak(
+                          msg.id,
+                          stripAnnouncementFormatting(msg.content),
+                        ),
+                      onPause: reader.pause,
+                      onResume: reader.resume,
+                      onStop: reader.cancel,
+                    }
+                  : undefined
+              }
             />
           ))}
 
@@ -244,6 +287,9 @@ export function ChatWindow({
         placeholder={placeholder}
         translations={translations}
         attachments={attachments}
+        voice={voice}
+        // The mic would otherwise transcribe the widget's own voice.
+        onVoiceStart={reader.cancel}
       />
     </div>
   );

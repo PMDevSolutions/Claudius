@@ -3,6 +3,15 @@ import { fn, userEvent, within } from "storybook/test";
 import { ChatInput } from "./ChatInput";
 import { locales, type LocaleCode } from "../locales";
 import { DEFAULT_ATTACHMENT_OPTIONS } from "../utils/attachments";
+import type { ResolvedVoiceConfig } from "../utils/voice";
+
+const VOICE: ResolvedVoiceConfig = {
+  input: true,
+  output: true,
+  mode: "toggle",
+  autoSubmit: false,
+  lang: "en-US",
+};
 
 const meta = {
   title: "Widget/ChatInput",
@@ -77,4 +86,16 @@ export const WithPendingAttachments: Story = {
     });
     await userEvent.upload(picker, [png, pdf]);
   },
+};
+
+// Mic button for dictation. It renders only in browsers with speech
+// recognition (Chrome, Edge, Safari); click it, allow the microphone, and
+// speak to see the listening indicator and the live transcript.
+export const WithVoiceInput: Story = {
+  args: { voice: VOICE },
+};
+
+// Hold-to-talk: records only while the button (or Space / Enter) is held.
+export const WithVoiceHoldToTalk: Story = {
+  args: { voice: { ...VOICE, mode: "hold" } },
 };

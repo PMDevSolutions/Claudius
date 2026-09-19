@@ -52,6 +52,28 @@ export interface ClaudiusTranslations {
   attachmentTypeNotAllowed: string;
   /** Validation message when the per-message file limit is hit; supports `{max}`. */
   attachmentTooMany: string;
+  /** Accessible label for the mic button in toggle mode (state is exposed via `aria-pressed`). */
+  voiceInput: string;
+  /** Accessible label for the mic button in hold mode. */
+  voiceInputHold: string;
+  /** Placeholder shown in the message input while dictation is listening. */
+  voiceListening: string;
+  /** Shown when the browser or the visitor has blocked microphone access. */
+  voicePermissionDenied: string;
+  /** Shown when dictation ended without hearing any speech. */
+  voiceNoSpeech: string;
+  /** Shown when no microphone is available. */
+  voiceNoMicrophone: string;
+  /** Shown when the browser's speech service cannot be reached or does not support the language. */
+  voiceUnavailable: string;
+  /** Accessible label for the button that reads an assistant message aloud. */
+  readAloud: string;
+  /** Accessible label for pausing read-aloud playback. */
+  pauseReading: string;
+  /** Accessible label for resuming paused read-aloud playback. */
+  resumeReading: string;
+  /** Accessible label for stopping read-aloud playback. */
+  stopReading: string;
   /** Generic fallback error message. */
   errorGeneric: string;
   /** Error shown when the network request fails. */

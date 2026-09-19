@@ -32,6 +32,21 @@ export const de: ClaudiusTranslations = {
   attachmentTypeNotAllowed: "{name} ist kein unterstützter Dateityp.",
   attachmentTooMany: "Sie können bis zu {max} Dateien pro Nachricht anhängen.",
 
+  // Voice
+  voiceInput: "Spracheingabe",
+  voiceInputHold: "Zum Sprechen gedrückt halten",
+  voiceListening: "Ich höre zu...",
+  voicePermissionDenied:
+    "Der Zugriff auf das Mikrofon ist blockiert. Erlauben Sie ihn in den Einstellungen Ihres Browsers, um die Spracheingabe zu nutzen.",
+  voiceNoSpeech:
+    "Es wurde keine Sprache erkannt. Bitte versuchen Sie es erneut.",
+  voiceNoMicrophone: "Es wurde kein Mikrofon gefunden.",
+  voiceUnavailable: "Die Spracheingabe ist momentan nicht verfügbar.",
+  readAloud: "Vorlesen",
+  pauseReading: "Vorlesen pausieren",
+  resumeReading: "Vorlesen fortsetzen",
+  stopReading: "Vorlesen beenden",
+
   // Errors
   errorGeneric: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   errorConnection: "Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.",

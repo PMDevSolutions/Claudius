@@ -10,7 +10,7 @@ import {
   defaultTranslations,
   createTranslations,
 } from "../i18n";
-import { resolveTranslations, type LocaleCode } from "../locales";
+import { detectLocale, resolveTranslations, type LocaleCode } from "../locales";
 import { useTheme } from "../theme/useTheme";
 import type { ClaudiusThemeInput } from "../theme/types";
 import type { ClaudiusPlugin } from "../plugins/types";
@@ -18,6 +18,7 @@ import {
   resolveAttachmentsConfig,
   type AttachmentsOptions,
 } from "../utils/attachments";
+import { resolveVoiceConfig, type VoiceOptions } from "../utils/voice";
 
 /** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
@@ -93,6 +94,17 @@ export interface ChatWidgetProps {
    * @defaultValue `false`
    */
   attachments?: boolean | AttachmentsOptions;
+  /**
+   * Voice features built on the browser's Web Speech API: a mic button for
+   * dictating messages and a read-aloud control on assistant replies. `true`
+   * enables both (click-to-toggle mic, no auto-submit); pass a
+   * {@link VoiceOptions} to choose hold-to-talk, auto-submit, a language, or
+   * to switch either half off. Each half renders only where the browser
+   * supports it. The widget never handles audio itself, but the browser's
+   * speech service may process it remotely; see the Voice guide.
+   * @defaultValue `false`
+   */
+  voice?: boolean | VoiceOptions;
 }
 
 function readDismissed(): boolean {
@@ -141,11 +153,18 @@ export function ChatWidget({
   plugins,
   streaming = true,
   attachments = false,
+  voice = false,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const attachmentsConfig = useMemo(
     () => resolveAttachmentsConfig(attachments),
     [attachments],
+  );
+  // Speech follows the widget's language, detected the same way as the
+  // translations when no locale is given.
+  const voiceConfig = useMemo(
+    () => resolveVoiceConfig(voice, locale ?? detectLocale()),
+    [voice, locale],
   );
   const [greeting, setGreeting] = useState<string | null>(null);
   const [triggersDismissed, setTriggersDismissed] = useState(readDismissed);
@@ -297,6 +316,7 @@ export function ChatWidget({
             translations={translations}
             isMobile={isMobile}
             attachments={attachmentsConfig}
+            voice={voiceConfig}
           />
         )}
         {!(isOpen && isMobile) && (
