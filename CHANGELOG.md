@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1](https://github.com/PMDevSolutions/Claudius/compare/v1.16.0...v1.16.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **widget:** harden voice after independent review ([307278e](https://github.com/PMDevSolutions/Claudius/commit/307278ee84ae75e9fbb9c880ab78ccb6566f3b55))
+
 ## [1.16.0](https://github.com/PMDevSolutions/Claudius/compare/v1.15.0...v1.16.0) (2026-09-19)
 
 
