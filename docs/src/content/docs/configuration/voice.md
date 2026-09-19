@@ -40,7 +40,11 @@ recognition, and your privacy policy may need to say so.
 <claudius-chat api-url="https://your-worker.workers.dev" voice></claudius-chat>
 ```
 
-`true` turns on both the mic and read-aloud. Pass an object to tune them:
+`true` turns on both the mic and read-aloud. Pass an object to tune them. In
+the `voice` prop and in `ClaudiusConfig`, anything else leaves voice off,
+including a string such as `"true"`: an option that switches on a microphone
+fails closed. (HTML attributes are always strings, so `<claudius-chat>` parses
+them for you, as shown below.)
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -87,8 +91,9 @@ an error or a silent session. It uses the same path as the send button, so
 pending [attachments](/configuration/attachments/), the length limit, and
 [plugins](/plugins/) all apply.
 
-Starting dictation stops any reply that is being read aloud, so the
-microphone does not transcribe the widget's own voice.
+Dictation and read-aloud end each other: starting one stops the other, so
+the microphone never transcribes the widget's own voice. A message being sent
+ends dictation too.
 
 ### Toggle or hold
 
@@ -96,11 +101,17 @@ microphone does not transcribe the widget's own voice.
 sustained press. While listening, the button shows a stop icon.
 
 `"hold"` is push-to-talk: recording runs from press to release, with a mouse,
-a finger, or Space / Enter on the keyboard. If the visitor lets go before the
-browser's permission prompt has been answered, nothing starts, so granting
-permission afterwards can never open the microphone with nobody at the
-button. Screen readers and switch devices activate buttons with a click they
-cannot hold, so in hold mode a click of that kind toggles instead.
+a finger, or Space / Enter on the keyboard. Browsers end a recognition session
+at the first pause in speech, so while the button stays down Claudius opens
+the next session itself and keeps appending; a visitor can stop to think
+mid-sentence without losing the rest. With `autoSubmit`, the message is sent
+**on release**, not at the first pause.
+
+If the visitor lets go before the browser's permission prompt has been
+answered, nothing starts, so granting permission afterwards can never open
+the microphone with nobody at the button. Screen readers and switch devices
+activate buttons with a click they cannot hold, so in hold mode a click of
+that kind toggles instead.
 
 ### Listening indicator
 
@@ -123,11 +134,16 @@ in opacity only.
 The button appears once a reply has finished streaming. Formatting marks are
 not spoken and links are shortened to their hostname, the same cleanup used
 for screen-reader announcements. One reply plays at a time; starting another
-stops the first, and closing the chat stops playback.
+stops the first, and closing the chat stops playback. `speechSynthesis` is
+shared with the rest of the page, so Claudius only ever stops speech it
+started itself: if your site uses speech synthesis too, closing the chat or
+starting dictation will not cut it off. Pressing Read aloud does take over,
+since only one thing can speak at a time.
 
-Long replies are queued sentence by sentence. Chrome cuts a single long
-utterance off after about 15 seconds when it is using a network voice, and
-short utterances avoid that.
+Long replies are queued a few sentences at a time, about ten seconds of
+speech each. Chrome cuts a single long utterance off after about 15 seconds
+when it is using a network voice, and short utterances avoid that. Chinese
+and Japanese sentence marks are recognized as well.
 
 On **Android**, browsers implement "pause" as "stop". Claudius detects this
 and returns the control to its idle state, rather than carrying on with the
