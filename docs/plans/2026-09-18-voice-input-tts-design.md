@@ -93,9 +93,10 @@ voice?: boolean | VoiceOptions; // Default false
 - An unknown `mode` falls back to `"toggle"` rather than throwing, since it
   can arrive from an HTML attribute.
 - `<claudius-chat>` gains `voice`, `voice-mode`, `voice-auto-submit`,
-  `voice-input`, and `voice-output`. Unlike attachment limits these are plain
-  enums and booleans, and the web component cannot read `ClaudiusConfig`, so
-  without them "configurable per widget" would not hold for that embed style.
+  `voice-input`, `voice-output`, and `voice-lang`. Unlike attachment limits
+  these are plain enums, booleans, and strings, and the web component cannot
+  read `ClaudiusConfig`, so without them "configurable per widget" would not
+  hold for that embed style.
 - `clients/_schema.json`, CLI validation, and both snippet generators accept
   `widget.voice`.
 
@@ -125,7 +126,7 @@ ChatWidget   resolveVoiceConfig(voice, locale ?? detectLocale())
 
 | Unit | Responsibility |
 |------|----------------|
-| `utils/voice.ts` | `resolveVoiceConfig`, `resolveSpeechLang`, `joinDictation`, `chunkSpeechText`, `pickVoice`. Pure. |
+| `utils/voice.ts` | `resolveVoiceConfig`, `resolveSpeechLang`, `joinDictation`, `chunkSpeechText`, `voiceOptionsFromAttributes`. Pure. |
 | `hooks/useSpeechRecognition.ts` | One recognition session at a time: start, stop, abort, transcript, error mapping. Minimal local typings, since TypeScript's DOM lib has none for recognition. |
 | `hooks/useSpeechSynthesis.ts` | Reads one message at a time: chunk queue, pause, resume, cancel. |
 | `components/VoiceInputButton.tsx` | The mic button and its toggle / hold gesture handling. Presentational. |
@@ -156,7 +157,12 @@ message may speak at a time and it already holds `streamingMessageId`.
   immediate feedback and guards against a double start while the permission
   prompt is open.
 - **Toggle mode:** click starts, click stops. The session also ends by itself
-  after the utterance.
+  after the utterance. While listening the button shows a stop square, the
+  same swap the send button makes while a reply streams. A solid mic next to
+  the solid send button read as two send buttons.
+- The field is kept scrolled to its end while dictating. It is not focused,
+  so the browser does not scroll it, and a long dictation would otherwise show
+  only its first words.
 - **Hold mode:** pointer down starts and pointer up, cancel, or lost capture
   stops; Space and Enter work the same way from the keyboard. Releasing
   before the engine has actually started calls `abort()` rather than
@@ -201,10 +207,20 @@ in opacity.
   characters and queued as separate utterances. That avoids Chrome's
   15-second cutoff and gives clean pause points. Utterances are held in a ref
   because Safari garbage-collects them mid-speech otherwise.
-- `pickVoice` prefers a **local** voice for the language, then any voice for
-  the language, else leaves the choice to the browser via `utterance.lang`.
-  Local voices keep the text on the device and do not have the cutoff bug.
-  Android reports `en_US` style tags, so matching normalizes the separator.
+- **The voice is left to the browser**: only `utterance.lang` is set. An
+  earlier draft picked a local voice explicitly, for privacy and to avoid the
+  cutoff. That was dropped. Voice lists are alphabetical, so "first local
+  en-US voice" is the novelty voice "Albert" on a Mac whose system language is
+  not English; in Edge it would swap the Natural voices for robotic ones; and
+  Safari and Firefox voices are all local already, so there was nothing to
+  gain there. Chunking already handles the cutoff, and the docs state plainly
+  that a network voice sends the reply text to the vendor.
+- `speak()` cancels the engine only when something is playing or queued. That
+  still clears a queue Chrome left stuck, without sending an idle engine a
+  `cancel()` immediately before `speak()`, which swallows the new utterance
+  in some browsers. Verified against Chrome 153: with no voices installed
+  `speak()` fires `error: synthesis-failed`, which returns the control to
+  idle rather than leaving it stuck.
 - Controls: idle shows Read aloud; speaking shows Pause and Stop; paused
   shows Resume and Stop. Starting another message stops the current one.
 - A session counter makes late events from cancelled utterances harmless.
@@ -256,7 +272,7 @@ Test-first, with fake `SpeechRecognition` and `speechSynthesis`
 implementations that tests drive event by event.
 
 - `utils/voice`: config resolution, language resolution, joining, chunking,
-  voice picking.
+  attribute parsing.
 - `useSpeechRecognition`: unsupported no-op, session setup, interim and final
   transcripts, stop versus abort, each error mapping, `start()` throwing,
   double start, unmount.
@@ -268,8 +284,9 @@ implementations that tests drive event by event.
   must not fire, error display, read-aloud only on settled assistant
   messages, dictation cancels read-aloud.
 - Embed attributes, client-config validation, snippets.
-- One Playwright spec with injected fakes to prove the wiring in the built
-  app. Real engines cannot run in CI: no microphone, and Chromium builds ship
+- One Playwright spec with injected fakes to prove the wiring in a real
+  browser, including the one behaviour jsdom cannot show (keeping a long
+  dictation scrolled into view). Real engines cannot run in CI: no microphone, and Chromium builds ship
   without the recognition service key.
 
 ## Documentation

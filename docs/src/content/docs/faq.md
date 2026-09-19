@@ -48,6 +48,10 @@ API key can access, and `MAX_TOKENS` to control response length (default
 - **Attachments** (optional): forwarded to Anthropic and discarded by default;
   with the R2 backend they are kept for a configurable retention window behind
   signed URLs. Details in [Attachments](/configuration/attachments/#privacy-posture).
+- **Voice** (optional, off by default): the widget never handles audio and
+  none reaches your worker. The visitor's browser does the listening, and most
+  browsers send that audio to their own vendor (Google, Apple) to be
+  recognized. Details in [Voice](/configuration/voice/#privacy-posture).
 
 ## How big is the embed?
 
@@ -58,7 +62,9 @@ existing React.
 ## Is it accessible?
 
 WCAG 2.1 AA: focus trap, full keyboard navigation, ARIA labels, screen-reader
-announcements, reduced-motion-aware animations. Lighthouse accessibility
+announcements, reduced-motion-aware animations. Optional
+[voice input and read-aloud](/configuration/voice/) help visitors who find
+typing or reading difficult. Lighthouse accessibility
 scores 98/100.
 
 ## How do I report a security issue?

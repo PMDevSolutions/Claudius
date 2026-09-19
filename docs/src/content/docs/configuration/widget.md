@@ -27,6 +27,7 @@ attributes on the `<claudius-chat>` web component.
 | `triggers` | `Trigger[]` | `undefined` | Proactive triggers; see [Proactive triggers](/configuration/triggers/) |
 | `plugins` | `ClaudiusPlugin[]` | `undefined` | Message middleware run around each send (`onBeforeSend` / `onAfterReceive` / `onError`); see [Plugins](/plugins/) |
 | `attachments` | `boolean \| AttachmentsOptions` | `false` | Let visitors attach images and PDFs; `true` for the defaults (5 MB, 5 files) or an object with `maxSizeBytes`, `maxCount`, `allowedTypes`. See [Attachments](/configuration/attachments/) |
+| `voice` | `boolean \| VoiceOptions` | `false` | Mic button for dictation and a read-aloud button on replies, using the browser's Web Speech API; `true` for the defaults or an object with `input`, `output`, `mode`, `autoSubmit`, `lang`. See [Voice](/configuration/voice/) |
 
 ## Web component attributes
 
@@ -34,7 +35,9 @@ attributes on the `<claudius-chat>` web component.
 `api-url`, `title`, `subtitle`, `welcome-message`, `placeholder`,
 `persist-messages`, `storage-key-prefix`, `request-timeout-ms`, `theme`,
 `accent-color`, `position`, `attachments` (`attachments` or
-`attachments="true"` enables the defaults).
+`attachments="true"` enables the defaults), and `voice` with its companions
+`voice-mode`, `voice-auto-submit`, `voice-input`, `voice-output`, and
+`voice-lang` (see [Voice](/configuration/voice/#enable-voice)).
 
 ```html
 <claudius-chat

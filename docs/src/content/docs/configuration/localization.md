@@ -49,6 +49,7 @@ window.ClaudiusConfig = {
 | Input | `placeholder`, `sendMessage`, `typeYourMessage` |
 | Toggle / bubble | `openChat`, `dismissGreeting` |
 | Errors | `errorGeneric`, `errorConnection`, `errorTimeout`, `errorRateLimitMinute`, `errorRateLimitHour`, `errorRetry` |
+| [Voice](/configuration/voice/) | `voiceInput`, `voiceInputHold`, `voiceListening`, `voicePermissionDenied`, `voiceNoSpeech`, `voiceNoMicrophone`, `voiceUnavailable`, `readAloud`, `pauseReading`, `resumeReading`, `stopReading` |
 
 Note these localize the widget UI only. The AI's reply language follows the
 conversation and your [system prompt](/configuration/worker/#system-prompt) —
