@@ -85,6 +85,11 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   /** Tools the assistant called while producing this message, when any. */
   toolUses?: ToolUse[];
+  /**
+   * ISO 8601 time the message was added to the conversation. Absent on
+   * messages persisted by widget versions that predate conversation export.
+   */
+  createdAt?: string;
 }
 
 /**
