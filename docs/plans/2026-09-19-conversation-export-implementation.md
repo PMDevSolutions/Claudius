@@ -2106,12 +2106,18 @@ describe("useConversationExport", () => {
     expect(result.current.status).toBe("Copied to clipboard");
   });
 
-  it("hands the text to copyText before yielding, to keep the user activation", () => {
+  it("hands the text to copyText before yielding, to keep the user activation", async () => {
     const { result } = renderHook(() => useConversationExport(base));
+    let calledBeforeYielding = false;
 
-    act(() => item(result, "copy-markdown").onSelect());
+    // Async act, so the status update that follows the copy lands inside it
+    // instead of producing an act() warning. The count is read synchronously.
+    await act(async () => {
+      item(result, "copy-markdown").onSelect();
+      calledBeforeYielding = vi.mocked(copyText).mock.calls.length === 1;
+    });
 
-    expect(copyText).toHaveBeenCalledTimes(1);
+    expect(calledBeforeYielding).toBe(true);
   });
 
   it("reports a failed copy", async () => {
@@ -3241,8 +3247,8 @@ Sources:
 
 ## The JSON file
 
-A pretty-printed array of [`ChatMessage`](/api/) objects, exactly as the widget
-keeps them in `sessionStorage`:
+A pretty-printed array of `ChatMessage` objects, exactly as the widget
+[keeps them in `sessionStorage`](/api/widget/#message-persistence):
 
 ```json
 [
@@ -3403,30 +3409,37 @@ CONTRIBUTING requires a budget bump in its own commit with the increase explaine
 
 - [ ] **Step 1: Measure the branch**
 
-From `widget/`:
+Scratch files go in the plan's git-ignored workspace, not `/tmp`. From `widget/`:
 
 ```bash
+SCRATCH="$(git rev-parse --show-toplevel)/.superpowers/sdd/2026-09-19-conversation-export-implementation/size"
+mkdir -p "$SCRATCH"
 ./node_modules/.bin/vite build && ./node_modules/.bin/vite build --config vite.config.embed.ts
-./node_modules/.bin/size-limit --json > /tmp/claude-export-branch.json; echo "exit $?"
+./node_modules/.bin/size-limit --json > "$SCRATCH/branch.json"; echo "exit $?"
 ```
 
 Expected: a non-zero exit, because at least the IIFE entries exceed their limits. That is the reason for this task.
 
 - [ ] **Step 2: Measure `main` with the same tool**
 
+Same shell, still in `widget/`, so `$SCRATCH` and `$PWD` carry over:
+
 ```bash
-SCRATCH=$(mktemp -d)
 git worktree add --detach "$SCRATCH/main-wt" origin/main
 ln -s "$PWD/node_modules" "$SCRATCH/main-wt/widget/node_modules"
-( cd "$SCRATCH/main-wt/widget" && ./node_modules/.bin/vite build && ./node_modules/.bin/vite build --config vite.config.embed.ts && ./node_modules/.bin/size-limit --json > /tmp/claude-export-main.json )
+( cd "$SCRATCH/main-wt/widget" && ./node_modules/.bin/vite build && ./node_modules/.bin/vite build --config vite.config.embed.ts && ./node_modules/.bin/size-limit --json > "$SCRATCH/main.json" )
 git worktree remove --force "$SCRATCH/main-wt" && git worktree prune
+git worktree list
 ```
+
+Expected: `git worktree list` shows only the main checkout again.
 
 - [ ] **Step 3: Compute deltas and new limits**
 
 ```bash
-node -e '
-const main = require("/tmp/claude-export-main.json"), branch = require("/tmp/claude-export-branch.json");
+SCRATCH="$SCRATCH" node -e '
+const dir = process.env.SCRATCH;
+const main = require(dir + "/main.json"), branch = require(dir + "/branch.json");
 for (const b of branch) {
   const m = main.find((x) => x.name === b.name);
   console.log(b.name.padEnd(28), "main", m.size, "branch", b.size, "delta", b.size - m.size, "-> limit", Math.ceil(b.size * 1.05) + " B");
