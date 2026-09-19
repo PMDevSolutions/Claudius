@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0](https://github.com/PMDevSolutions/Claudius/compare/v1.15.0...v1.16.0) (2026-09-19)
+
+
+### Features
+
+* **scripts:** voice option in client config schema, validation, and snippets ([ec59fc1](https://github.com/PMDevSolutions/Claudius/commit/ec59fc18eddaaab86f06ec911f7e423e30c5b581)), closes [#54](https://github.com/PMDevSolutions/Claudius/issues/54)
+* **widget:** voice input and text-to-speech playback ([9f8484b](https://github.com/PMDevSolutions/Claudius/commit/9f8484bfce47dd8259c1b06bf2bed57f112c11cf))
+* **widget:** voice input and text-to-speech playback ([f7233ae](https://github.com/PMDevSolutions/Claudius/commit/f7233ae3100a9691d9e54b873b5d963ea8b3d44c)), closes [#54](https://github.com/PMDevSolutions/Claudius/issues/54)
+
 ## [1.15.0](https://github.com/PMDevSolutions/Claudius/compare/v1.14.0...v1.15.0) (2026-09-01)
 
 
