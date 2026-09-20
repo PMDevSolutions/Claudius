@@ -76,6 +76,22 @@ describe("copyText", () => {
     await expect(copyText("hello")).resolves.toBe(false);
   });
 
+  it("resolves false and tidies up when the DOM itself refuses", async () => {
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+    // A locked-down document can refuse any step of the fallback, not just
+    // the copy command.
+    vi.spyOn(HTMLTextAreaElement.prototype, "select").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    (document as Doc).execCommand = vi.fn(() => true);
+
+    await expect(copyText("hello")).resolves.toBe(false);
+    expect(document.querySelector("textarea")).toBeNull();
+    expect(document.activeElement).toBe(button);
+  });
+
   it("returns focus to where it was after the fallback", async () => {
     const button = document.createElement("button");
     document.body.appendChild(button);

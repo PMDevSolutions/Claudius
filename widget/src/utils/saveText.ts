@@ -1,28 +1,35 @@
-/** Copy through a hidden textarea, for where the async API is unavailable. */
+/**
+ * Copy through a hidden textarea, for where the async API is unavailable.
+ * Every step is inside the try, not just the copy command: a locked-down
+ * document can refuse any of them, and this is the caller's last resort, so
+ * it answers with `false` rather than throwing on the host page.
+ */
 function legacyCopy(text: string): boolean {
   const previous = document.activeElement as HTMLElement | null;
-  const area = document.createElement("textarea");
-  area.value = text;
-  area.setAttribute("readonly", "");
-  area.setAttribute("aria-hidden", "true");
-  area.style.position = "fixed";
-  area.style.top = "0";
-  area.style.left = "0";
-  area.style.opacity = "0";
-  document.body.appendChild(area);
-  // select() alone does not focus the field everywhere (iOS Safari), and the
-  // copy command acts on the focused element's selection.
-  area.focus({ preventScroll: true });
-  area.select();
-  let ok = false;
+  let area: HTMLTextAreaElement | null = null;
   try {
-    ok = document.execCommand("copy");
+    area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.setAttribute("aria-hidden", "true");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.left = "0";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    // select() alone does not focus the field everywhere (iOS Safari), and the
+    // copy command acts on the focused element's selection.
+    area.focus({ preventScroll: true });
+    area.select();
+    return document.execCommand("copy");
   } catch {
-    ok = false;
+    return false;
+  } finally {
+    // In a finally, so a refusal cannot leave the textarea on the page or
+    // the visitor's focus inside it.
+    area?.remove();
+    previous?.focus();
   }
-  area.remove();
-  previous?.focus();
-  return ok;
 }
 
 /**
