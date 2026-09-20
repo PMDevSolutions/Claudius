@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0](https://github.com/PMDevSolutions/Claudius/compare/v1.16.1...v1.17.0) (2026-09-20)
+
+
+### Features
+
+* **scripts:** conversationExport in client config schema, validation, and snippets ([b6e4347](https://github.com/PMDevSolutions/Claudius/commit/b6e434757b2cf7bbda72ec814bdc7e208799f967))
+* **widget:** accessible header menu ([ae759d0](https://github.com/PMDevSolutions/Claudius/commit/ae759d096a97006ad11c014096bfc06fbf48857c))
+* **widget:** clipboard and download helpers ([c64b453](https://github.com/PMDevSolutions/Claudius/commit/c64b4531c0881b4f476c8651fcf6118230ea8e82))
+* **widget:** conversation export (Markdown, JSON, copy to clipboard) ([35e85b9](https://github.com/PMDevSolutions/Claudius/commit/35e85b9937de8af025ae0304cfe3abdc15815840))
+* **widget:** conversation export strings in en, es, fr, de ([95bb6c6](https://github.com/PMDevSolutions/Claudius/commit/95bb6c6af1a66ed0c0cee6458a2dee383517af21))
+* **widget:** conversationExport in ClaudiusConfig and &lt;claudius-chat&gt; ([e91b492](https://github.com/PMDevSolutions/Claudius/commit/e91b492b34cccb8206aaca29079f47b8fbda55da))
+* **widget:** conversationExport option and header menu wiring ([368319b](https://github.com/PMDevSolutions/Claudius/commit/368319bac89bade59e9b0affa95ff67cdfb21580))
+* **widget:** Markdown and JSON conversation serializers ([f012dc4](https://github.com/PMDevSolutions/Claudius/commit/f012dc4a949f1c774e64c94ac41a45741923d4b8))
+* **widget:** message text protections for Markdown export ([e5cc07f](https://github.com/PMDevSolutions/Claudius/commit/e5cc07fdee4b9207e40792d60867512923e0b0c9))
+* **widget:** record createdAt on chat messages ([c6049d2](https://github.com/PMDevSolutions/Claudius/commit/c6049d299d52b06dd67480038b7055fb6b68389f))
+* **widget:** useConversationExport hook ([62ca757](https://github.com/PMDevSolutions/Claudius/commit/62ca7574c72f0512391f1560ed0d046a342d5a90))
+
+
+### Bug Fixes
+
+* **widget:** keep code intact when a message ends inside an open fence ([e001999](https://github.com/PMDevSolutions/Claudius/commit/e001999adf2d6d8bb650782e8e5625f3d31c7a5b))
+
+
+### Refactoring
+
+* **widget:** accept only true for the conversation-export attribute ([59b6e85](https://github.com/PMDevSolutions/Claudius/commit/59b6e854aced8987e4dc3f929eeadf3902948bb3))
+* **widget:** harden the transcript serializer ([75f02da](https://github.com/PMDevSolutions/Claudius/commit/75f02da7013b633b4828fe00719db5a0fd06e366))
+* **widget:** keep a blur with no relatedTarget from closing the menu ([c1fbf00](https://github.com/PMDevSolutions/Claudius/commit/c1fbf0040a1df89db4b395e456b0519fc9f3c975))
+* **widget:** let the clipboard fallback fail without throwing ([a6bb805](https://github.com/PMDevSolutions/Claudius/commit/a6bb80598fd1e82c8f2d9b8e95b383d3afef3fff))
+* **widget:** prove what the mounted guard actually prevents ([c776849](https://github.com/PMDevSolutions/Claudius/commit/c776849329db4a6abbd554d8a70c95481f6ee219))
+* **widget:** shorten the German copy-failure message ([9301008](https://github.com/PMDevSolutions/Claudius/commit/9301008ddac80e41d537d31f5b2075538d6ed5cd))
+
 ## [1.16.1](https://github.com/PMDevSolutions/Claudius/compare/v1.16.0...v1.16.1) (2026-09-19)
 
 
