@@ -41,10 +41,16 @@ interface OpenFence {
 const FENCE_OPEN = /^([ \t]*)(`{3,}|~{3,})(.*)$/;
 // A line-leading "<" that CommonMark could read as the start of an HTML block.
 // An autolink (<scheme:host/path> or <user@host>) never opens one, and
-// escaping it would show the brackets and link the wrong destination. The
-// address must start with a letter or digit: "!", "?" and "[" begin exactly
-// the blocks that run across blank lines, so `<!--a@b>` is an unterminated
-// comment wearing an address, not an autolink.
+// escaping it would show the brackets and link the wrong destination.
+//
+// Why neither exception can let a block through. The address must start with
+// a letter or digit, because "!" and "?" begin the comment, processing
+// instruction, declaration and CDATA blocks: `<!--a@b>` is an unterminated
+// comment wearing an address, not an autolink. A `<script`, `<pre`, `<style`
+// or `<textarea` block does start with a letter, but its tag name must be
+// followed by whitespace, ">", or the end of the line, and neither ":" nor
+// "@" is any of those, so neither alternative can match one. Loosening either
+// alternative (whitespace in the address, no closing ">") would break that.
 const HTML_BLOCK_START =
   /^( {0,3})<(?![A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\s]*>|[A-Za-z0-9][^\s<>@]*@[^\s<>]+>)(?=[A-Za-z!?/])/;
 const INDENTED = /^(?: {4}|\t)/;

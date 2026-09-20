@@ -262,12 +262,22 @@ rendered file match what the visitor saw.
 
    One exception: a line-leading autolink, `<https://example.com>` or
    `<help@example.com>`, is left alone. It can never open an HTML block, and
-   escaping it shows the brackets and links the wrong destination. The
-   address form must start with a letter or digit. `!`, `?`, and `[` begin
-   exactly the blocks that span blank lines, so `<!--a@b>` is an unterminated
-   comment wearing an address, not an autolink, and is escaped. The first
-   version of this exception accepted any local part, shipped in 1.17.0, and
-   let such a line hide the rest of a rendered transcript.
+   escaping it shows the brackets and links the wrong destination.
+
+   Neither form can let a block through, for two different reasons. The
+   address form must start with a letter or digit, because `!` and `?` begin
+   the comment, processing instruction, declaration, and CDATA blocks:
+   `<!--a@b>` is an unterminated comment wearing an address, not an autolink.
+   That holds even where CommonMark would accept the address, as it does for
+   `<?q@example.com>`: hiding the transcript is the worse outcome. A
+   `<script`, `<pre`, `<style`, or `<textarea` block does start with a
+   letter, but its tag name must be followed by whitespace, `>`, or the end
+   of the line, and neither `:` nor `@` is any of those, so neither form can
+   match one. Loosening either form, by allowing whitespace in the address
+   or dropping the closing `>`, would break that. The first version of this
+   exception accepted any local part, shipped in 1.17.0, and let such a line
+   hide the rest of a rendered transcript.
+
 4. **Line endings are normalized** to `\n`, and trailing blank lines dropped,
    unless the text ends inside an open code block. There the trailing lines
    are code, so they are left alone and only the block is closed.
