@@ -26,9 +26,19 @@ function legacyCopy(text: string): boolean {
     return false;
   } finally {
     // In a finally, so a refusal cannot leave the textarea on the page or
-    // the visitor's focus inside it.
-    area?.remove();
-    previous?.focus();
+    // the visitor's focus inside it. Each step is guarded on its own: a throw
+    // here would replace the result above and reject the caller's promise,
+    // and a failed removal must not cost the visitor their focus as well.
+    try {
+      area?.remove();
+    } catch {
+      // Nothing more can be done about the textarea.
+    }
+    try {
+      previous?.focus();
+    } catch {
+      // Nor about focus.
+    }
   }
 }
 

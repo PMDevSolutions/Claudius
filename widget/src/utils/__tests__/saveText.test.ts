@@ -92,6 +92,33 @@ describe("copyText", () => {
     expect(document.activeElement).toBe(button);
   });
 
+  it("still resolves when returning focus after the fallback throws", async () => {
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+    vi.spyOn(button, "focus").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    (document as Doc).execCommand = vi.fn(() => true);
+
+    // The copy itself worked, so tidying up must not turn it into a failure.
+    await expect(copyText("hello")).resolves.toBe(true);
+    expect(document.querySelector("textarea")).toBeNull();
+  });
+
+  it("returns focus even when removing the textarea throws", async () => {
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+    vi.spyOn(HTMLTextAreaElement.prototype, "remove").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    (document as Doc).execCommand = vi.fn(() => true);
+
+    await expect(copyText("hello")).resolves.toBe(true);
+    expect(document.activeElement).toBe(button);
+  });
+
   it("returns focus to where it was after the fallback", async () => {
     const button = document.createElement("button");
     document.body.appendChild(button);
