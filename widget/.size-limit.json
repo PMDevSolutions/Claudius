@@ -3,51 +3,51 @@
     "name": "claudius.iife.js (raw)",
     "path": "dist/claudius.iife.js",
     "brotli": false,
-    "limit": "220718 B"
+    "limit": "233284 B"
   },
   {
     "name": "claudius.iife.js (gzip)",
     "path": "dist/claudius.iife.js",
     "gzip": true,
-    "limit": "70681 B"
+    "limit": "75250 B"
   },
   {
     "name": "claudius.iife.js (brotli)",
     "path": "dist/claudius.iife.js",
-    "limit": "62039 B"
+    "limit": "65587 B"
   },
   {
     "name": "claudius.js (raw)",
     "path": "dist/claudius.js",
     "brotli": false,
-    "limit": "102759 B"
+    "limit": "120020 B"
   },
   {
     "name": "claudius.js (gzip)",
     "path": "dist/claudius.js",
     "gzip": true,
-    "limit": "28094 B"
+    "limit": "33058 B"
   },
   {
     "name": "claudius.js (brotli)",
     "path": "dist/claudius.js",
-    "limit": "24120 B"
+    "limit": "28237 B"
   },
   {
     "name": "claudius.css (raw)",
     "path": "dist/claudius.css",
     "brotli": false,
-    "limit": "24839 B"
+    "limit": "25835 B"
   },
   {
     "name": "claudius.css (gzip)",
     "path": "dist/claudius.css",
     "gzip": true,
-    "limit": "5305 B"
+    "limit": "5436 B"
   },
   {
     "name": "claudius.css (brotli)",
     "path": "dist/claudius.css",
-    "limit": "4677 B"
+    "limit": "4784 B"
   }
 ]
