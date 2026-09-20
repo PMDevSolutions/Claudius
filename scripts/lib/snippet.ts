@@ -40,6 +40,10 @@ export function generateScriptSnippet(
     if (config.widget.voice !== undefined && config.widget.voice !== false) {
       configObj.voice = config.widget.voice;
     }
+    // Opt-in, so only `true` is worth emitting.
+    if (config.widget.conversationExport === true) {
+      configObj.conversationExport = true;
+    }
   }
 
   // Build indented JSON: each line of the JSON body is indented to align under
@@ -93,6 +97,9 @@ export function generateWebComponentSnippet(
         if (voice.output !== undefined) attrs.push(["voice-output", String(voice.output)]);
         if (voice.lang !== undefined) attrs.push(["voice-lang", voice.lang]);
       }
+    }
+    if (config.widget.conversationExport === true) {
+      attrs.push(["conversation-export", "true"]);
     }
   }
 
