@@ -3079,7 +3079,9 @@ test.describe("conversation export", () => {
     await page.getByRole("menuitem", { name: "Download as JSON" }).click();
     const download = await downloading;
 
-    expect(download.suggestedFilename()).toMatch(/\.json$/);
+    expect(download.suggestedFilename()).toMatch(
+      /^chat-transcript-\d{4}-\d{2}-\d{2}\.json$/,
+    );
     const messages = JSON.parse(await readFile(await download.path(), "utf8"));
     expect(messages.map((m: { role: string }) => m.role)).toEqual([
       "user",
@@ -3131,7 +3133,11 @@ test.describe("conversation export", () => {
     await page.getByRole("button", { name: /open chat/i }).click();
 
     await page.getByRole("button", { name: "More options" }).click();
-    for (const item of await page.getByRole("menuitem").all()) {
+    // locator.all() does not wait, so without this the loop could run zero
+    // times and the test would pass having checked nothing.
+    const items = page.getByRole("menuitem");
+    await expect(items).toHaveCount(3);
+    for (const item of await items.all()) {
       await expect(item).toHaveAttribute("aria-disabled", "true");
     }
   });
