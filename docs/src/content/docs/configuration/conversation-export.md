@@ -39,8 +39,12 @@ In a [client config](/configuration/clients/), set
 `"widget": { "conversationExport": true }` and regenerate the snippet.
 
 Only the literal `true` enables it. A value such as the string `"false"`, which
-a CMS template can easily produce, leaves it off. On the web component,
-`conversation-export="false"` also leaves it off.
+a CMS template can easily produce, leaves it off. The web component attribute
+is stricter than the others for the same reason: it enables export only when
+`conversation-export` is present with no value or set to `"true"` (case and
+surrounding spaces do not matter). Every other value leaves it off, including
+`"False"`, which a Python or Jinja template writes for a false value, and
+`"0"` and `"no"`.
 
 The actions are greyed out while the conversation is empty and while a reply
 is still arriving, so a transcript never ends in a half-finished answer.

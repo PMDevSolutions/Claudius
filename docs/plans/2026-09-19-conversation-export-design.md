@@ -110,8 +110,12 @@ createdAt?: string; // ISO 8601
   Widening to `boolean | ConversationExportOptions` later is not a breaking
   change.
 - Not named `export`: a reserved word cannot be destructured from props.
-- `<claudius-chat>` gains `conversation-export`. Present, or any value other
-  than `"false"`, enables it, the same rule as `attachments`.
+- `<claudius-chat>` gains `conversation-export`. It enables the feature only
+  when the attribute is present and its value, trimmed and lowercased, is
+  `""` or `"true"`. Every other value, `"False"`, `"0"`, `"no"`, `"yes"`,
+  leaves it off. This is deliberately stricter than `attachments`, which takes
+  any value but `"false"`: a Python or Jinja template renders a false value as
+  `"False"`, and a privacy switch must not be turned on by it.
 - `clients/_schema.json`, CLI validation, and both snippet generators accept
   `widget.conversationExport`. Snippets emit it only when it is `true`.
 
@@ -226,9 +230,16 @@ rendered file match what the visitor saw.
    three or more backticks or tildes; it is closed only by the same character,
    at least as long, with nothing after it; a backtick fence's info string
    cannot contain a backtick. So a four-backtick block that contains
-   three-backtick lines survives intact. Unlike CommonMark, any amount of
-   leading whitespace is accepted, because models routinely indent fences
-   inside list items and almost never write indented code blocks. The closing
+   three-backtick lines survives intact. Indentation is treated differently at
+   each end. An opener accepts any amount of leading whitespace, unlike
+   CommonMark, because models routinely indent fences inside list items and
+   almost never write indented code blocks. A closer does not: it must not be
+   indented more than three columns beyond its opener, which is the CommonMark
+   rule. Without that limit, a message that shows Markdown inside Markdown has
+   its outer block ended by the indented fence of the example, and the
+   example's own code is then escaped and given trailing spaces, breaking the
+   rule below that code inside a fence is never modified. Both indents are
+   measured in columns, with tabs expanded to four-column stops. The closing
    fence that gets added copies the opener's indentation so it stays inside
    the same list item.
 2. **Single newlines become hard line breaks** (fact 4). Outside fenced code,
@@ -441,3 +452,14 @@ deltas against `main`, per CONTRIBUTING.
 - Escaping inline HTML, which needs a code-span-aware scanner. A Markdown
   viewer is responsible for sanitizing what it renders, as with any file.
 - Exporting the welcome message.
+- Three residual divergences between the fence scanner and a real parser,
+  each of which leaves the transcript worse than it needs to be for a message
+  no test has ever produced. A fence opened inside a list item but closed at
+  column 0 still swallows the messages after it, because CommonMark reads
+  that closer as a new opener rather than as the end of the block;
+  re-indenting an under-indented closer was measured against a differential
+  fuzz and made as many transcripts worse as better, so it is deliberately
+  not attempted. Fences inside a blockquote are not recognised at all, so
+  their code gains the trailing spaces of protection 2. And a fence whose own
+  opener is indented four columns or more is code to CommonMark, so the
+  scanner protects a block the renderer does not see.
