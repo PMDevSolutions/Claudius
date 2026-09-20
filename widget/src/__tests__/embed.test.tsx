@@ -126,3 +126,69 @@ describe("embed voice option", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("embed conversationExport option", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    document.body.innerHTML = "";
+    window.sessionStorage.clear();
+    window.ClaudiusConfig = undefined;
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    window.ClaudiusConfig = undefined;
+  });
+
+  async function openChat() {
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    await screen.findByRole("dialog");
+  }
+
+  function mountElement(attributes: Record<string, string>) {
+    const el = document.createElement("claudius-chat");
+    el.setAttribute("api-url", "https://test.example/api");
+    for (const [name, value] of Object.entries(attributes)) {
+      el.setAttribute(name, value);
+    }
+    document.body.appendChild(el);
+  }
+
+  it("enables the header menu from ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      conversationExport: true,
+    };
+    await import("../embed");
+    await openChat();
+    expect(
+      screen.getByRole("button", { name: "More options" }),
+    ).toBeInTheDocument();
+  });
+
+  it("stays off for a templated string in ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      conversationExport: "false" as unknown as boolean,
+    };
+    await import("../embed");
+    await openChat();
+    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+  });
+
+  it("enables it via the web component attribute", async () => {
+    await import("../embed");
+    mountElement({ "conversation-export": "" });
+    await openChat();
+    expect(
+      screen.getByRole("button", { name: "More options" }),
+    ).toBeInTheDocument();
+  });
+
+  it('stays off for conversation-export="false", and when absent', async () => {
+    await import("../embed");
+    mountElement({ "conversation-export": "false" });
+    await openChat();
+    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+  });
+});

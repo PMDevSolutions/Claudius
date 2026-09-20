@@ -31,6 +31,7 @@ interface ClaudiusConfig {
   triggers?: Trigger[];
   attachments?: boolean | AttachmentsOptions;
   voice?: boolean | VoiceOptions;
+  conversationExport?: boolean;
 }
 
 declare global {
@@ -74,6 +75,7 @@ function init() {
       triggers={config.triggers}
       attachments={config.attachments}
       voice={config.voice}
+      conversationExport={config.conversationExport}
     />,
   );
 }
@@ -97,6 +99,7 @@ class ClaudiusChat extends HTMLElement {
       "accent-color",
       "position",
       "attachments",
+      "conversation-export",
       "voice",
       "voice-mode",
       "voice-auto-submit",
@@ -150,6 +153,11 @@ class ClaudiusChat extends HTMLElement {
     const attachments =
       attachmentsAttr === null ? undefined : attachmentsAttr !== "false";
 
+    // `conversation-export` / `="true"` enables it; "false" or absent does not.
+    const exportAttr = this.getAttribute("conversation-export");
+    const conversationExport =
+      exportAttr === null ? undefined : exportAttr !== "false";
+
     this.root.render(
       <ChatWidget
         apiUrl={apiUrl}
@@ -172,6 +180,7 @@ class ClaudiusChat extends HTMLElement {
           (this.getAttribute("position") as WidgetPosition) ?? undefined
         }
         attachments={attachments}
+        conversationExport={conversationExport}
         voice={voiceOptionsFromAttributes((name) => this.getAttribute(name))}
       />,
     );
