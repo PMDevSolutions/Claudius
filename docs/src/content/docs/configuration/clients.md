@@ -47,7 +47,7 @@ pnpm claudius snippet acme     # generate the embed snippet(s)
 | `slug` | Yes | URL-safe identifier; must match the filename |
 | `apiUrl` | Yes | The client's worker chat endpoint |
 | `allowedDomains` | Yes | Domains where the widget may be embedded |
-| `widget` | No | Appearance: `title`, `subtitle`, `welcomeMessage`, `placeholder`, `theme`, `position`, `accentColor`; `attachments` (`true` or `{ maxSizeBytes, maxCount, allowedTypes }`); `voice` (`true` or `{ input, output, mode, autoSubmit, lang }`, see [Voice](/configuration/voice/)) |
+| `widget` | No | Appearance: `title`, `subtitle`, `welcomeMessage`, `placeholder`, `theme`, `position`, `accentColor`; `attachments` (`true` or `{ maxSizeBytes, maxCount, allowedTypes }`); `voice` (`true` or `{ input, output, mode, autoSubmit, lang }`, see [Voice](/configuration/voice/)); `conversationExport` (`true` to enable, see [Conversation export](/configuration/conversation-export/)) |
 | `worker` | No | `model`, `maxTokens` (1–8192), `rateLimitMinute`, `rateLimitHour`, `systemPrompt` (path to a markdown file), `attachments` (`enabled`, `maxBytes`, `maxCount`, `maxRequestBytes`, `allowedTypes`, `storage`, `retentionHours`, `quotaIpBytesPerDay`, `quotaTenantBytesPerDay`) |
 
 `widget.attachments` flows into the generated embed snippet. `worker.attachments`

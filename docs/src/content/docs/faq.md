@@ -52,6 +52,10 @@ API key can access, and `MAX_TOKENS` to control response length (default
   none reaches your worker. The visitor's browser does the listening, and most
   browsers send that audio to their own vendor (Google, Apple) to be
   recognized. Details in [Voice](/configuration/voice/#privacy-posture).
+- **Conversation export** (optional, off by default): copying or downloading a
+  transcript happens entirely in the visitor's browser. Nothing is sent to your
+  worker. Details in
+  [Conversation export](/configuration/conversation-export/#privacy-posture).
 
 ## How big is the embed?
 

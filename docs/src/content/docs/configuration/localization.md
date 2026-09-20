@@ -50,6 +50,7 @@ window.ClaudiusConfig = {
 | Toggle / bubble | `openChat`, `dismissGreeting` |
 | Errors | `errorGeneric`, `errorConnection`, `errorTimeout`, `errorRateLimitMinute`, `errorRateLimitHour`, `errorRetry` |
 | [Voice](/configuration/voice/) | `voiceInput`, `voiceInputHold`, `voiceListening`, `voicePermissionDenied`, `voiceNoSpeech`, `voiceNoMicrophone`, `voiceUnavailable`, `readAloud`, `pauseReading`, `resumeReading`, `stopReading` |
+| [Conversation export](/configuration/conversation-export/) | `moreOptions`, `copyAsMarkdown`, `downloadAsMarkdown`, `downloadAsJson`, `copiedToClipboard`, `copyFailed`, `transcriptTitle`, `transcriptExported`, `transcriptUser`, `transcriptAssistant`, `transcriptAttachments`, `transcriptSources` |
 
 Note these localize the widget UI only. The AI's reply language follows the
 conversation and your [system prompt](/configuration/worker/#system-prompt) —
