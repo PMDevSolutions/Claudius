@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.1](https://github.com/PMDevSolutions/Claudius/compare/v1.17.0...v1.17.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **widget:** conversation export review follow-ups ([a1d0c3b](https://github.com/PMDevSolutions/Claudius/commit/a1d0c3b31110fce39cc981d7e8d7e17d502fbce2))
+* **widget:** escape a block opener dressed up as an email autolink ([09f45fc](https://github.com/PMDevSolutions/Claudius/commit/09f45fc200e265701f9f04eadbb66cb4cf146120))
+* **widget:** keep copyText from rejecting whatever the fallback does ([7a3bf81](https://github.com/PMDevSolutions/Claudius/commit/7a3bf81be589403df824855dc5f71159a7cc2300))
+* **widget:** keep the clipboard fallback from throwing while it tidies up ([03a76a1](https://github.com/PMDevSolutions/Claudius/commit/03a76a105ff2d22b28e87f0ddefe64ab0839f54a))
+
 ## [1.17.0](https://github.com/PMDevSolutions/Claudius/compare/v1.16.1...v1.17.0) (2026-09-20)
 
 
