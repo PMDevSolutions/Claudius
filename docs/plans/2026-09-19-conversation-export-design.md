@@ -248,10 +248,15 @@ rendered file match what the visitor saw.
    comments entirely. The widget shows such text literally, so the escaped
    form is also the more faithful one. Inline HTML later in a line is left
    alone: it cannot extend past its own paragraph.
-4. **Line endings are normalized** to `\n`, and trailing blank lines dropped.
+4. **Line endings are normalized** to `\n`, and trailing blank lines dropped,
+   unless the text ends inside an open code block. There the trailing lines
+   are code, so they are left alone and only the block is closed.
 
 Code inside a fence is never modified: no hard breaks, no escaping, no
-trimming. That is what makes "long code blocks" safe.
+trimming. That is what makes "long code blocks" safe. It holds for a fence
+that was never closed too, which is why protection 4 cannot simply trim the
+whole text before looking for fences: the first implementation did, and lost
+trailing spaces and blank lines from the code of a stopped reply.
 
 ### Citations, filenames, and tool names
 

@@ -426,6 +426,21 @@ describe("protectMessageText", () => {
         "```not a fence``` here  \nnext",
       );
     });
+
+    it("leaves trailing spaces alone inside a fence that was never closed", () => {
+      expect(protectMessageText("```js\nconst a = 1;   ")).toBe(
+        "```js\nconst a = 1;   \n```",
+      );
+    });
+
+    it("keeps blank lines inside a fence that was never closed, minus the final line terminator", () => {
+      expect(protectMessageText("```js\nconst a = 1;\n\n\n")).toBe(
+        "```js\nconst a = 1;\n\n\n```",
+      );
+      expect(protectMessageText("```js\nconst a = 1;\n")).toBe(
+        "```js\nconst a = 1;\n```",
+      );
+    });
   });
 
   describe("hard line breaks", () => {
@@ -538,12 +553,15 @@ function closesFence(line: string, fence: OpenFence): boolean {
  *   every newline as a line break while Markdown treats it as a space;
  * - a line-leading `<` is escaped, so an unterminated HTML block or comment
  *   cannot hide what follows it;
- * - line endings are normalized and trailing blank lines dropped.
+ * - line endings are normalized, and trailing blank lines are dropped unless
+ *   the text ends inside an open code block, whose content is left alone.
  *
  * Text inside a fenced block is never modified.
  */
 export function protectMessageText(text: string): string {
-  const lines = text.replace(/\r\n?/g, "\n").replace(/\s+$/, "").split("\n");
+  // Line endings only. Trimming the whole text here, before the fences are
+  // known, would strip whitespace from the code of a reply stopped mid-block.
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   let fence: OpenFence | null = null;
 
@@ -577,7 +595,20 @@ export function protectMessageText(text: string): string {
     out.push(result);
   }
 
-  if (fence) out.push(fence.indent + fence.char.repeat(fence.length));
+  if (fence) {
+    // The text ended inside the block. A final line terminator leaves one
+    // empty string at the end of the split array. That is not a blank line of
+    // code, so drop it if present; everything else in the block stays.
+    if (out[out.length - 1] === "") out.pop();
+    out.push(fence.indent + fence.char.repeat(fence.length));
+  } else {
+    // Pop trailing blank lines, then trim the new last line.
+    while (out.length > 0 && out[out.length - 1].trim() === "") out.pop();
+    if (out.length > 0) {
+      out[out.length - 1] = out[out.length - 1].replace(/[ \t]+$/, "");
+    }
+  }
+
   return out.join("\n");
 }
 ```
@@ -585,7 +616,7 @@ export function protectMessageText(text: string): string {
 - [ ] **Step 4: Run and confirm it passes**
 
 Run: `./node_modules/.bin/vitest run src/utils/__tests__/exportConversation.test.ts`
-Expected: 15 passed.
+Expected: 17 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -930,7 +961,7 @@ describe("exportFilename", () => {
 - [ ] **Step 2: Run and confirm failure**
 
 Run: `./node_modules/.bin/vitest run src/utils/__tests__/exportConversation.test.ts`
-Expected: FAIL. `conversationToMarkdown` is not exported. The 15 `protectMessageText` tests still pass.
+Expected: FAIL. `conversationToMarkdown` is not exported. The 17 `protectMessageText` tests still pass.
 
 - [ ] **Step 3: Implement**
 
@@ -1147,7 +1178,7 @@ export function exportFilename(
 - [ ] **Step 4: Run and confirm it passes**
 
 Run: `./node_modules/.bin/vitest run src/utils/__tests__/exportConversation.test.ts`
-Expected: 32 passed (15 from Task 2, 17 new).
+Expected: 34 passed (17 from Task 2, 17 new).
 
 Run: `./node_modules/.bin/tsc --noEmit`
 Expected: exit 0.
