@@ -49,6 +49,21 @@ describe("protectMessageText", () => {
         "```not a fence``` here  \nnext",
       );
     });
+
+    it("leaves trailing spaces alone inside a fence that was never closed", () => {
+      expect(protectMessageText("```js\nconst a = 1;   ")).toBe(
+        "```js\nconst a = 1;   \n```",
+      );
+    });
+
+    it("keeps blank lines inside a fence that was never closed, minus the final line terminator", () => {
+      expect(protectMessageText("```js\nconst a = 1;\n\n\n")).toBe(
+        "```js\nconst a = 1;\n\n\n```",
+      );
+      expect(protectMessageText("```js\nconst a = 1;\n")).toBe(
+        "```js\nconst a = 1;\n```",
+      );
+    });
   });
 
   describe("hard line breaks", () => {
@@ -348,7 +363,7 @@ describe("conversationToJson", () => {
     {
       id: "msg-1",
       role: "user",
-      content: 'Quote " slash \\ emoji 👋 separator   end',
+      content: 'Quote " slash \\ emoji 👋 separator \u2028 end',
       createdAt: T,
       attachments: [
         {

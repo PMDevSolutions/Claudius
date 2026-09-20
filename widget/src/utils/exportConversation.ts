@@ -76,12 +76,13 @@ function closesFence(line: string, fence: OpenFence): boolean {
  *   every newline as a line break while Markdown treats it as a space;
  * - a line-leading `<` is escaped, so an unterminated HTML block or comment
  *   cannot hide what follows it;
- * - line endings are normalized and trailing blank lines dropped.
+ * - line endings are normalized, and trailing blank lines are dropped unless
+ *   the text ends inside an open code block, whose content is left alone.
  *
  * Text inside a fenced block is never modified.
  */
 export function protectMessageText(text: string): string {
-  const lines = text.replace(/\r\n?/g, "\n").replace(/\s+$/, "").split("\n");
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   let fence: OpenFence | null = null;
 
@@ -115,7 +116,21 @@ export function protectMessageText(text: string): string {
     out.push(result);
   }
 
-  if (fence) out.push(fence.indent + fence.char.repeat(fence.length));
+  if (fence) {
+    // The text ended inside the block. A final line terminator leaves one empty
+    // string at the end of the split array. That empty string is not a blank
+    // line of code, so drop it if present; everything else inside the block
+    // stays untouched.
+    if (out[out.length - 1] === "") out.pop();
+    out.push(fence.indent + fence.char.repeat(fence.length));
+  } else {
+    // Pop trailing blank lines, then trim trailing spaces from the new last line.
+    while (out.length > 0 && out[out.length - 1].trim() === "") out.pop();
+    if (out.length > 0) {
+      out[out.length - 1] = out[out.length - 1].replace(/[ \t]+$/, "");
+    }
+  }
+
   return out.join("\n");
 }
 
