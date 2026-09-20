@@ -32,14 +32,37 @@ export interface MarkdownExportOptions {
 
 interface OpenFence {
   indent: string;
+  /** The opener's indentation in columns, tabs expanded. */
+  indentColumns: number;
   char: string;
   length: number;
 }
 
 const FENCE_OPEN = /^([ \t]*)(`{3,}|~{3,})(.*)$/;
 // A line-leading "<" that CommonMark could read as the start of an HTML block.
-const HTML_BLOCK_START = /^( {0,3})<(?=[A-Za-z!?/])/;
+// An autolink (<scheme:host/path> or <user@host>) never opens one, and
+// escaping it would show the brackets and link the wrong destination.
+const HTML_BLOCK_START =
+  /^( {0,3})<(?![A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>\s]*>|[^\s<>@]+@[^\s<>]+>)(?=[A-Za-z!?/])/;
 const INDENTED = /^(?: {4}|\t)/;
+
+/** Leading whitespace as columns, with tabs at four-column stops. */
+function indentColumns(line: string): number {
+  let columns = 0;
+  for (const ch of line) {
+    if (ch === " ") columns += 1;
+    else if (ch === "\t") columns += 4 - (columns % 4);
+    else break;
+  }
+  return columns;
+}
+
+/** `line` without its trailing spaces and tabs. Linear, unlike a regex. */
+function trimTrailingSpace(line: string): string {
+  let end = line.length;
+  while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) end -= 1;
+  return end === line.length ? line : line.slice(0, end);
+}
 
 /**
  * CommonMark fences, except that any indentation is accepted: models indent
@@ -52,17 +75,27 @@ function parseFenceOpen(line: string): OpenFence | null {
   // A backtick fence's info string cannot contain a backtick. Such a line is
   // inline code that happens to start the line.
   if (run[0] === "`" && info.includes("`")) return null;
-  return { indent, char: run[0], length: run.length };
+  return {
+    indent,
+    indentColumns: indentColumns(indent),
+    char: run[0],
+    length: run.length,
+  };
 }
 
-/** A closer is the opener's character alone, at least as many times. */
+/**
+ * A closer is the opener's character alone, at least as many times, and
+ * indented at most three columns beyond the opener. CommonMark reads a run
+ * four or more columns past its container as code, so without the indent
+ * limit a fence inside a Markdown example would end the block around it.
+ */
 function closesFence(line: string, fence: OpenFence): boolean {
   const trimmed = line.trim();
   if (trimmed.length < fence.length) return false;
   for (const ch of trimmed) {
     if (ch !== fence.char) return false;
   }
-  return true;
+  return indentColumns(line) <= fence.indentColumns + 3;
 }
 
 /**
@@ -112,7 +145,7 @@ export function protectMessageText(text: string): string {
       !INDENTED.test(line) &&
       // Already a hard break.
       !line.endsWith("\\");
-    if (breakable) result = result.replace(/[ \t]+$/, "") + "  ";
+    if (breakable) result = trimTrailingSpace(result) + "  ";
     out.push(result);
   }
 
@@ -127,7 +160,7 @@ export function protectMessageText(text: string): string {
     // Pop trailing blank lines, then trim trailing spaces from the new last line.
     while (out.length > 0 && out[out.length - 1].trim() === "") out.pop();
     if (out.length > 0) {
-      out[out.length - 1] = out[out.length - 1].replace(/[ \t]+$/, "");
+      out[out.length - 1] = trimTrailingSpace(out[out.length - 1]);
     }
   }
 
@@ -138,11 +171,10 @@ export function protectMessageText(text: string): string {
 // space but breaks string comparison and some plain-text tools.
 const NO_BREAK_SPACES = /[\u00a0\u202f]/g;
 
-function makeDateFormatter(
+function rawDateFormatter(
   options: MarkdownExportOptions,
 ): (date: Date) => string {
-  const custom = options.formatDate;
-  if (custom) return (date) => custom(date).replace(NO_BREAK_SPACES, " ");
+  if (options.formatDate) return options.formatDate;
 
   const build = (locale?: string) =>
     new Intl.DateTimeFormat(locale, {
@@ -150,13 +182,34 @@ function makeDateFormatter(
       timeStyle: "short",
       timeZone: options.timeZone,
     });
-  let formatter: Intl.DateTimeFormat;
+  let built: Intl.DateTimeFormat | null = null;
   try {
-    formatter = build(options.locale);
+    built = build(options.locale);
   } catch {
-    formatter = build(undefined);
+    try {
+      // The tag was rejected. The retry can fail in its turn, on an engine
+      // that does not know the time zone, and a date is not worth a throw.
+      built = build(undefined);
+    } catch {
+      built = null;
+    }
   }
-  return (date) => formatter.format(date).replace(NO_BREAK_SPACES, " ");
+  const formatter = built;
+  return formatter
+    ? (date) => formatter.format(date)
+    : (date) => date.toISOString();
+}
+
+/**
+ * Both the built-in and the injected formatter go through one wrapper, so
+ * the no-break space normalization is applied, and covered by its test,
+ * whichever one is in use.
+ */
+function makeDateFormatter(
+  options: MarkdownExportOptions,
+): (date: Date) => string {
+  const format = rawDateFormatter(options);
+  return (date) => format(date).replace(NO_BREAK_SPACES, " ");
 }
 
 /**
@@ -198,25 +251,46 @@ const URL_ESCAPES: Record<string, string> = {
   ")": "%29",
   "<": "%3C",
   ">": "%3E",
+  "\\": "%5C",
 };
 
 function sourceLine(source: Source, index: number): string {
-  // The title must not close the link text or span lines.
-  const title = (source.title || source.url)
+  // The title must not close the link text, span lines, start an autolink,
+  // or open a tag a viewer would render.
+  const title = asText(source.title || source.url)
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/[\\[\]]/g, "\\$&");
-  const safe = sanitizeUrl(source.url);
+    .replace(/[\\[\]<]/g, "\\$&");
+  const safe = sanitizeUrl(asText(source.url));
   if (!safe) return `${index + 1}. ${title}`;
-  // Nor may the URL end the link destination.
+  // Nor may the URL end the link destination, or escape the paren that does.
   const url = safe
-    .replace(/[()<>]/g, (ch) => URL_ESCAPES[ch])
+    .replace(/[()<>\\]/g, (ch) => URL_ESCAPES[ch])
     .replace(/\s/g, "%20");
   return `${index + 1}. [${title}](${url})`;
 }
 
 function attachmentLine(attachment: ChatAttachment): string {
-  return `- ${codeSpan(attachment.name)} (${attachment.mediaType}, ${formatBytes(attachment.size)})`;
+  const name = codeSpan(asText(attachment.name));
+  const size = formatBytes(Number(attachment.size));
+  return `- ${name} (${asText(attachment.mediaType)}, ${size})`;
+}
+
+/**
+ * A value as text. Persisted history is restored from `sessionStorage`
+ * without validation, so any field can hold anything `JSON.parse` produces,
+ * and an export must still be a file rather than a throw on the host page.
+ */
+function asText(value: unknown): string {
+  return typeof value === "string" ? value : String(value ?? "");
+}
+
+/** The entries of a field that should hold a list of objects. */
+function objectsIn<T>(value: unknown): T[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (entry) => entry !== null && typeof entry === "object",
+  ) as T[];
 }
 
 /**
@@ -240,6 +314,8 @@ export function conversationToMarkdown(
   ];
 
   for (const message of messages) {
+    if (message === null || typeof message !== "object") continue;
+
     const role = message.role === "user" ? labels.user : labels.assistant;
     const created = message.createdAt ? new Date(message.createdAt) : null;
     const time =
@@ -248,24 +324,29 @@ export function conversationToMarkdown(
         : "";
     blocks.push(`## ${role}${time}`);
 
-    const text = protectMessageText(message.content ?? "");
-    if (text) blocks.push(text);
+    const body = protectMessageText(asText(message.content));
+    if (body) blocks.push(body);
 
-    if (message.attachments?.length) {
+    const attachments = objectsIn<ChatAttachment>(message.attachments);
+    if (attachments.length) {
       blocks.push(
         labels.attachments,
-        message.attachments.map(attachmentLine).join("\n"),
+        attachments.map(attachmentLine).join("\n"),
       );
     }
-    if (message.toolUses?.length) {
+    const toolUses = objectsIn<{ name?: string }>(message.toolUses);
+    if (toolUses.length) {
       blocks.push(
-        message.toolUses
-          .map((toolUse) => `${labels.toolUsed} ${codeSpan(toolUse.name)}`)
+        toolUses
+          .map(
+            (toolUse) => `${labels.toolUsed} ${codeSpan(asText(toolUse.name))}`,
+          )
           .join("  \n"),
       );
     }
-    if (message.sources?.length) {
-      blocks.push(labels.sources, message.sources.map(sourceLine).join("\n"));
+    const sources = objectsIn<Source>(message.sources);
+    if (sources.length) {
+      blocks.push(labels.sources, sources.map(sourceLine).join("\n"));
     }
   }
 
@@ -277,7 +358,17 @@ export function conversationToMarkdown(
  * means without inline attachment bytes.
  */
 export function conversationToJson(messages: readonly ChatMessage[]): string {
-  return JSON.stringify(stripAttachmentData([...messages]), null, 2) + "\n";
+  const usable = messages
+    .filter((message) => message !== null && typeof message === "object")
+    .map((message) =>
+      message.attachments === undefined
+        ? message
+        : {
+            ...message,
+            attachments: objectsIn<ChatAttachment>(message.attachments),
+          },
+    );
+  return JSON.stringify(stripAttachmentData(usable), null, 2) + "\n";
 }
 
 /** `chat-transcript-YYYY-MM-DD.<extension>`, by the visitor's local date. */

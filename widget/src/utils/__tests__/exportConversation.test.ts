@@ -64,6 +64,49 @@ describe("protectMessageText", () => {
         "```js\nconst a = 1;\n```",
       );
     });
+
+    it("does not end a fence at a fence four columns further in", () => {
+      // Markdown about Markdown: the inner block belongs to the list item and
+      // is indented past it. CommonMark reads a run four or more columns
+      // beyond its container as code, so it cannot close the outer block.
+      const text = [
+        "```markdown",
+        "1. Add the snippet:",
+        "",
+        "    ```html",
+        "    <p>hi</p>",
+        "    ```",
+        "",
+        "<details>",
+        "<summary>More</summary>",
+        "```",
+      ].join("\n");
+      expect(protectMessageText(text)).toBe(text);
+    });
+
+    it("keeps scanning past a run of fence characters indented out of reach", () => {
+      expect(protectMessageText("```\ncode\n    ```\nmore\n```")).toBe(
+        "```\ncode\n    ```\nmore\n```",
+      );
+    });
+
+    it("ends a fence at a closer up to three columns further in", () => {
+      expect(protectMessageText("1. Run:\n\n   ```\n   npm i\n      ```")).toBe(
+        "1. Run:\n\n   ```\n   npm i\n      ```",
+      );
+    });
+
+    it("measures both indents in columns, with tabs at four-column stops", () => {
+      // One tab is four columns, so this closer is out of the opener's reach.
+      expect(protectMessageText("```\ncode\n\t```")).toBe(
+        "```\ncode\n\t```\n```",
+      );
+      // Seven spaces are three columns past a tab-indented opener, so they
+      // are still within it.
+      expect(protectMessageText("\t```\n\tcode\n       ```\nnext")).toBe(
+        "\t```\n\tcode\n       ```\nnext",
+      );
+    });
   });
 
   describe("hard line breaks", () => {
@@ -102,6 +145,26 @@ describe("protectMessageText", () => {
       );
       expect(protectMessageText("< 5 items")).toBe("< 5 items");
     });
+
+    it("leaves a line-leading autolink alone, which cannot open a block", () => {
+      expect(protectMessageText("<https://example.com/docs>")).toBe(
+        "<https://example.com/docs>",
+      );
+      expect(protectMessageText("<mailto:a@b.co>")).toBe("<mailto:a@b.co>");
+      expect(protectMessageText("<help@example.com>")).toBe(
+        "<help@example.com>",
+      );
+    });
+  });
+
+  it("trims trailing whitespace without backtracking over it", () => {
+    // A long run of spaces that is not at the end of the line makes a
+    // backtracking regex quadratic. The bound is generous on purpose: this
+    // pins the shape of the algorithm, not the speed of the machine.
+    const line = "a" + " ".repeat(50_000) + "b";
+    const started = performance.now();
+    expect(protectMessageText(`${line}   \nnext`)).toBe(`${line}  \nnext`);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("normalizes CRLF and drops trailing blank lines", () => {
@@ -333,6 +396,52 @@ describe("conversationToMarkdown", () => {
     );
   });
 
+  it("escapes a < in a title, so it cannot autolink or emit raw HTML", () => {
+    const md = conversationToMarkdown(
+      [
+        {
+          id: "1",
+          role: "assistant",
+          content: "x",
+          sources: [
+            {
+              title: "<javascript:alert(1)>",
+              url: "https://ok.example/",
+              type: "page",
+            },
+            {
+              title: "<img src=x onerror=alert(1)>",
+              url: "https://ok.example/",
+              type: "page",
+            },
+          ],
+        },
+      ],
+      base,
+    );
+    expect(md).toContain("1. [\\<javascript:alert(1)>](https://ok.example/)");
+    expect(md).toContain(
+      "2. [\\<img src=x onerror=alert(1)>](https://ok.example/)",
+    );
+  });
+
+  it("encodes a backslash in a URL, which would escape the closing paren", () => {
+    const md = conversationToMarkdown(
+      [
+        {
+          id: "1",
+          role: "assistant",
+          content: "x",
+          sources: [
+            { title: "Docs", url: "https://example.com/a\\", type: "page" },
+          ],
+        },
+      ],
+      base,
+    );
+    expect(md).toContain("1. [Docs](https://example.com/a%5C)");
+  });
+
   it("drops the link, not the citation, when a URL is not http(s)", () => {
     const md = conversationToMarkdown(
       [
@@ -355,6 +464,105 @@ describe("conversationToMarkdown", () => {
     expect(conversationToMarkdown([], base)).toBe(
       "# Chat transcript\n\nExported Sep 19, 2026, 8:02 PM (GMT+05:30)\n",
     );
+  });
+});
+
+// `loadMessages` hands back whatever sessionStorage held, unvalidated, so
+// every shape JSON.parse can produce has to come out as a file, not a throw
+// on the host page.
+describe("history that is not what the types promise", () => {
+  const cases: Array<[string, unknown[]]> = [
+    ["a number for content", [{ id: "1", role: "user", content: 42 }]],
+    ["an object for content", [{ id: "1", role: "user", content: { a: 1 } }]],
+    ["an array for content", [{ id: "1", role: "user", content: ["a"] }]],
+    ["a null message", [null]],
+    ["a string for a whole message", ["hi"]],
+    [
+      "sources that are not a list",
+      [{ id: "1", role: "assistant", content: "x", sources: { length: 1 } }],
+    ],
+    [
+      "an empty source",
+      [{ id: "1", role: "assistant", content: "x", sources: [{}] }],
+    ],
+    [
+      "a null source",
+      [{ id: "1", role: "assistant", content: "x", sources: [null] }],
+    ],
+    [
+      "a number for a source title",
+      [
+        {
+          id: "1",
+          role: "assistant",
+          content: "x",
+          sources: [{ title: 5, url: "https://a.b" }],
+        },
+      ],
+    ],
+    [
+      "an empty attachment",
+      [{ id: "1", role: "user", content: "x", attachments: [{}] }],
+    ],
+    [
+      "a null attachment",
+      [{ id: "1", role: "user", content: "x", attachments: [null] }],
+    ],
+    [
+      "an empty tool use",
+      [{ id: "1", role: "assistant", content: "x", toolUses: [{}] }],
+    ],
+    [
+      "tool uses that are not a list",
+      [{ id: "1", role: "assistant", content: "x", toolUses: "abc" }],
+    ],
+  ];
+
+  it.each(cases)("exports %s", (_name, messages) => {
+    const list = messages as ChatMessage[];
+    expect(conversationToMarkdown(list, base)).toContain("# Chat transcript");
+    expect(JSON.parse(conversationToJson(list))).toBeInstanceOf(Array);
+  });
+
+  it("writes a content that is not a string as text", () => {
+    const md = conversationToMarkdown(
+      [{ id: "1", role: "user", content: 42 } as unknown as ChatMessage],
+      base,
+    );
+    expect(md).toContain("## User\n\n42");
+  });
+
+  it("skips an entry that is not a message at all", () => {
+    const md = conversationToMarkdown(
+      [null, { id: "1", role: "user", content: "Hi" }] as ChatMessage[],
+      base,
+    );
+    expect(md).toContain("## User\n\nHi");
+    expect(md.match(/^## /gm)).toHaveLength(1);
+  });
+
+  it("lists an attachment whose fields are missing, with no bytes to show", () => {
+    const md = conversationToMarkdown(
+      [
+        {
+          id: "1",
+          role: "user",
+          content: "x",
+          attachments: [{}],
+        } as unknown as ChatMessage,
+      ],
+      base,
+    );
+    expect(md).toContain("Attachments:\n\n- ");
+    expect(md).toContain("0 B");
+  });
+
+  it("falls back to an ISO date where the engine rejects the time zone", () => {
+    const md = conversationToMarkdown(
+      [{ id: "1", role: "user", content: "Hi", createdAt: T }],
+      { ...base, timeZone: "Not/AZone" },
+    );
+    expect(md).toContain("## User · 2026-09-19T14:03:00.000Z");
   });
 });
 
