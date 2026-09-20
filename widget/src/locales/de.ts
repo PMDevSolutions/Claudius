@@ -47,6 +47,21 @@ export const de: ClaudiusTranslations = {
   resumeReading: "Vorlesen fortsetzen",
   stopReading: "Vorlesen beenden",
 
+  // Conversation export
+  moreOptions: "Weitere Optionen",
+  copyAsMarkdown: "Als Markdown kopieren",
+  downloadAsMarkdown: "Als Markdown herunterladen",
+  downloadAsJson: "Als JSON herunterladen",
+  copiedToClipboard: "In die Zwischenablage kopiert",
+  copyFailed:
+    "Kopieren nicht möglich. Laden Sie die Unterhaltung stattdessen herunter.",
+  transcriptTitle: "Chat-Protokoll",
+  transcriptExported: "Exportiert am {date}",
+  transcriptUser: "Nutzer",
+  transcriptAssistant: "Assistent",
+  transcriptAttachments: "Anhänge:",
+  transcriptSources: "Quellen:",
+
   // Errors
   errorGeneric: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   errorConnection: "Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.",

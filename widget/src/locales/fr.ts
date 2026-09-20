@@ -48,6 +48,20 @@ export const fr: ClaudiusTranslations = {
   resumeReading: "Reprendre la lecture",
   stopReading: "Arrêter la lecture",
 
+  // Conversation export
+  moreOptions: "Plus d'options",
+  copyAsMarkdown: "Copier en Markdown",
+  downloadAsMarkdown: "Télécharger en Markdown",
+  downloadAsJson: "Télécharger en JSON",
+  copiedToClipboard: "Copié dans le presse-papiers",
+  copyFailed: "Impossible de copier. Essayez plutôt de télécharger.",
+  transcriptTitle: "Transcription du chat",
+  transcriptExported: "Exporté le {date}",
+  transcriptUser: "Utilisateur",
+  transcriptAssistant: "Assistant",
+  transcriptAttachments: "Pièces jointes :",
+  transcriptSources: "Sources :",
+
   // Errors
   errorGeneric: "Une erreur s'est produite. Veuillez réessayer.",
   errorConnection: "Échec de la connexion. Veuillez réessayer.",
