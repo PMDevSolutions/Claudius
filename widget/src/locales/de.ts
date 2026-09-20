@@ -53,8 +53,7 @@ export const de: ClaudiusTranslations = {
   downloadAsMarkdown: "Als Markdown herunterladen",
   downloadAsJson: "Als JSON herunterladen",
   copiedToClipboard: "In die Zwischenablage kopiert",
-  copyFailed:
-    "Kopieren nicht möglich. Laden Sie die Unterhaltung stattdessen herunter.",
+  copyFailed: "Kopieren nicht möglich. Bitte stattdessen herunterladen.",
   transcriptTitle: "Chat-Protokoll",
   transcriptExported: "Exportiert am {date}",
   transcriptUser: "Nutzer",
