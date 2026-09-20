@@ -74,6 +74,30 @@ export interface ClaudiusTranslations {
   resumeReading: string;
   /** Accessible label for stopping read-aloud playback. */
   stopReading: string;
+  /** Accessible label for the header's overflow menu button. */
+  moreOptions: string;
+  /** Menu item that copies the conversation to the clipboard as Markdown. */
+  copyAsMarkdown: string;
+  /** Menu item that downloads the conversation as a Markdown file. */
+  downloadAsMarkdown: string;
+  /** Menu item that downloads the conversation as a JSON file. */
+  downloadAsJson: string;
+  /** Status shown after the conversation was copied. */
+  copiedToClipboard: string;
+  /** Status shown when the conversation could not be copied. */
+  copyFailed: string;
+  /** Title of an exported transcript. */
+  transcriptTitle: string;
+  /** Line under the transcript title; supports `{date}`. */
+  transcriptExported: string;
+  /** Transcript heading for a visitor message. */
+  transcriptUser: string;
+  /** Transcript heading for an assistant message. */
+  transcriptAssistant: string;
+  /** Transcript label above a message's attachment list, including its colon. */
+  transcriptAttachments: string;
+  /** Transcript label above a message's citation list, including its colon. */
+  transcriptSources: string;
   /** Generic fallback error message. */
   errorGeneric: string;
   /** Error shown when the network request fails. */

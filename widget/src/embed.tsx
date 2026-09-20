@@ -31,6 +31,7 @@ interface ClaudiusConfig {
   triggers?: Trigger[];
   attachments?: boolean | AttachmentsOptions;
   voice?: boolean | VoiceOptions;
+  conversationExport?: boolean;
 }
 
 declare global {
@@ -74,6 +75,7 @@ function init() {
       triggers={config.triggers}
       attachments={config.attachments}
       voice={config.voice}
+      conversationExport={config.conversationExport}
     />,
   );
 }
@@ -97,6 +99,7 @@ class ClaudiusChat extends HTMLElement {
       "accent-color",
       "position",
       "attachments",
+      "conversation-export",
       "voice",
       "voice-mode",
       "voice-auto-submit",
@@ -150,6 +153,17 @@ class ClaudiusChat extends HTMLElement {
     const attachments =
       attachmentsAttr === null ? undefined : attachmentsAttr !== "false";
 
+    // Stricter than `attachments` above, which takes any value but "false".
+    // Only `conversation-export` on its own or `="true"` enables it: a
+    // privacy switch has to fail closed for whatever a template renders, and
+    // "False" is what a Python or Jinja template writes for a false value.
+    const exportAttr = this.getAttribute("conversation-export");
+    const exportValue = exportAttr?.trim().toLowerCase();
+    const conversationExport =
+      exportAttr === null
+        ? undefined
+        : exportValue === "" || exportValue === "true";
+
     this.root.render(
       <ChatWidget
         apiUrl={apiUrl}
@@ -172,6 +186,7 @@ class ClaudiusChat extends HTMLElement {
           (this.getAttribute("position") as WidgetPosition) ?? undefined
         }
         attachments={attachments}
+        conversationExport={conversationExport}
         voice={voiceOptionsFromAttributes((name) => this.getAttribute(name))}
       />,
     );

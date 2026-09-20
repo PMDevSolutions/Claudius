@@ -18,7 +18,11 @@ import {
   resolveAttachmentsConfig,
   type AttachmentsOptions,
 } from "../utils/attachments";
-import { resolveVoiceConfig, type VoiceOptions } from "../utils/voice";
+import {
+  resolveSpeechLang,
+  resolveVoiceConfig,
+  type VoiceOptions,
+} from "../utils/voice";
 
 /** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
@@ -105,6 +109,14 @@ export interface ChatWidgetProps {
    * @defaultValue `false`
    */
   voice?: boolean | VoiceOptions;
+  /**
+   * Let visitors copy the conversation as Markdown, or download it as
+   * Markdown or JSON, from a menu in the chat header. Everything happens in
+   * the browser and nothing is sent to the Worker. Only the literal `true`
+   * enables it. See the Conversation export guide.
+   * @defaultValue `false`
+   */
+  conversationExport?: boolean;
 }
 
 function readDismissed(): boolean {
@@ -154,17 +166,24 @@ export function ChatWidget({
   streaming = true,
   attachments = false,
   voice = false,
+  conversationExport = false,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const attachmentsConfig = useMemo(
     () => resolveAttachmentsConfig(attachments),
     [attachments],
   );
-  // Speech follows the widget's language, detected the same way as the
-  // translations when no locale is given.
+  // Speech and transcript dates follow the widget's language, detected the
+  // same way as the translations when no locale is given.
+  const activeLocale = useMemo(() => locale ?? detectLocale(), [locale]);
   const voiceConfig = useMemo(
-    () => resolveVoiceConfig(voice, locale ?? detectLocale()),
-    [voice, locale],
+    () => resolveVoiceConfig(voice, activeLocale),
+    [voice, activeLocale],
+  );
+  // The regional variant the visitor uses (en-GB, fr-CA), for dates.
+  const dateLocale = useMemo(
+    () => resolveSpeechLang(activeLocale),
+    [activeLocale],
   );
   const [greeting, setGreeting] = useState<string | null>(null);
   const [triggersDismissed, setTriggersDismissed] = useState(readDismissed);
@@ -317,6 +336,9 @@ export function ChatWidget({
             isMobile={isMobile}
             attachments={attachmentsConfig}
             voice={voiceConfig}
+            // Fail closed: a templated "false" string is truthy.
+            conversationExport={conversationExport === true}
+            locale={dateLocale}
           />
         )}
         {!(isOpen && isMobile) && (

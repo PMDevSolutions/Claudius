@@ -5,9 +5,11 @@ import { ChatSources } from "./ChatSources";
 import { ChatHeader } from "./ChatHeader";
 import { ErrorBanner } from "./ErrorBanner";
 import { TypingIndicator } from "./TypingIndicator";
+import { HeaderMenu } from "./HeaderMenu";
 import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
+import { useConversationExport } from "../hooks/useConversationExport";
 import { stripAnnouncementFormatting } from "../utils/stripAnnouncementFormatting";
 import type { WidgetPosition } from "./ChatWidget";
 import type { ClaudiusTranslations } from "../i18n";
@@ -44,6 +46,10 @@ interface ChatWindowProps {
   attachments?: ResolvedAttachmentsConfig | null;
   /** Voice settings, or `null` to hide the mic and read-aloud controls. */
   voice?: ResolvedVoiceConfig | null;
+  /** Show the header menu that copies or downloads the conversation. */
+  conversationExport?: boolean;
+  /** BCP-47 tag for the dates in an exported transcript. */
+  locale?: string;
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -73,6 +79,8 @@ export function ChatWindow({
   isMobile = false,
   attachments = null,
   voice = null,
+  conversationExport = false,
+  locale = "en-US",
 }: ChatWindowProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -94,6 +102,14 @@ export function ChatWindow({
     stop: translations?.stopReading ?? "Stop reading",
   };
 
+  const exporter = useConversationExport({
+    enabled: conversationExport,
+    messages,
+    busy: isLoading,
+    locale,
+    translations,
+  });
+
   const { offsetY } = useSwipeToDismiss(
     messagesContainerRef,
     onClose,
@@ -114,7 +130,7 @@ export function ChatWindow({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !e.isComposing) {
+      if (e.key === "Escape" && !e.isComposing && !e.defaultPrevented) {
         onClose();
       }
     };
@@ -158,6 +174,15 @@ export function ChatWindow({
         titleId={titleId}
         closeLabel={closeLabel}
         onClose={onClose}
+        actions={
+          conversationExport ? (
+            <HeaderMenu
+              label={translations?.moreOptions ?? "More options"}
+              items={exporter.items}
+              onOpen={exporter.clearStatus}
+            />
+          ) : undefined
+        }
       />
 
       {/* Messages area */}
@@ -168,6 +193,21 @@ export function ChatWindow({
             sources={activeSources.sources}
             onClose={() => setActiveSources(null)}
           />
+        )}
+
+        {/* Mounted whenever export is on, so the text is announced when it
+            changes. Absent otherwise: the typing indicator is a status too. */}
+        {conversationExport && (
+          <div
+            role="status"
+            className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-4"
+          >
+            {exporter.status && (
+              <span className="rounded-claudius-full bg-claudius-text px-3 py-1 text-xs text-claudius-surface shadow-claudius-elevated">
+                {exporter.status}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Messages */}

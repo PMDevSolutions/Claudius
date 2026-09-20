@@ -51,6 +51,9 @@ interface UseChatReturn {
 const MAX_PERSISTED_MESSAGES = 200;
 const DEFAULT_STORAGE_KEY_PREFIX = "claudius:messages";
 
+/** Timestamp for a message entering the conversation. */
+const timestamp = () => new Date().toISOString();
+
 function getStorageKey(prefix: string, apiUrl: string): string {
   let host: string;
   try {
@@ -215,7 +218,13 @@ export function useChat({
           setStreamingMessageId(placeholderId);
           const next: ChatMessage[] = [
             ...messagesRef.current,
-            { id: placeholderId, role: "assistant", content: "", ...patch },
+            {
+              id: placeholderId,
+              role: "assistant",
+              content: "",
+              createdAt: timestamp(),
+              ...patch,
+            },
           ];
           messagesRef.current = next;
           setMessages(next);
@@ -275,10 +284,15 @@ export function useChat({
           return;
         }
 
+        // A streamed reply keeps the time its first token arrived.
+        const createdAt =
+          messagesRef.current.find((m) => m.id === placeholderId)?.createdAt ??
+          timestamp();
         let assistantMessage: ChatMessage = {
           id: placeholderId ?? nextId(),
           role: "assistant",
           content: reply,
+          createdAt,
           sources,
           toolUses,
         };
@@ -290,6 +304,10 @@ export function useChat({
             assistantMessage,
             { messages: msgsToSend, apiUrl },
           );
+          // A plugin that returns a fresh object should not erase the time.
+          if (!assistantMessage.createdAt) {
+            assistantMessage = { ...assistantMessage, createdAt };
+          }
         }
         const settled =
           placeholderId !== null
@@ -352,6 +370,7 @@ export function useChat({
               id: nextId(),
               role: "assistant",
               content: recovery.content,
+              createdAt: timestamp(),
               sources: recovery.sources,
             };
             const withReply = [...msgsToSend, assistantMessage];
@@ -406,6 +425,7 @@ export function useChat({
         id: nextId(),
         role: "user",
         content: trimmed,
+        createdAt: timestamp(),
         ...(files.length > 0 ? { attachments: files } : {}),
       };
 
@@ -420,6 +440,10 @@ export function useChat({
         // A plugin cancelled the send: drop the message, render nothing.
         if (outcome.type === "abort") return;
 
+        // A plugin that returns a fresh object should not erase the time.
+        const keepTime = (m: ChatMessage): ChatMessage =>
+          m.createdAt ? m : { ...m, createdAt: userMessage.createdAt };
+
         // A plugin answered locally: show the user message and the canned
         // reply, and skip the network entirely.
         if (outcome.type === "respond") {
@@ -427,11 +451,12 @@ export function useChat({
             id: nextId(),
             role: "assistant",
             content: outcome.reply.content,
+            createdAt: timestamp(),
             sources: outcome.reply.sources,
           };
           const next = [
             ...messagesRef.current,
-            outcome.message,
+            keepTime(outcome.message),
             assistantMessage,
           ];
           messagesRef.current = next;
@@ -442,7 +467,7 @@ export function useChat({
           return;
         }
 
-        outgoing = outcome.message;
+        outgoing = keepTime(outcome.message);
       }
 
       const updatedMessages = [...messagesRef.current, outgoing];

@@ -27,6 +27,7 @@ export interface WidgetConfig {
   accentColor?: string;
   attachments?: boolean | WidgetAttachmentsConfig;
   voice?: boolean | WidgetVoiceConfig;
+  conversationExport?: boolean;
 }
 
 export interface WorkerAttachmentsConfig {
@@ -284,6 +285,16 @@ export function validateConfig(
           message: "widget.voice must be a boolean or an object",
         });
       }
+    }
+
+    if (
+      widget.conversationExport !== undefined &&
+      typeof widget.conversationExport !== "boolean"
+    ) {
+      errors.push({
+        field: "widget.conversationExport",
+        message: "widget.conversationExport must be a boolean",
+      });
     }
   }
 

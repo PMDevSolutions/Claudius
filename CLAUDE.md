@@ -109,11 +109,12 @@ pnpm test             # Run tests
 | `VoiceLevel` | Voice-activity indicator shown inside the input while listening |
 | `MessageSpeechControls` | Read aloud / pause / resume / stop buttons under assistant replies |
 | `AttachmentPreview` | Image thumbnail / file chip for pending and sent attachments |
+| `HeaderMenu` | Generic accessible overflow menu in the chat header; hosts the export actions |
 
 ### useChat Hook
 
 Manages chat state:
-- `messages` - Array of chat messages
+- `messages` - Array of chat messages, each stamped with an ISO `createdAt` when it enters the conversation
 - `isLoading` - Loading state during API calls
 - `isStreaming` - True while an assistant reply is streaming in
 - `streamingMessageId` - Id of the message currently receiving tokens
@@ -194,6 +195,28 @@ Privacy: the widget never touches audio (no `getUserMedia`) and none reaches
 the worker, but browsers recognize speech on their vendor's servers by
 default. Do not describe it as on-device. Docs: configuration/voice.md;
 design: docs/plans/2026-09-18-voice-input-tts-design.md.
+
+### Conversation Export
+
+Widget-only and opt-in (`conversationExport` prop / `ClaudiusConfig` key /
+`<claudius-chat conversation-export>` / `widget.conversationExport` in client
+configs). It fails closed: only the literal `true` enables it, and nothing
+renders when it is off. A `HeaderMenu` in the chat header offers Copy as
+Markdown, Download as Markdown, and Download as JSON, all in the browser with
+no request to the worker.
+
+Pure serializers live in `widget/src/utils/exportConversation.ts`
+(`protectMessageText`, `conversationToMarkdown`, `conversationToJson`,
+`exportFilename`); clipboard and download side effects in
+`widget/src/utils/saveText.ts`; `useConversationExport` (owned by `ChatWindow`)
+turns messages into menu items plus a transient status. Markdown keeps message
+text as written but closes unclosed code fences, turns single newlines into
+hard breaks outside code, and escapes a line-leading `<`. JSON is the
+persisted `ChatMessage[]`, never with inline attachment bytes.
+
+Never assert on raw `Intl` output in tests: CI's Node 20 emits U+202F before
+"PM" and local Node 24 does not. Docs: configuration/conversation-export.md;
+design: docs/plans/2026-09-19-conversation-export-design.md.
 
 ### Chat Request/Response
 

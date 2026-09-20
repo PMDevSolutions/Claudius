@@ -5,6 +5,11 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ChatWidget apiUrl="http://localhost:8787" attachments voice />
+    <ChatWidget
+      apiUrl="http://localhost:8787"
+      attachments
+      voice
+      conversationExport
+    />
   </StrictMode>,
 );

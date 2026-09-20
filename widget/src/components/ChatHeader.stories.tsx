@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { ChatHeader } from "./ChatHeader";
+import { HeaderMenu } from "./HeaderMenu";
 import { locales, type LocaleCode } from "../locales";
 
 const meta = {
@@ -31,5 +32,26 @@ export const LongTitle: Story = {
   args: {
     title: "PMDS Customer Success Team",
     subtitle: "We typically reply within a few minutes",
+  },
+};
+
+// The overflow menu sits before the close button and opens over the messages.
+export const WithMenu: Story = {
+  args: {
+    actions: (
+      <HeaderMenu
+        label="More options"
+        items={[
+          { id: "copy", label: "Copy as Markdown", onSelect: fn() },
+          { id: "md", label: "Download as Markdown", onSelect: fn() },
+          {
+            id: "json",
+            label: "Download as JSON",
+            disabled: true,
+            onSelect: fn(),
+          },
+        ]}
+      />
+    ),
   },
 };

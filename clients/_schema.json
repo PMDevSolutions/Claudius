@@ -79,6 +79,10 @@
               }
             }
           ]
+        },
+        "conversationExport": {
+          "type": "boolean",
+          "description": "Let visitors copy the conversation as Markdown, or download it as Markdown or JSON, from a menu in the chat header. Off by default. Nothing is sent to the worker."
         }
       }
     },

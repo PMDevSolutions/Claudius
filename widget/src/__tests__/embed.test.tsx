@@ -126,3 +126,98 @@ describe("embed voice option", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("embed conversationExport option", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    document.body.innerHTML = "";
+    window.sessionStorage.clear();
+    window.ClaudiusConfig = undefined;
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    window.ClaudiusConfig = undefined;
+  });
+
+  async function openChat() {
+    (await screen.findByRole("button", { name: /open chat/i })).click();
+    await screen.findByRole("dialog");
+  }
+
+  function mountElement(attributes: Record<string, string>) {
+    const el = document.createElement("claudius-chat");
+    el.setAttribute("api-url", "https://test.example/api");
+    for (const [name, value] of Object.entries(attributes)) {
+      el.setAttribute(name, value);
+    }
+    document.body.appendChild(el);
+  }
+
+  /** The open dialog, so an absent menu cannot be a chat that never opened. */
+  function expectNoMenu() {
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+  }
+
+  it("enables the header menu from ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      conversationExport: true,
+    };
+    await import("../embed");
+    await openChat();
+    expect(
+      screen.getByRole("button", { name: "More options" }),
+    ).toBeInTheDocument();
+  });
+
+  it("stays off when ClaudiusConfig does not mention it", async () => {
+    window.ClaudiusConfig = { apiUrl: "https://test.example/api" };
+    await import("../embed");
+    await openChat();
+    expectNoMenu();
+  });
+
+  it("stays off for a templated string in ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      conversationExport: "false" as unknown as boolean,
+    };
+    await import("../embed");
+    await openChat();
+    expectNoMenu();
+  });
+
+  // The attribute is stricter than `attachments` and `voice`, which take any
+  // value but "false": a privacy switch has to fail closed for whatever a
+  // template renders, and "False" is what Python and Jinja produce.
+  it.each([[""], ["true"], ["TRUE"], [" true "]])(
+    "enables it for conversation-export=%j",
+    async (value) => {
+      await import("../embed");
+      mountElement({ "conversation-export": value });
+      await openChat();
+      expect(
+        screen.getByRole("button", { name: "More options" }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each([["false"], ["False"], ["0"], ["no"], ["yes"], ["1"]])(
+    "stays off for conversation-export=%j",
+    async (value) => {
+      await import("../embed");
+      mountElement({ "conversation-export": value });
+      await openChat();
+      expectNoMenu();
+    },
+  );
+
+  it("stays off when the attribute is absent", async () => {
+    await import("../embed");
+    mountElement({});
+    await openChat();
+    expectNoMenu();
+  });
+});
