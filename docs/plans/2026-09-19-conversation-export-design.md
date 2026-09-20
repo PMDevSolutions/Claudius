@@ -259,6 +259,15 @@ rendered file match what the visitor saw.
    comments entirely. The widget shows such text literally, so the escaped
    form is also the more faithful one. Inline HTML later in a line is left
    alone: it cannot extend past its own paragraph.
+
+   One exception: a line-leading autolink, `<https://example.com>` or
+   `<help@example.com>`, is left alone. It can never open an HTML block, and
+   escaping it shows the brackets and links the wrong destination. The
+   address form must start with a letter or digit. `!`, `?`, and `[` begin
+   exactly the blocks that span blank lines, so `<!--a@b>` is an unterminated
+   comment wearing an address, not an autolink, and is escaped. The first
+   version of this exception accepted any local part, shipped in 1.17.0, and
+   let such a line hide the rest of a rendered transcript.
 4. **Line endings are normalized** to `\n`, and trailing blank lines dropped,
    unless the text ends inside an open code block. There the trailing lines
    are code, so they are left alone and only the block is closed.

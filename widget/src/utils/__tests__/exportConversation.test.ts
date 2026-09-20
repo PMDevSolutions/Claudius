@@ -154,6 +154,23 @@ describe("protectMessageText", () => {
       expect(protectMessageText("<help@example.com>")).toBe(
         "<help@example.com>",
       );
+      expect(protectMessageText("<a.b-c+d@example.co.uk>")).toBe(
+        "<a.b-c+d@example.co.uk>",
+      );
+    });
+
+    it("still escapes a block opener dressed up as an email autolink", () => {
+      // Each of these opens an HTML block that runs across blank lines until a
+      // terminator that never comes, so it would hide every later message.
+      expect(protectMessageText("<!--a@b>")).toBe("\\<!--a@b>");
+      expect(protectMessageText("<!--noreply@example.com>")).toBe(
+        "\\<!--noreply@example.com>",
+      );
+      expect(protectMessageText("<?a@b>")).toBe("\\<?a@b>");
+      expect(protectMessageText("<![CDATA[a@b>")).toBe("\\<![CDATA[a@b>");
+      expect(protectMessageText("<!--https://user@host/x>")).toBe(
+        "\\<!--https://user@host/x>",
+      );
     });
   });
 
