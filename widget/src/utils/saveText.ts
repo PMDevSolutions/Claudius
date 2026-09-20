@@ -12,6 +12,9 @@ function legacyCopy(text: string): boolean {
     area.value = text;
     area.setAttribute("readonly", "");
     area.setAttribute("aria-hidden", "true");
+    // Out of the tab order: if removal ever fails, it must not be left behind
+    // as a keyboard stop holding the transcript, hidden from assistive tech.
+    area.tabIndex = -1;
     area.style.position = "fixed";
     area.style.top = "0";
     area.style.left = "0";
@@ -61,7 +64,13 @@ export async function copyText(text: string): Promise<boolean> {
   } catch {
     // Refused. Try the legacy path.
   }
-  return legacyCopy(text);
+  try {
+    return legacyCopy(text);
+  } catch {
+    // legacyCopy guards its own steps, but "never rejects" should not depend
+    // on auditing each statement in it, including the ones before its try.
+    return false;
+  }
 }
 
 // Revoking straight away cancels the download in some browsers. FileSaver.js

@@ -106,6 +106,31 @@ describe("copyText", () => {
     expect(document.querySelector("textarea")).toBeNull();
   });
 
+  it("resolves false when even reading the focused element throws", async () => {
+    // Nothing in the fallback may reach the caller as a rejection, including
+    // the statements that run before its own try block.
+    vi.spyOn(document, "activeElement", "get").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    (document as Doc).execCommand = vi.fn(() => true);
+
+    await expect(copyText("hello")).resolves.toBe(false);
+  });
+
+  it("keeps the temporary textarea out of the tab order", async () => {
+    // If it can ever be left behind, it must not become a keyboard stop that
+    // holds the whole transcript while hidden from assistive technology.
+    let tabIndex: number | undefined;
+    (document as Doc).execCommand = vi.fn(() => {
+      tabIndex = document.querySelector("textarea")?.tabIndex;
+      return true;
+    });
+
+    await copyText("hello");
+
+    expect(tabIndex).toBe(-1);
+  });
+
   it("returns focus even when removing the textarea throws", async () => {
     const button = document.createElement("button");
     document.body.appendChild(button);
