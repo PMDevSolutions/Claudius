@@ -172,6 +172,16 @@ describe("protectMessageText", () => {
         "\\<!--https://user@host/x>",
       );
     });
+
+    it("escapes an address that is a valid autolink and a block opener at once", () => {
+      // CommonMark allows "?" and "!" in an address, so these really are
+      // autolinks. They also open a processing instruction and a declaration
+      // that never close, and hiding the transcript is the worse outcome.
+      expect(protectMessageText("<?q@example.com>")).toBe("\\<?q@example.com>");
+      expect(protectMessageText("<!weird@example.com>")).toBe(
+        "\\<!weird@example.com>",
+      );
+    });
   });
 
   it("trims trailing whitespace without backtracking over it", () => {
