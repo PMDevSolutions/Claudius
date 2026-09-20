@@ -130,12 +130,18 @@ export function HeaderMenu({ label, items, onOpen }: HeaderMenuProps) {
   };
 
   const onMenuBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget as Node | null;
+    // No relatedTarget means focus went somewhere this handler cannot judge.
+    // In WebKit that is what pressing the trigger looks like, because it does
+    // not focus a button on click: closing here would let the press that
+    // followed reopen the menu in onClick. Outside presses are the
+    // pointerdown listener's job, so the only thing given up is closing when
+    // focus leaves the page altogether, which no one is waiting for.
+    if (!next) return;
     // Focus left the menu entirely: a Tab, or a click on another control.
     // Moving to the trigger does not count, or a click on it would close the
     // menu here and then reopen it in onClick.
-    if (!rootRef.current?.contains(event.relatedTarget as Node | null)) {
-      setOpen(false);
-    }
+    if (!rootRef.current?.contains(next)) setOpen(false);
   };
 
   return (
@@ -170,7 +176,10 @@ export function HeaderMenu({ label, items, onOpen }: HeaderMenuProps) {
           role="menu"
           aria-labelledby={triggerId}
           // Focusable by script only, as an element with handlers must be.
-          // The focus trap skips tabindex -1.
+          // The dialog's focus trap does not count it, because it looks for
+          // buttons. It does count the items below, which is harmless: they
+          // are never the dialog's first or last focusable control, and that
+          // is all the trap looks at.
           tabIndex={-1}
           onKeyDown={onMenuKeyDown}
           onBlur={onMenuBlur}

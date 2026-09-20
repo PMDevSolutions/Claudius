@@ -174,4 +174,21 @@ describe("HeaderMenu", () => {
     await user.click(trigger);
     expect(screen.queryByRole("menu")).toBeNull();
   });
+
+  it("closes on a second press of a trigger that the press does not focus", () => {
+    // WebKit does not focus a button when it is clicked, so pressing the
+    // trigger blurs the focused item with no relatedTarget. user-event and
+    // jsdom both focus a button the way Chrome does, so that order has to be
+    // replayed by hand.
+    const { trigger } = setup();
+    fireEvent.click(trigger);
+    const copy = screen.getByRole("menuitem", { name: "Copy" });
+    expect(copy).toHaveFocus();
+
+    fireEvent.pointerDown(trigger);
+    fireEvent.blur(copy);
+    fireEvent.click(trigger);
+
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
 });
