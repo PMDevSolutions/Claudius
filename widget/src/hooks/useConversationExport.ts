@@ -46,6 +46,9 @@ export function useConversationExport({
   const mounted = useRef(true);
 
   useEffect(() => {
+    // Set here, not only at the ref's creation: React 18 Strict Mode mounts,
+    // runs the cleanup, and mounts again, which would otherwise leave this
+    // false for the whole life of the component.
     mounted.current = true;
     return () => {
       mounted.current = false;

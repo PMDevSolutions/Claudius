@@ -156,7 +156,11 @@ describe("useConversationExport", () => {
     expect(result.current.status).toBe("In die Zwischenablage kopiert");
   });
 
-  it("does not set state after unmount", async () => {
+  it("arms no status timer when the copy settles after unmount", async () => {
+    // React 18 does not warn about a state update on an unmounted component,
+    // so what the mounted guard really prevents is a four-second timer left
+    // running on a page whose chat window has closed.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     let resolve!: (ok: boolean) => void;
     vi.mocked(copyText).mockReturnValue(new Promise((r) => (resolve = r)));
     const { result, unmount } = renderHook(() => useConversationExport(base));
@@ -166,5 +170,6 @@ describe("useConversationExport", () => {
     await act(async () => resolve(true));
 
     expect(result.current.status).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
