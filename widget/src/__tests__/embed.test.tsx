@@ -154,6 +154,12 @@ describe("embed conversationExport option", () => {
     document.body.appendChild(el);
   }
 
+  /** The open dialog, so an absent menu cannot be a chat that never opened. */
+  function expectNoMenu() {
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+  }
+
   it("enables the header menu from ClaudiusConfig", async () => {
     window.ClaudiusConfig = {
       apiUrl: "https://test.example/api",
@@ -166,6 +172,13 @@ describe("embed conversationExport option", () => {
     ).toBeInTheDocument();
   });
 
+  it("stays off when ClaudiusConfig does not mention it", async () => {
+    window.ClaudiusConfig = { apiUrl: "https://test.example/api" };
+    await import("../embed");
+    await openChat();
+    expectNoMenu();
+  });
+
   it("stays off for a templated string in ClaudiusConfig", async () => {
     window.ClaudiusConfig = {
       apiUrl: "https://test.example/api",
@@ -173,22 +186,38 @@ describe("embed conversationExport option", () => {
     };
     await import("../embed");
     await openChat();
-    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+    expectNoMenu();
   });
 
-  it("enables it via the web component attribute", async () => {
-    await import("../embed");
-    mountElement({ "conversation-export": "" });
-    await openChat();
-    expect(
-      screen.getByRole("button", { name: "More options" }),
-    ).toBeInTheDocument();
-  });
+  // The attribute is stricter than `attachments` and `voice`, which take any
+  // value but "false": a privacy switch has to fail closed for whatever a
+  // template renders, and "False" is what Python and Jinja produce.
+  it.each([[""], ["true"], ["TRUE"], [" true "]])(
+    "enables it for conversation-export=%j",
+    async (value) => {
+      await import("../embed");
+      mountElement({ "conversation-export": value });
+      await openChat();
+      expect(
+        screen.getByRole("button", { name: "More options" }),
+      ).toBeInTheDocument();
+    },
+  );
 
-  it('stays off for conversation-export="false", and when absent', async () => {
+  it.each([["false"], ["False"], ["0"], ["no"], ["yes"], ["1"]])(
+    "stays off for conversation-export=%j",
+    async (value) => {
+      await import("../embed");
+      mountElement({ "conversation-export": value });
+      await openChat();
+      expectNoMenu();
+    },
+  );
+
+  it("stays off when the attribute is absent", async () => {
     await import("../embed");
-    mountElement({ "conversation-export": "false" });
+    mountElement({});
     await openChat();
-    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+    expectNoMenu();
   });
 });

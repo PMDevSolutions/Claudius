@@ -30,6 +30,7 @@ function renderWindow(
 describe("ChatWindow conversation export", () => {
   it("renders no menu and no extra status region by default", () => {
     renderWindow({ conversationExport: false });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
   });
@@ -38,6 +39,9 @@ describe("ChatWindow conversation export", () => {
     renderWindow();
     const buttons = within(screen.getByRole("dialog")).getAllByRole("button");
     const names = buttons.map((b) => b.getAttribute("aria-label"));
+    // Both present first: two absent buttons would also satisfy -1 === 0 - 1.
+    expect(names.indexOf("More options")).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf("Close chat")).toBeGreaterThanOrEqual(0);
     expect(names.indexOf("More options")).toBe(names.indexOf("Close chat") - 1);
   });
 

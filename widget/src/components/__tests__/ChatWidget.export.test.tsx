@@ -10,11 +10,17 @@ async function openChat() {
   await userEvent.setup().click(screen.getByRole("button"));
 }
 
+/** The open dialog, so an absent menu cannot be a chat that never opened. */
+function expectNoMenu() {
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+}
+
 describe("ChatWidget conversationExport option", () => {
   it("is off by default", async () => {
     render(<ChatWidget apiUrl="https://test.workers.dev" locale="en" />);
     await openChat();
-    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+    expectNoMenu();
   });
 
   it("shows the header menu when enabled", async () => {
@@ -42,7 +48,7 @@ describe("ChatWidget conversationExport option", () => {
         />,
       );
       await openChat();
-      expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+      expectNoMenu();
     },
   );
 

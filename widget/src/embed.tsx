@@ -153,10 +153,16 @@ class ClaudiusChat extends HTMLElement {
     const attachments =
       attachmentsAttr === null ? undefined : attachmentsAttr !== "false";
 
-    // `conversation-export` / `="true"` enables it; "false" or absent does not.
+    // Stricter than `attachments` above, which takes any value but "false".
+    // Only `conversation-export` on its own or `="true"` enables it: a
+    // privacy switch has to fail closed for whatever a template renders, and
+    // "False" is what a Python or Jinja template writes for a false value.
     const exportAttr = this.getAttribute("conversation-export");
+    const exportValue = exportAttr?.trim().toLowerCase();
     const conversationExport =
-      exportAttr === null ? undefined : exportAttr !== "false";
+      exportAttr === null
+        ? undefined
+        : exportValue === "" || exportValue === "true";
 
     this.root.render(
       <ChatWidget
