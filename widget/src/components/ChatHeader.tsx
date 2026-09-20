@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 interface ChatHeaderProps {
   title: string;
   subtitle: string;
@@ -5,12 +7,14 @@ interface ChatHeaderProps {
   titleId?: string;
   closeLabel: string;
   onClose: () => void;
+  /** Extra header controls, rendered before the close button. */
+  actions?: ReactNode;
 }
 
 /**
  * The accent-colored bar at the top of the chat window: avatar initial, title
- * and subtitle, and the close button. The heading carries `titleId` so the
- * parent dialog can reference it via aria-labelledby.
+ * and subtitle, optional actions, and the close button. The heading carries
+ * `titleId` so the parent dialog can reference it via aria-labelledby.
  */
 export function ChatHeader({
   title,
@@ -18,6 +22,7 @@ export function ChatHeader({
   titleId,
   closeLabel,
   onClose,
+  actions,
 }: ChatHeaderProps) {
   return (
     <div className="flex items-center gap-3 bg-claudius-accent px-5 py-4">
@@ -36,6 +41,7 @@ export function ChatHeader({
         </h2>
         <p className="text-xs text-claudius-accent-text">{subtitle}</p>
       </div>
+      {actions}
       <button
         onClick={onClose}
         aria-label={closeLabel}
