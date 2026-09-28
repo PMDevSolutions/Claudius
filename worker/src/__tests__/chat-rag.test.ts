@@ -82,7 +82,12 @@ describe("handleChat with RAG", () => {
     });
 
     expect(result.response.sources).toEqual([
-      { url: "https://example.com/pricing", title: "Pricing", type: "page" },
+      {
+        url: "https://example.com/pricing",
+        title: "Pricing",
+        type: "page",
+        snippet: "Plans start at $1,000/month.",
+      },
     ]);
   });
 
@@ -134,7 +139,12 @@ describe("streamChat with RAG", () => {
     const done = events.at(-1) as { type: string; sources?: unknown };
     expect(done.type).toBe("done");
     expect(done.sources).toEqual([
-      { url: "https://example.com/pricing", title: "Pricing", type: "page" },
+      {
+        url: "https://example.com/pricing",
+        title: "Pricing",
+        type: "page",
+        snippet: "Plans start at $1,000/month.",
+      },
     ]);
   });
 

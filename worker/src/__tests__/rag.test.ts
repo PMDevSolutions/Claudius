@@ -3,6 +3,7 @@ import {
   retrieveRagDocuments,
   formatRagContext,
   ragDocumentsToSources,
+  snippetFromContent,
   DEFAULT_CONTEXT_TEMPLATE,
   VectorizeRetriever,
 } from "../rag";
@@ -127,14 +128,68 @@ describe("formatRagContext", () => {
   });
 });
 
+describe("snippetFromContent", () => {
+  it("collapses whitespace and strips heading, bold, and backtick markers", () => {
+    expect(
+      snippetFromContent("## Pricing\n\nPlans start at **$75** per `hour`.")
+    ).toBe("Pricing Plans start at $75 per hour.");
+  });
+
+  it("keeps text at the limit and cuts longer text at a word boundary", () => {
+    const exact = "a".repeat(200);
+    expect(snippetFromContent(exact)).toBe(exact);
+
+    const words = Array.from({ length: 60 }, (_, i) => `word${i}`).join(" ");
+    const cut = snippetFromContent(words)!;
+    expect(cut.length).toBeLessThanOrEqual(201);
+    expect(cut.endsWith("\u2026")).toBe(true);
+    const body = cut.slice(0, -1);
+    expect(body).toMatch(/word\d+$/);
+    expect(words.startsWith(body)).toBe(true);
+  });
+
+  it("hard-cuts a single long token", () => {
+    expect(snippetFromContent("x".repeat(250))).toBe(`${"x".repeat(200)}\u2026`);
+  });
+
+  it("returns undefined for blank content", () => {
+    expect(snippetFromContent("  \n\t ")).toBeUndefined();
+  });
+});
+
 describe("ragDocumentsToSources", () => {
   it("maps url/title/type metadata to widget sources", () => {
     const sources = ragDocumentsToSources([
       doc({ metadata: { url: "https://e.com/blog/a", title: "A", type: "blog" } }),
     ]);
     expect(sources).toEqual([
-      { url: "https://e.com/blog/a", title: "A", type: "blog" },
+      {
+        url: "https://e.com/blog/a",
+        title: "A",
+        type: "blog",
+        snippet: "Plans start at $75/hour.",
+      },
     ]);
+  });
+
+  it("adds a snippet from the first chunk of each page", () => {
+    const sources = ragDocumentsToSources([
+      doc({ id: "p#0", content: "First chunk." }),
+      doc({ id: "p#1", content: "Second chunk." }),
+    ]);
+    expect(sources).toEqual([
+      {
+        url: "https://example.com/pricing",
+        title: "Pricing",
+        type: "page",
+        snippet: "First chunk.",
+      },
+    ]);
+  });
+
+  it("omits the snippet when the chunk has no text", () => {
+    const [source] = ragDocumentsToSources([doc({ content: "   " })]);
+    expect(source).not.toHaveProperty("snippet");
   });
 
   it("skips documents without a url and dedupes chunks of one page", () => {
@@ -152,7 +207,12 @@ describe("ragDocumentsToSources", () => {
       doc({ metadata: { url: "https://e.com/x", type: "banana" } }),
     ]);
     expect(sources).toEqual([
-      { url: "https://e.com/x", title: "https://e.com/x", type: "page" },
+      {
+        url: "https://e.com/x",
+        title: "https://e.com/x",
+        type: "page",
+        snippet: "Plans start at $75/hour.",
+      },
     ]);
   });
 });

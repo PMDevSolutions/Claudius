@@ -16,7 +16,9 @@ export {
   retrieveRagDocuments,
   formatRagContext,
   ragDocumentsToSources,
+  snippetFromContent,
   DEFAULT_CONTEXT_TEMPLATE,
+  SOURCE_SNIPPET_MAX_CHARS,
   type ChatSource,
 } from "./retrieval";
 export {

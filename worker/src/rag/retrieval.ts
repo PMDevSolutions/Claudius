@@ -5,6 +5,37 @@ export interface ChatSource {
   url: string;
   title: string;
   type: "blog" | "page" | "external";
+  /** Plain-text preview of the page, cut to about 200 characters. */
+  snippet?: string;
+}
+
+/** Longest snippet the worker sends; the widget applies the same cut. */
+export const SOURCE_SNIPPET_MAX_CHARS = 200;
+
+/**
+ * Plain-text preview of a chunk for the widget's source cards: heading
+ * markers, bold markers, and backticks removed, whitespace collapsed, cut at
+ * the last space before `maxChars` (or hard when there is none) with a
+ * trailing ellipsis. Undefined when nothing is left.
+ */
+export function snippetFromContent(
+  content: string,
+  maxChars: number = SOURCE_SNIPPET_MAX_CHARS
+): string | undefined {
+  const text = content
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
+    .replace(/\*\*|`/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return undefined;
+  if (text.length <= maxChars) return text;
+  const cut = text.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  const head = (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(
+    /[\s,;:]+$/,
+    ""
+  );
+  return `${head}\u2026`;
 }
 
 const DEFAULT_TOP_K = 4;
@@ -105,7 +136,8 @@ export function ragDocumentsToSources(documents: RagDocument[]): ChatSource[] {
         : "page"
     ) as ChatSource["type"];
 
-    sources.push({ url, title, type });
+    const snippet = snippetFromContent(doc.content);
+    sources.push({ url, title, type, ...(snippet ? { snippet } : {}) });
   }
 
   return sources;
