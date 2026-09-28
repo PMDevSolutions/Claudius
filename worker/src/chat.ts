@@ -63,12 +63,14 @@ export interface ChatConfig {
 /**
  * A single event produced while streaming a chat completion. `text` events
  * carry one incremental text delta; `tool` events announce each executed
- * tool call; the final `done` event carries the full assembled reply,
- * accumulated tool-use summaries, and telemetry.
+ * tool call; a `sources` event announces the reply's sources once, before
+ * the first text delta; the final `done` event carries the full assembled
+ * reply, accumulated tool-use summaries, and telemetry.
  */
 export type ChatStreamEvent =
   | { type: "text"; text: string }
   | { type: "tool"; toolUse: ToolUseSummary }
+  | { type: "sources"; sources: ChatSource[] }
   | {
       type: "done";
       reply: string;
@@ -336,6 +338,14 @@ export async function* streamChat(
           }
         : {}),
     });
+
+    // Announce the sources once the model connection is open, so the widget
+    // can render citation chips while the text streams. Not before: the
+    // route pulls the first event before opening the SSE response, and a
+    // bad API key must still surface there as a JSON error.
+    if (round === 0 && rag.sources.length > 0) {
+      yield { type: "sources", sources: rag.sources };
+    }
 
     // Reconstructed content blocks for this round, in order — needed to
     // append the assistant turn verbatim when continuing after tool calls.

@@ -182,6 +182,43 @@ describe("streamChat with RAG", () => {
     ]);
   });
 
+  it("announces the sources once the model call is made, before the first text", async () => {
+    const events: Array<{ type: string }> = [];
+    let createCallsAtSources = -1;
+    for await (const event of streamChat(request, "key", {
+      rag: ragWith([pricingDoc]),
+    })) {
+      if (event.type === "sources") {
+        createCallsAtSources = createSpy.mock.calls.length;
+      }
+      events.push(event);
+    }
+    expect(events.map((e) => e.type)).toEqual(["sources", "text", "done"]);
+    // Yielded after the connection opened, so a bad key still fails as JSON.
+    expect(createCallsAtSources).toBe(1);
+    expect(events[0]).toEqual({
+      type: "sources",
+      sources: [
+        {
+          url: "https://example.com/pricing",
+          title: "Pricing",
+          type: "page",
+          snippet: "Plans start at $1,000/month.",
+        },
+      ],
+    });
+  });
+
+  it("announces nothing when retrieval found no sources", async () => {
+    const events: Array<{ type: string }> = [];
+    for await (const event of streamChat(request, "key", {
+      rag: ragWith([]),
+    })) {
+      events.push(event);
+    }
+    expect(events.map((e) => e.type)).toEqual(["text", "done"]);
+  });
+
   it("omits sources on the done event without RAG", async () => {
     const events = [];
     for await (const event of streamChat(request, "key", {})) {
