@@ -61,6 +61,13 @@ export const de: ClaudiusTranslations = {
   transcriptAttachments: "Anhänge:",
   transcriptSources: "Quellen:",
 
+  // Citations
+  sources: "Quellen",
+  showAllSources: "Alle anzeigen ({count})",
+  showFewerSources: "Weniger anzeigen",
+  citation: "Quelle {n}: {title}",
+  opensInNewTab: "(öffnet in einem neuen Tab)",
+
   // Errors
   errorGeneric: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   errorConnection: "Verbindung fehlgeschlagen. Bitte versuchen Sie es erneut.",

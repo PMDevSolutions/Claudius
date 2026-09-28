@@ -62,6 +62,13 @@ export const fr: ClaudiusTranslations = {
   transcriptAttachments: "Pièces jointes :",
   transcriptSources: "Sources :",
 
+  // Citations
+  sources: "Sources",
+  showAllSources: "Tout afficher ({count})",
+  showFewerSources: "Afficher moins",
+  citation: "Source {n} : {title}",
+  opensInNewTab: "(s'ouvre dans un nouvel onglet)",
+
   // Errors
   errorGeneric: "Une erreur s'est produite. Veuillez réessayer.",
   errorConnection: "Échec de la connexion. Veuillez réessayer.",
