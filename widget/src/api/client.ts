@@ -4,6 +4,7 @@ import type {
   ChatErrorResponse,
   ChatStreamOptions,
   ChatStreamResult,
+  Source,
   ToolUse,
 } from "./types";
 import { ChatApiError, DebounceError } from "./errors";
@@ -31,6 +32,12 @@ export interface ChatApiClientOptions {
    * @defaultValue `30000`
    */
   timeoutMs?: number;
+  /**
+   * Send `citations: true` with every request, asking the worker to number
+   * its retrieved excerpts and have the model cite them as `[n]`.
+   * @defaultValue `false`
+   */
+  citations?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -66,6 +73,7 @@ export class ChatApiClient {
   private readonly maxRetries: number;
   private readonly debounceMs: number;
   private readonly timeoutMs: number;
+  private readonly citations: boolean;
   private lastSendTime = 0;
 
   /**
@@ -79,6 +87,7 @@ export class ChatApiClient {
     this.maxRetries = options?.maxRetries ?? 2;
     this.debounceMs = options?.debounceMs ?? 300;
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.citations = options?.citations ?? false;
   }
 
   /**
@@ -174,10 +183,12 @@ export class ChatApiClient {
     const needsMultipart = messages.some((m) =>
       m.attachments?.some((a) => !!a.data),
     );
+    // Widgets with citations on ask the worker to number its excerpts.
+    const flags = this.citations ? { citations: true } : {};
     if (!needsMultipart) {
       return {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, ...flags }),
       };
     }
 
@@ -193,7 +204,10 @@ export class ChatApiClient {
         }),
       };
     });
-    form.append("payload", JSON.stringify({ messages: payloadMessages }));
+    form.append(
+      "payload",
+      JSON.stringify({ messages: payloadMessages, ...flags }),
+    );
     for (const m of messages) {
       for (const a of m.attachments ?? []) {
         if (a.data) {
@@ -333,6 +347,8 @@ export class ChatApiClient {
     let buffer = "";
     let fullText = "";
     const toolUses: ToolUse[] = [];
+    // Announced ahead of the text; `done` carries the authoritative list.
+    let earlySources: Source[] | undefined;
     let done: ChatStreamResult | undefined;
 
     const abort = () => {
@@ -376,6 +392,11 @@ export class ChatApiClient {
               toolUses.push(toolUse);
               options.onToolUse?.(toolUse, toolUses);
             }
+          } else if (parsed.event === "sources") {
+            if (Array.isArray(parsed.data.sources)) {
+              earlySources = parsed.data.sources as Source[];
+              options.onSources?.(earlySources);
+            }
           } else if (parsed.event === "done") {
             const doneToolUses = Array.isArray(parsed.data.toolUses)
               ? (parsed.data.toolUses as ToolUse[])
@@ -385,7 +406,9 @@ export class ChatApiClient {
                 typeof parsed.data.reply === "string"
                   ? parsed.data.reply
                   : fullText,
-              sources: parsed.data.sources as ChatStreamResult["sources"],
+              sources: (Array.isArray(parsed.data.sources)
+                ? parsed.data.sources
+                : earlySources) as ChatStreamResult["sources"],
               ...(doneToolUses.length > 0 ? { toolUses: doneToolUses } : {}),
               ...(Array.isArray(parsed.data.attachments)
                 ? {
@@ -415,6 +438,7 @@ export class ChatApiClient {
         reply: fullText,
         aborted: true,
         ...(toolUses.length > 0 ? { toolUses } : {}),
+        ...(earlySources ? { sources: earlySources } : {}),
       };
     }
 
