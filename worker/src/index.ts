@@ -206,6 +206,9 @@ function getChatConfig(env: Env, body?: ChatRequest) {
     },
     // Retrieval config, active only when the Vectorize + AI bindings exist.
     rag: createRagFromEnv(env),
+    // Only the literal true: a hand-written client sending "true" gets the
+    // unnumbered prompt it has always had.
+    citations: body?.citations === true,
   };
 }
 

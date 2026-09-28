@@ -4,11 +4,7 @@ import { attachmentToBlock, type AttachmentRef } from "./attachments";
 import type { StoredAttachment } from "./attachment-storage";
 import { toAnthropicTools, executeTool } from "./tools";
 import type { ClaudiusTool, ToolContext, ToolUseSummary } from "./tools";
-import {
-  retrieveRagDocuments,
-  formatRagContext,
-  ragDocumentsToSources,
-} from "./rag";
+import { retrieveRagDocuments, buildRagContext } from "./rag";
 import type { RagConfig, ChatSource } from "./rag";
 
 export interface ChatMessage {
@@ -21,6 +17,11 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   conversationId?: string;
+  /**
+   * Set by widgets that render `[n]` citations: numbers the retrieved
+   * excerpts to match `sources` and asks the model to cite them.
+   */
+  citations?: boolean;
 }
 
 export interface ChatResponse {
@@ -55,6 +56,8 @@ export interface ChatConfig {
   toolContext?: ToolContext;
   /** Retrieval-augmented generation settings; unset disables RAG. */
   rag?: RagConfig;
+  /** Number RAG excerpts and ask the model to cite them as `[n]`. */
+  citations?: boolean;
 }
 
 /**
@@ -129,11 +132,10 @@ async function prepareRag(
   if (!lastUser?.content) return { systemSuffix: "", sources: [] };
 
   const documents = await retrieveRagDocuments(config.rag, lastUser.content);
-  const context = formatRagContext(documents, config.rag);
-  return {
-    systemSuffix: context ?? "",
-    sources: ragDocumentsToSources(documents),
-  };
+  const built = buildRagContext(documents, config.rag, {
+    citations: config.citations === true,
+  });
+  return { systemSuffix: built.context ?? "", sources: built.sources };
 }
 
 /** Runs each requested tool call, returning result blocks and summaries. */

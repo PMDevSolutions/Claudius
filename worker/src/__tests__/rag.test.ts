@@ -4,6 +4,8 @@ import {
   formatRagContext,
   ragDocumentsToSources,
   snippetFromContent,
+  buildRagContext,
+  CITATION_INSTRUCTIONS,
   DEFAULT_CONTEXT_TEMPLATE,
   VectorizeRetriever,
 } from "../rag";
@@ -125,6 +127,86 @@ describe("formatRagContext", () => {
 
   it("default template documents the placeholder", () => {
     expect(DEFAULT_CONTEXT_TEMPLATE).toContain("{context}");
+  });
+});
+
+describe("buildRagContext", () => {
+  const faq = doc({
+    id: "faq.md#0",
+    content: "We are open 9 to 5.",
+    metadata: { url: "https://example.com/faq", title: "FAQ" },
+  });
+
+  it("returns no context and no sources for no documents", () => {
+    expect(buildRagContext([])).toEqual({ sources: [] });
+  });
+
+  it("matches formatRagContext and stays unnumbered when citations are off", () => {
+    const docs = [doc(), faq];
+    const { context, sources } = buildRagContext(docs);
+    expect(context).toBe(formatRagContext(docs));
+    expect(context).toContain("### [Pricing](https://example.com/pricing)");
+    expect(context).not.toContain("[1]");
+    expect(context).not.toContain(CITATION_INSTRUCTIONS);
+    expect(sources.map((s) => s.url)).toEqual([
+      "https://example.com/pricing",
+      "https://example.com/faq",
+    ]);
+  });
+
+  it("numbers pages in order of first appearance and shares the number across chunks", () => {
+    const pricing1 = doc({
+      id: "pricing.md#1",
+      content: "Enterprise plans are quoted.",
+    });
+    const { context, sources } = buildRagContext([doc(), faq, pricing1], {}, {
+      citations: true,
+    });
+    expect(context).toContain(
+      "### [1] [Pricing](https://example.com/pricing)\nPlans start at $75/hour."
+    );
+    expect(context).toContain(
+      "### [2] [FAQ](https://example.com/faq)\nWe are open 9 to 5."
+    );
+    expect(context).toContain(
+      "### [1] [Pricing](https://example.com/pricing)\nEnterprise plans are quoted."
+    );
+    expect(sources.map((s) => s.url)).toEqual([
+      "https://example.com/pricing",
+      "https://example.com/faq",
+    ]);
+    expect(context!.endsWith(CITATION_INSTRUCTIONS)).toBe(true);
+  });
+
+  it("leaves documents without a url unnumbered and uncited", () => {
+    const orphan = doc({ id: "notes.md#0", metadata: { title: "Notes" } });
+    const { context, sources } = buildRagContext([orphan], {}, { citations: true });
+    expect(context).toContain("### [Notes]\n");
+    expect(context).not.toContain("[1]");
+    expect(context).not.toContain(CITATION_INSTRUCTIONS);
+    expect(sources).toEqual([]);
+  });
+
+  it("drops a document past the budget from the sources too", () => {
+    const third = doc({
+      id: "team.md#0",
+      content: "z".repeat(50),
+      metadata: { url: "https://example.com/team", title: "Team" },
+    });
+    const docs = [
+      doc({ content: "x".repeat(50) }),
+      doc({ ...faq, content: "y".repeat(50) }),
+      third,
+    ];
+    const { context, sources } = buildRagContext(docs, { maxContextChars: 200 }, {
+      citations: true,
+    });
+    expect(context).toContain("[1] [Pricing]");
+    expect(context).toContain("[2] [FAQ]");
+    // "[3]" alone would match the instruction's own "[1][3]" example.
+    expect(context).not.toContain("[3] [Team]");
+    expect(context).not.toContain("zzz");
+    expect(sources.map((s) => s.title)).toEqual(["Pricing", "FAQ"]);
   });
 });
 

@@ -110,6 +110,40 @@ describe("handleChat with RAG", () => {
     expect(createSpy.mock.calls[0][0].system).toBe(SYSTEM_PROMPT);
   });
 
+  it("numbers the excerpts and asks for citations when the config opts in", async () => {
+    // The route copies the body's `citations: true` into the config.
+    await handleChat(request, "key", {
+      rag: ragWith([pricingDoc]),
+      citations: true,
+    });
+    const system = createSpy.mock.calls[0][0].system as string;
+    expect(system).toContain("### [1] [Pricing](https://example.com/pricing)");
+    expect(system).toContain("end it with the excerpt's number");
+  });
+
+  it("leaves the prompt unnumbered when the config does not opt in", async () => {
+    await handleChat(request, "key", { rag: ragWith([pricingDoc]) });
+    const system = createSpy.mock.calls[0][0].system as string;
+    expect(system).toContain("### [Pricing](https://example.com/pricing)");
+    expect(system).not.toContain("[1]");
+    expect(system).not.toContain("end it with the excerpt's number");
+  });
+
+  it("returns sources only for the excerpts that fit the context budget", async () => {
+    const faqDoc: RagDocument = {
+      id: "faq.md#0",
+      content: "We are open 9 to 5.",
+      metadata: { url: "https://example.com/faq", title: "FAQ", type: "page" },
+      score: 0.8,
+    };
+    const result = await handleChat(request, "key", {
+      rag: { ...ragWith([pricingDoc, faqDoc]), maxContextChars: 60 },
+    });
+    expect(result.response.sources?.map((s) => s.url)).toEqual([
+      "https://example.com/pricing",
+    ]);
+  });
+
   it("behaves exactly as before when RAG is not configured", async () => {
     const result = await handleChat(request, "key", {});
     expect(createSpy.mock.calls[0][0].system).toBe(SYSTEM_PROMPT);

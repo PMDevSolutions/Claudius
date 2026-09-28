@@ -17,9 +17,13 @@ export {
   formatRagContext,
   ragDocumentsToSources,
   snippetFromContent,
+  buildRagContext,
+  CITATION_INSTRUCTIONS,
   DEFAULT_CONTEXT_TEMPLATE,
   SOURCE_SNIPPET_MAX_CHARS,
   type ChatSource,
+  type RagContextOptions,
+  type RagContext,
 } from "./retrieval";
 export {
   VectorizeRetriever,
