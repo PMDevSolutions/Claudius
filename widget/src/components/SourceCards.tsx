@@ -144,7 +144,7 @@ const SourceCard = forwardRef<HTMLLIElement, SourceCardProps>(
               </svg>
             )}
           </div>
-          {snippet && <p className="mt-0.5">{snippet}</p>}
+          {snippet && <p className="mt-0.5 break-words">{snippet}</p>}
           {safeUrl && (
             <p className="mt-0.5 truncate">{sourceDomain(safeUrl)}</p>
           )}

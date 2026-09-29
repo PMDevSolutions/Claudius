@@ -104,6 +104,13 @@ describe("SourceCards", () => {
     expect(snippet.textContent!.endsWith("…")).toBe(true);
   });
 
+  it("wraps a long unbroken snippet inside the card", async () => {
+    const user = userEvent.setup();
+    renderCards({ sources: [source(1, { snippet: "x".repeat(150) })] });
+    await user.click(toggle());
+    expect(screen.getByText(/^x+$/)).toHaveClass("break-words");
+  });
+
   it("keeps a numbered card, without a link or favicon, for an unsafe URL", async () => {
     const user = userEvent.setup();
     renderCards({
