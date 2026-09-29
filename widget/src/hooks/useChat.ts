@@ -221,8 +221,10 @@ export function useChat({
 
       // The worker may announce the sources before the first token. They wait
       // here until the placeholder exists, so an announcement alone never
-      // creates an empty bubble.
+      // creates an empty bubble. A widget without citations keeps today's
+      // timing and gets them on done, so nothing changes for it.
       let earlySources: Source[] | undefined;
+      const attachEarly = () => (citations ? earlySources : undefined);
 
       const upsertPlaceholder = (patch: Partial<ChatMessage>) => {
         if (placeholderId === null) {
@@ -235,7 +237,7 @@ export function useChat({
               role: "assistant",
               content: "",
               createdAt: timestamp(),
-              ...(earlySources ? { sources: earlySources } : {}),
+              ...(attachEarly() ? { sources: earlySources } : {}),
               ...patch,
             },
           ];
@@ -278,7 +280,7 @@ export function useChat({
               upsertPlaceholder({ toolUses: [...allToolUses] }),
             onSources: (announced) => {
               earlySources = announced;
-              if (placeholderId !== null) {
+              if (citations && placeholderId !== null) {
                 upsertPlaceholder({ sources: announced });
               }
             },
@@ -421,6 +423,7 @@ export function useChat({
     },
     [
       apiUrl,
+      citations,
       client,
       getErrorMessage,
       isRetryableError,

@@ -143,6 +143,33 @@ describe("useChat citations", () => {
     expect(result.current.messages[1].sources).toEqual([pricing, faq]);
   });
 
+  it("waits for done before attaching sources when citations are off", async () => {
+    // Off means unchanged: the source icon must not appear mid-stream on a
+    // widget that never opted in, even against a worker that announces early.
+    const stream = sseStream();
+    mockFetch.mockResolvedValueOnce(stream.response);
+    const { result } = renderHook(() => useChat({ apiUrl: API_URL }));
+
+    let sending!: Promise<void>;
+    act(() => {
+      sending = result.current.sendMessage("Prices?");
+    });
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+    stream.emit("sources", { sources: [pricing] });
+    stream.emit("chunk", { text: "Plans start at $10." });
+    await settle();
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[1].sources).toBeUndefined();
+
+    stream.emit("done", { reply: "Plans start at $10.", sources: [pricing] });
+    stream.close();
+    await act(async () => {
+      await sending;
+    });
+    expect(result.current.messages[1].sources).toEqual([pricing]);
+  });
+
   it("creates no message when the stream fails after the announcement", async () => {
     const stream = sseStream();
     mockFetch.mockResolvedValueOnce(stream.response);
