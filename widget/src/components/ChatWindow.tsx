@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { ChatMessage } from "./ChatMessage";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChatMessage, type MessageCitations } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ChatSources } from "./ChatSources";
 import { ChatHeader } from "./ChatHeader";
@@ -20,6 +20,10 @@ import type {
 } from "../api/types";
 import type { ResolvedAttachmentsConfig } from "../utils/attachments";
 import type { ResolvedVoiceConfig } from "../utils/voice";
+import {
+  stripCitationMarkers,
+  type ResolvedCitationsConfig,
+} from "../utils/citations";
 
 interface ChatWindowProps {
   messages: ChatMessageData[];
@@ -50,6 +54,8 @@ interface ChatWindowProps {
   conversationExport?: boolean;
   /** BCP-47 tag for the dates in an exported transcript. */
   locale?: string;
+  /** Citation rendering, or `null` to keep the source icon and sidebar. */
+  citations?: ResolvedCitationsConfig | null;
 }
 
 const windowPositionClasses: Record<WidgetPosition, string> = {
@@ -81,6 +87,7 @@ export function ChatWindow({
   voice = null,
   conversationExport = false,
   locale = "en-US",
+  citations = null,
 }: ChatWindowProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -109,6 +116,36 @@ export function ChatWindow({
     locale,
     translations,
   });
+
+  const newTabLabel = translations?.opensInNewTab ?? "(opens in a new tab)";
+  // One object per config or language change, so memoized messages do not
+  // re-render on every keystroke elsewhere in the window.
+  const messageCitations = useMemo<MessageCitations | undefined>(
+    () =>
+      citations
+        ? {
+            ...citations,
+            labels: {
+              sources: translations?.sources ?? "Sources",
+              showAllSources:
+                translations?.showAllSources ?? "Show all ({count})",
+              showFewerSources: translations?.showFewerSources ?? "Show fewer",
+              citation: translations?.citation ?? "Source {n}: {title}",
+              opensInNewTab: newTabLabel,
+            },
+          }
+        : undefined,
+    [citations, translations, newTabLabel],
+  );
+
+  // What a screen reader or the read-aloud voice gets: no markdown markers,
+  // hostnames for URLs, and no citation markers when chips render them.
+  const announceText = (message: ChatMessageData) =>
+    stripAnnouncementFormatting(
+      messageCitations && message.sources?.length
+        ? stripCitationMarkers(message.content, message.sources.length)
+        : message.content,
+    );
 
   const { offsetY } = useSwipeToDismiss(
     messagesContainerRef,
@@ -236,14 +273,27 @@ export function ChatWindow({
               toolUses={msg.toolUses}
               toolUsedLabel={translations?.toolUsed}
               toolDetailsLabel={translations?.toolDetails}
-              isSourceActive={activeSources?.messageId === msg.id}
-              onSourceClick={() => {
-                if (activeSources?.messageId === msg.id) {
-                  setActiveSources(null);
-                } else if (msg.sources && msg.sources.length > 0) {
-                  setActiveSources({ messageId: msg.id, sources: msg.sources });
-                }
-              }}
+              citations={messageCitations}
+              linkNewTabLabel={newTabLabel}
+              isSourceActive={
+                messageCitations
+                  ? undefined
+                  : activeSources?.messageId === msg.id
+              }
+              onSourceClick={
+                messageCitations
+                  ? undefined
+                  : () => {
+                      if (activeSources?.messageId === msg.id) {
+                        setActiveSources(null);
+                      } else if (msg.sources && msg.sources.length > 0) {
+                        setActiveSources({
+                          messageId: msg.id,
+                          sources: msg.sources,
+                        });
+                      }
+                    }
+              }
               speech={
                 // Only settled replies with something to say: reading a
                 // message that is still streaming would stop mid-sentence.
@@ -261,11 +311,7 @@ export function ChatWindow({
                       labels: speechLabels,
                       // Same cleanup as the screen-reader announcement:
                       // no literal asterisks, URLs shortened to hostnames.
-                      onPlay: () =>
-                        reader.speak(
-                          msg.id,
-                          stripAnnouncementFormatting(msg.content),
-                        ),
+                      onPlay: () => reader.speak(msg.id, announceText(msg)),
                       onPause: reader.pause,
                       onResume: reader.resume,
                       onStop: reader.cancel,
@@ -314,7 +360,7 @@ export function ChatWindow({
         {/* Announce only settled messages: reading a reply that's still
             streaming would re-announce the whole text on every token. */}
         {lastAssistantMessage && lastAssistantMessage.id !== streamingMessageId
-          ? stripAnnouncementFormatting(lastAssistantMessage.content)
+          ? announceText(lastAssistantMessage)
           : ""}
       </div>
 
