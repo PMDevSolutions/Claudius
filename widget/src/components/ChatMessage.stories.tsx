@@ -60,6 +60,43 @@ export const WithSources: Story = {
   },
 };
 
+// Inline citations: [n] markers become chips, and a collapsible footer lists
+// one card per source. favicons is off so Storybook makes no network requests.
+export const WithCitations: Story = {
+  args: {
+    role: "assistant",
+    content:
+      "Plans start at $10 a month [1].\n" +
+      "Every plan includes support by email [2].",
+    sources: [
+      {
+        url: "https://pmds.info/pricing",
+        title: "Pricing",
+        type: "page",
+        snippet:
+          "Plans start at $10 a month, billed annually. Every plan includes support by email and a 14-day trial.",
+      },
+      {
+        url: "https://pmds.info/support",
+        title: "Support",
+        type: "page",
+        snippet: "Email support answers within one business day.",
+      },
+    ],
+    citations: {
+      maxSources: 5,
+      favicons: false,
+      labels: {
+        sources: "Sources",
+        showAllSources: "Show all ({count})",
+        showFewerSources: "Show fewer",
+        citation: "Source {n}: {title}",
+        opensInNewTab: "(opens in a new tab)",
+      },
+    },
+  },
+};
+
 // A user message carrying an image preview and a PDF chip.
 export const WithAttachments: Story = {
   args: {

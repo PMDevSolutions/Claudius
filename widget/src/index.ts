@@ -43,6 +43,11 @@ export type {
   VoiceInputMode,
   ResolvedVoiceConfig,
 } from "./utils/voice";
+export { DEFAULT_CITATIONS_OPTIONS } from "./utils/citations";
+export type {
+  CitationsOptions,
+  ResolvedCitationsConfig,
+} from "./utils/citations";
 
 // Plugin SDK: the ClaudiusPlugin interface, supporting types, and the three
 // reference plugins.

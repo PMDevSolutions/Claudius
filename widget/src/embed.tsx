@@ -6,6 +6,10 @@ import type { ClaudiusTranslations } from "./i18n";
 import type { ClaudiusThemeInput } from "./theme/types";
 import type { AttachmentsOptions } from "./utils/attachments";
 import { voiceOptionsFromAttributes, type VoiceOptions } from "./utils/voice";
+import {
+  citationsOptionsFromAttributes,
+  type CitationsOptions,
+} from "./utils/citations";
 import "./styles.css";
 
 // Injected at build time by vite.config.embed.ts; undefined under unit tests.
@@ -32,6 +36,7 @@ interface ClaudiusConfig {
   attachments?: boolean | AttachmentsOptions;
   voice?: boolean | VoiceOptions;
   conversationExport?: boolean;
+  citations?: boolean | CitationsOptions;
 }
 
 declare global {
@@ -76,6 +81,7 @@ function init() {
       attachments={config.attachments}
       voice={config.voice}
       conversationExport={config.conversationExport}
+      citations={config.citations}
     />,
   );
 }
@@ -100,6 +106,9 @@ class ClaudiusChat extends HTMLElement {
       "position",
       "attachments",
       "conversation-export",
+      "citations",
+      "citations-max-sources",
+      "citations-favicons",
       "voice",
       "voice-mode",
       "voice-auto-submit",
@@ -188,6 +197,9 @@ class ClaudiusChat extends HTMLElement {
         attachments={attachments}
         conversationExport={conversationExport}
         voice={voiceOptionsFromAttributes((name) => this.getAttribute(name))}
+        citations={citationsOptionsFromAttributes((name) =>
+          this.getAttribute(name),
+        )}
       />,
     );
   }
