@@ -1,5 +1,10 @@
-import { memo, useState, type ReactNode } from "react";
+import { Fragment, memo, useRef, useState, type ReactNode } from "react";
 import { SourceIcon } from "./SourceIcon";
+import {
+  SourceCards,
+  type SourceCardsLabels,
+  type SourceReveal,
+} from "./SourceCards";
 import { AttachmentPreview } from "./AttachmentPreview";
 import {
   MessageSpeechControls,
@@ -8,6 +13,20 @@ import {
 import type { ChatAttachment, Source, ToolUse } from "../api/types";
 import { sanitizeUrl } from "../utils/sanitize";
 import { stabilizeStreamingMarkdown } from "../utils/stabilizeStreamingMarkdown";
+import {
+  hideTrailingCitationOpener,
+  parseCitations,
+  type ResolvedCitationsConfig,
+} from "../utils/citations";
+import { interpolate } from "../utils/interpolate";
+
+/** Citation rendering for one message: the resolved option plus its strings. */
+export interface MessageCitations extends ResolvedCitationsConfig {
+  labels: SourceCardsLabels & {
+    /** Accessible name of a chip; takes `{n}` and `{title}`. */
+    citation: string;
+  };
+}
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -34,6 +53,13 @@ interface ChatMessageProps {
    * does for messages that are still streaming or have nothing to read.
    */
   speech?: MessageSpeech;
+  /**
+   * Render `[n]` markers as chips and the sources as a card footer. Omit to
+   * keep the source icon and sidebar.
+   */
+  citations?: MessageCitations;
+  /** Visually hidden hint appended to links that open a new tab. */
+  linkNewTabLabel?: string;
 }
 
 /** Read-aloud wiring for one assistant message. */
@@ -132,7 +158,26 @@ const URL_REGEX = /(https?:\/\/[^\s)]+)/;
 const BOLD_REGEX = /(\*\*[^*]+\*\*)/;
 const ITALIC_REGEX = /(\*[^*]+\*)/;
 
-function renderLink(rawUrl: string, key: string): ReactNode {
+/** Everything the inline renderer needs beyond the text itself. */
+interface RenderContext {
+  /** Visually hidden hint appended to links that open a new tab. */
+  newTabLabel: string;
+  /** Present only when `[n]` markers should become chips. */
+  citations?: CitationContext;
+}
+
+interface CitationContext {
+  sources: Source[];
+  /** Chip accessible name; takes `{n}` and `{title}`. */
+  label: string;
+  onCite: (index: number) => void;
+}
+
+function renderLink(
+  rawUrl: string,
+  key: string,
+  ctx: RenderContext,
+): ReactNode {
   // Strip trailing punctuation that's likely not part of the URL
   const trailingPunct = rawUrl.match(/[.,;:!?'"]+$/);
   const url = trailingPunct
@@ -148,65 +193,112 @@ function renderLink(rawUrl: string, key: string): ReactNode {
   }
 
   return (
-    <>
+    <Fragment key={key}>
       <a
-        key={key}
         href={safeUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="underline font-medium hover:opacity-80 text-claudius-link"
       >
         {safeUrl.replace(/^https?:\/\//, "")}
-        <span className="sr-only"> (opens in a new tab)</span>
+        <span className="sr-only"> {ctx.newTabLabel}</span>
       </a>
       {suffix}
-    </>
+    </Fragment>
   );
 }
 
-function renderInlineFormatting(text: string, keyPrefix: string): ReactNode[] {
-  // First split by bold markers
-  const boldParts = text.split(BOLD_REGEX);
-  const result: ReactNode[] = [];
+/** `[n]` markers become chips; everything else stays text. */
+function renderCitations(
+  text: string,
+  keyPrefix: string,
+  ctx: RenderContext,
+): ReactNode[] {
+  const cites = ctx.citations;
+  if (!cites) return text ? [text] : [];
+  return parseCitations(text, cites.sources.length).map((segment, index) => {
+    if (segment.type === "text") return segment.value;
+    return (
+      <span
+        key={`${keyPrefix}-c${index}`}
+        className="inline-flex gap-0.5 align-super"
+      >
+        {segment.indexes.map((sourceIndex) => (
+          <button
+            key={sourceIndex}
+            type="button"
+            onClick={() => cites.onCite(sourceIndex)}
+            aria-label={interpolate(cites.label, {
+              n: sourceIndex + 1,
+              title: cites.sources[sourceIndex].title,
+            })}
+            title={cites.sources[sourceIndex].title}
+            className="inline-flex h-4 min-w-4 items-center justify-center rounded-claudius-full bg-claudius-accent px-1 text-[10px] font-semibold leading-none text-claudius-accent-text hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-claudius-accent focus-visible:ring-offset-1"
+          >
+            {sourceIndex + 1}
+          </button>
+        ))}
+      </span>
+    );
+  });
+}
 
-  boldParts.forEach((part, bIdx) => {
-    if (BOLD_REGEX.test(part)) {
-      // Strip the ** markers and render as strong
-      const inner = part.slice(2, -2);
-      result.push(<strong key={`${keyPrefix}-b${bIdx}`}>{inner}</strong>);
-    } else {
-      // Within non-bold segments, split by italic markers
-      const italicParts = part.split(ITALIC_REGEX);
-      italicParts.forEach((iPart, iIdx) => {
-        if (ITALIC_REGEX.test(iPart)) {
-          const inner = iPart.slice(1, -1);
-          result.push(<em key={`${keyPrefix}-b${bIdx}-i${iIdx}`}>{inner}</em>);
-        } else {
-          // Within non-formatted segments, handle URLs
-          const urlParts = iPart.split(URL_REGEX);
-          urlParts.forEach((uPart, uIdx) => {
-            if (URL_REGEX.test(uPart)) {
-              result.push(
-                renderLink(uPart, `${keyPrefix}-b${bIdx}-i${iIdx}-u${uIdx}`),
-              );
-            } else if (uPart) {
-              result.push(uPart);
-            }
-          });
-        }
-      });
+/** Text with no bold or italic left in it: links first, then citation chips. */
+function renderLeaf(
+  text: string,
+  keyPrefix: string,
+  ctx: RenderContext,
+): ReactNode[] {
+  const result: ReactNode[] = [];
+  text.split(URL_REGEX).forEach((part, index) => {
+    if (URL_REGEX.test(part)) {
+      result.push(renderLink(part, `${keyPrefix}-u${index}`, ctx));
+    } else if (part) {
+      result.push(...renderCitations(part, `${keyPrefix}-u${index}`, ctx));
     }
   });
-
   return result;
 }
 
-function renderFormattedContent(content: string): ReactNode[] {
+function renderInlineFormatting(
+  text: string,
+  keyPrefix: string,
+  ctx: RenderContext,
+): ReactNode[] {
+  const result: ReactNode[] = [];
+  text.split(BOLD_REGEX).forEach((part, bIdx) => {
+    if (BOLD_REGEX.test(part)) {
+      // Strip the ** markers; the inside still gets links and chips.
+      result.push(
+        <strong key={`${keyPrefix}-b${bIdx}`}>
+          {renderLeaf(part.slice(2, -2), `${keyPrefix}-b${bIdx}`, ctx)}
+        </strong>,
+      );
+      return;
+    }
+    part.split(ITALIC_REGEX).forEach((iPart, iIdx) => {
+      const key = `${keyPrefix}-b${bIdx}-i${iIdx}`;
+      if (ITALIC_REGEX.test(iPart)) {
+        result.push(
+          <em key={key}>{renderLeaf(iPart.slice(1, -1), key, ctx)}</em>,
+        );
+      } else {
+        result.push(...renderLeaf(iPart, key, ctx));
+      }
+    });
+  });
+  return result;
+}
+
+function renderFormattedContent(
+  content: string,
+  ctx: RenderContext,
+): ReactNode[] {
   const lines = content.split("\n");
 
   return lines.map((line, lineIndex) => (
     <span key={lineIndex}>
-      {renderInlineFormatting(line, `l${lineIndex}`)}
+      {renderInlineFormatting(line, `l${lineIndex}`, ctx)}
       {lineIndex < lines.length - 1 && <br />}
     </span>
   ));
@@ -224,12 +316,36 @@ export const ChatMessage = memo(function ChatMessage({
   onSourceClick,
   isSourceActive,
   speech,
+  citations,
+  linkNewTabLabel = "(opens in a new tab)",
 }: ChatMessageProps) {
   const isUser = role === "user";
+  const [reveal, setReveal] = useState<SourceReveal | null>(null);
+  const revealCount = useRef(0);
+  // Chips and the footer need both the option and something to cite.
+  const cited =
+    !isUser && citations && sources && sources.length > 0
+      ? { config: citations, sources }
+      : null;
   const hasAttachments = !!attachments && attachments.length > 0;
-  const displayContent = isStreaming
-    ? stabilizeStreamingMarkdown(content)
-    : content;
+  const streamed = isStreaming ? stabilizeStreamingMarkdown(content) : content;
+  // A half-typed `[1` would flash as text before its chip; hide it like the
+  // bold stabilizer hides a bare `**`.
+  const displayContent =
+    isStreaming && cited ? hideTrailingCitationOpener(streamed) : streamed;
+  const renderContext: RenderContext = {
+    newTabLabel: linkNewTabLabel,
+    citations: cited
+      ? {
+          sources: cited.sources,
+          label: cited.config.labels.citation,
+          onCite: (index) => {
+            revealCount.current += 1;
+            setReveal({ index, key: revealCount.current });
+          },
+        }
+      : undefined,
+  };
   // While a tool runs before any reply text streams in, there is nothing to
   // put in a bubble yet — show only the tool chips.
   const showBubble = isUser || content !== "" || !toolUses?.length;
@@ -257,7 +373,7 @@ export const ChatMessage = memo(function ChatMessage({
             </ul>
           )}
           {(content !== "" || !hasAttachments) &&
-            renderFormattedContent(displayContent)}
+            renderFormattedContent(displayContent, renderContext)}
         </div>
       )}
       {!isUser && toolUses && toolUses.length > 0 && (
@@ -272,14 +388,27 @@ export const ChatMessage = memo(function ChatMessage({
           ))}
         </div>
       )}
-      {!isUser && sources && sources.length > 0 && onSourceClick && (
-        <div className="mt-1">
-          <SourceIcon
-            count={sources.length}
-            isActive={isSourceActive ?? false}
-            onClick={onSourceClick}
-          />
-        </div>
+      {cited ? (
+        <SourceCards
+          sources={cited.sources}
+          maxSources={cited.config.maxSources}
+          favicons={cited.config.favicons}
+          labels={cited.config.labels}
+          reveal={reveal}
+        />
+      ) : (
+        !isUser &&
+        sources &&
+        sources.length > 0 &&
+        onSourceClick && (
+          <div className="mt-1">
+            <SourceIcon
+              count={sources.length}
+              isActive={isSourceActive ?? false}
+              onClick={onSourceClick}
+            />
+          </div>
+        )
       )}
       {!isUser && speech && (
         <div className="mt-1">
