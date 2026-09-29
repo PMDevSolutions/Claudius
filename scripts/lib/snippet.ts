@@ -44,6 +44,10 @@ export function generateScriptSnippet(
     if (config.widget.conversationExport === true) {
       configObj.conversationExport = true;
     }
+    // `true` or the options object both pass straight through to ClaudiusConfig.
+    if (config.widget.citations !== undefined && config.widget.citations !== false) {
+      configObj.citations = config.widget.citations;
+    }
   }
 
   // Build indented JSON: each line of the JSON body is indented to align under
@@ -100,6 +104,16 @@ export function generateWebComponentSnippet(
     }
     if (config.widget.conversationExport === true) {
       attrs.push(["conversation-export", "true"]);
+    }
+    const citations = config.widget.citations;
+    if (citations !== undefined && citations !== false) {
+      attrs.push(["citations", "true"]);
+      if (citations !== true) {
+        if (citations.maxSources !== undefined) {
+          attrs.push(["citations-max-sources", String(citations.maxSources)]);
+        }
+        if (citations.favicons === false) attrs.push(["citations-favicons", "false"]);
+      }
     }
   }
 

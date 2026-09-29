@@ -9,6 +9,11 @@ export interface Source {
   title: string;
   /** Origin category, used to group and label the source. */
   type: "blog" | "page" | "external";
+  /**
+   * Short plain-text excerpt of the page, shown on its source card. About
+   * 200 characters. Absent from workers that predate citations.
+   */
+  snippet?: string;
 }
 
 /**
@@ -98,6 +103,11 @@ export interface ChatMessage {
 export interface ChatRequest {
   /** The full conversation so far, oldest message first. */
   messages: ChatMessage[];
+  /**
+   * Ask the worker to number its retrieved excerpts to match `sources` and
+   * to have the model cite them as `[n]`. Sent by widgets with citations on.
+   */
+  citations?: boolean;
 }
 
 /**
@@ -130,6 +140,12 @@ export interface ChatStreamOptions {
    * show a "used tool" affordance before the reply completes.
    */
   onToolUse?: (toolUse: ToolUse, allToolUses: ToolUse[]) => void;
+  /**
+   * Called when the worker announces the reply's sources ahead of the text,
+   * so citation chips can render while the reply streams. The `done` event
+   * carries the final list.
+   */
+  onSources?: (sources: Source[]) => void;
   /**
    * Cancels the stream when aborted. Cancellation is not an error: the
    * promise resolves with the partial reply and `aborted: true`.

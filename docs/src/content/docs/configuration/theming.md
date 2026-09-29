@@ -67,7 +67,7 @@ palette of whichever mode is active.
 
 | Key | CSS property | Used for | Light default | Dark default |
 |-----|--------------|----------|---------------|--------------|
-| `accent` | `--cl-color-accent` | Header, toggle bubble, send button, focus rings | `#2563eb` | `#2563eb` |
+| `accent` | `--cl-color-accent` | Header, toggle bubble, send button, focus rings, citation chips | `#2563eb` | `#2563eb` |
 | `accentText` | `--cl-color-accent-text` | Text/icons on accent surfaces | `#ffffff` | `#ffffff` |
 | `accentSoft` | `--cl-color-accent-soft` | Avatar circle, hover overlay on the header | `rgb(255 255 255 / 0.2)` | same |
 | `accentTextMuted` | `--cl-color-accent-text-muted` | Dimmed header icons | `rgb(255 255 255 / 0.7)` | same |

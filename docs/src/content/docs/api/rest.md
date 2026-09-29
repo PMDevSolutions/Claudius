@@ -35,6 +35,7 @@ Send the conversation so far; receive the assistant's reply.
 | `messages[].content` | string | May be empty only when the message has attachments |
 | `messages[].attachments` | array, optional | Files on a **user** message; see below |
 | `conversationId` | string, optional | Opaque id used only for [analytics](/deployment/worker/#analytics-with-d1-optional) correlation |
+| `citations` | boolean, optional | `true` asks the worker to number its RAG excerpts to match `sources` and to have the model cite them as `[n]`. Anything else is ignored |
 
 #### Attachments
 
@@ -82,10 +83,8 @@ curl https://<worker>/api/chat \
 Stray file parts that match no attachment are rejected. The widget's client
 switches to multipart automatically whenever a message carries inline bytes.
 
-`POST /api/chat/stream` accepts the same JSON or multipart body. Attachment
-errors are returned as plain JSON before the stream opens, and when the R2
-backend stored uploads the `done` event carries the same `attachments` array
-as the non-streaming response below.
+[`POST /api/chat/stream`](#post-apichatstream) accepts the same JSON or
+multipart body.
 
 ### Response `200`
 
@@ -93,7 +92,12 @@ as the non-streaming response below.
 {
   "reply": "We're available Monday through Friday, 9am to 5pm.",
   "sources": [
-    { "url": "https://example.com/contact", "title": "Contact", "type": "page" }
+    {
+      "url": "https://example.com/contact",
+      "title": "Contact",
+      "type": "page",
+      "snippet": "We're available Monday through Friday, 9am to 5pm."
+    }
   ],
   "attachments": [
     {
@@ -106,8 +110,9 @@ as the non-streaming response below.
 }
 ```
 
-`sources` is optional and reserved for retrieval-backed backends — the
-bundled worker returns only `reply` today (see [RAG](/rag/)).
+`sources` is optional and present when [RAG](/rag/) retrieved pages for the
+reply. Each source has `url`, `title`, `type`, and, from 1.18.0, a `snippet`
+of about 200 characters.
 
 `attachments` is present only when the worker's
 [R2 storage backend](/configuration/attachments/#r2) stored new uploads
@@ -133,6 +138,36 @@ All errors share one envelope:
 | `500` | `CONFIG_ERROR` | Worker misconfiguration (e.g. bad API key, R2 mode without bucket/secret) | |
 | `503` | `SERVICE_ERROR` | Claude temporarily unavailable/overloaded | |
 | `500` | `UNKNOWN_ERROR` | Anything else | |
+
+## POST /api/chat/stream
+
+Accepts the same JSON or multipart body as `/api/chat` and answers with
+`text/event-stream`. Failures before the first byte (validation, rate limit,
+attachments, a bad API key) return the same JSON errors as `/api/chat`, so
+clients can share their error handling. When the R2 backend stored uploads,
+the `done` event carries the same `attachments` array as the JSON response.
+
+| Event | Data | When |
+|-------|------|------|
+| `sources` | `{ "sources": [...] }` | Once, before the first chunk, when retrieval found sources |
+| `chunk` | `{ "text": "..." }` | One per model text delta |
+| `tool` | a tool-use summary | One per executed tool call |
+| `done` | `{ "reply", "sources"?, "toolUses"?, "attachments"? }` | Last event: the full reply plus everything the JSON response would carry |
+| `error` | `{ "error", "code": "STREAM_ERROR" }` | A failure after streaming began; the stream ends |
+
+```
+event: sources
+data: {"sources":[{"url":"https://example.com/contact","title":"Contact","type":"page","snippet":"We're available Monday through Friday."}]}
+
+event: chunk
+data: {"text":"We're available Monday through Friday [1]."}
+
+event: done
+data: {"reply":"We're available Monday through Friday [1].","sources":[...]}
+```
+
+`sources` on `done` is the authoritative list; the early event exists so a
+widget can render citation chips while the text is still arriving.
 
 ## GET /api/attachments/{key}
 

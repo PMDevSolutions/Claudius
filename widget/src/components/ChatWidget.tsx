@@ -23,6 +23,10 @@ import {
   resolveVoiceConfig,
   type VoiceOptions,
 } from "../utils/voice";
+import {
+  resolveCitationsConfig,
+  type CitationsOptions,
+} from "../utils/citations";
 
 /** Corner of the viewport the widget docks to. */
 export type WidgetPosition =
@@ -117,6 +121,17 @@ export interface ChatWidgetProps {
    * @defaultValue `false`
    */
   conversationExport?: boolean;
+  /**
+   * Render `[n]` citations in grounded replies as numbered chips, with a
+   * collapsible footer of source cards under the reply. `true` enables the
+   * defaults (five cards before "Show all", favicons on); pass a
+   * {@link CitationsOptions} to tune them. The widget also asks the worker to
+   * number its retrieved excerpts, so this needs a worker from 1.18.0 or
+   * later with RAG on to have any effect. Only `true` or an object enables
+   * it. See the Inline citations guide.
+   * @defaultValue `false`
+   */
+  citations?: boolean | CitationsOptions;
 }
 
 function readDismissed(): boolean {
@@ -167,6 +182,7 @@ export function ChatWidget({
   attachments = false,
   voice = false,
   conversationExport = false,
+  citations = false,
 }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const attachmentsConfig = useMemo(
@@ -179,6 +195,10 @@ export function ChatWidget({
   const voiceConfig = useMemo(
     () => resolveVoiceConfig(voice, activeLocale),
     [voice, activeLocale],
+  );
+  const citationsConfig = useMemo(
+    () => resolveCitationsConfig(citations),
+    [citations],
   );
   // The regional variant the visitor uses (en-GB, fr-CA), for dates.
   const dateLocale = useMemo(
@@ -213,6 +233,7 @@ export function ChatWidget({
     translations,
     plugins,
     streaming,
+    citations: citationsConfig !== null,
   });
   const toggleRef = useRef<HTMLButtonElement>(null);
   const prevOpenRef = useRef(isOpen);
@@ -339,6 +360,7 @@ export function ChatWidget({
             // Fail closed: a templated "false" string is truthy.
             conversationExport={conversationExport === true}
             locale={dateLocale}
+            citations={citationsConfig}
           />
         )}
         {!(isOpen && isMobile) && (

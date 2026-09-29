@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // embed.tsx auto-initializes on import by reading window.ClaudiusConfig, so
@@ -219,5 +220,110 @@ describe("embed conversationExport option", () => {
     mountElement({});
     await openChat();
     expectNoMenu();
+  });
+});
+
+describe("embed citations option", () => {
+  const mockFetch = vi.fn();
+  const sources = [
+    { url: "https://example.com/pricing", title: "Pricing", type: "page" },
+    { url: "https://example.com/faq", title: "FAQ", type: "page" },
+  ];
+
+  beforeEach(() => {
+    vi.resetModules();
+    document.body.innerHTML = "";
+    window.sessionStorage.clear();
+    window.ClaudiusConfig = undefined;
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      json: () =>
+        Promise.resolve({ reply: "Plans start at $10 [1].", sources }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+    window.ClaudiusConfig = undefined;
+  });
+
+  function mountElement(attributes: Record<string, string>) {
+    const el = document.createElement("claudius-chat");
+    el.setAttribute("api-url", "https://test.example/api");
+    for (const [name, value] of Object.entries(attributes)) {
+      el.setAttribute(name, value);
+    }
+    document.body.appendChild(el);
+  }
+
+  async function ask() {
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /open chat/i }));
+    await user.type(screen.getByLabelText(/type your message/i), "Prices?");
+    await user.keyboard("{Enter}");
+    // Scoped to the log: the live region repeats the reply text.
+    await within(screen.getByRole("log")).findByText(/Plans start at/);
+    return user;
+  }
+
+  function sentBody(): Record<string, unknown> {
+    return JSON.parse(
+      (mockFetch.mock.calls[0][1] as RequestInit).body as string,
+    );
+  }
+
+  it("enables chips from ClaudiusConfig", async () => {
+    window.ClaudiusConfig = {
+      apiUrl: "https://test.example/api",
+      citations: true,
+    };
+    await import("../embed");
+    await ask();
+    expect(
+      screen.getByRole("button", { name: "Source 1: Pricing" }),
+    ).toBeInTheDocument();
+    expect(sentBody().citations).toBe(true);
+  });
+
+  it("enables chips for a bare citations attribute", async () => {
+    await import("../embed");
+    mountElement({ citations: "" });
+    await ask();
+    expect(
+      screen.getByRole("button", { name: "Source 1: Pricing" }),
+    ).toBeInTheDocument();
+    expect(sentBody().citations).toBe(true);
+  });
+
+  it('stays off for citations="false"', async () => {
+    await import("../embed");
+    mountElement({ citations: "false" });
+    await ask();
+    expect(
+      within(screen.getByRole("log")).getByText("Plans start at $10 [1]."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Source \d/ })).toBeNull();
+    expect(sentBody()).not.toHaveProperty("citations");
+  });
+
+  it("reads the companion attributes", async () => {
+    await import("../embed");
+    mountElement({
+      citations: "true",
+      "citations-max-sources": "1",
+      "citations-favicons": "false",
+    });
+    const user = await ask();
+    await user.click(screen.getByRole("button", { name: "Source 1: Pricing" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: "Show all (2)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("listitem").querySelector("img")).toBeNull();
   });
 });

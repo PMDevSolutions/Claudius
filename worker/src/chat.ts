@@ -4,11 +4,7 @@ import { attachmentToBlock, type AttachmentRef } from "./attachments";
 import type { StoredAttachment } from "./attachment-storage";
 import { toAnthropicTools, executeTool } from "./tools";
 import type { ClaudiusTool, ToolContext, ToolUseSummary } from "./tools";
-import {
-  retrieveRagDocuments,
-  formatRagContext,
-  ragDocumentsToSources,
-} from "./rag";
+import { retrieveRagDocuments, buildRagContext } from "./rag";
 import type { RagConfig, ChatSource } from "./rag";
 
 export interface ChatMessage {
@@ -21,6 +17,11 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   conversationId?: string;
+  /**
+   * Set by widgets that render `[n]` citations: numbers the retrieved
+   * excerpts to match `sources` and asks the model to cite them.
+   */
+  citations?: boolean;
 }
 
 export interface ChatResponse {
@@ -55,17 +56,21 @@ export interface ChatConfig {
   toolContext?: ToolContext;
   /** Retrieval-augmented generation settings; unset disables RAG. */
   rag?: RagConfig;
+  /** Number RAG excerpts and ask the model to cite them as `[n]`. */
+  citations?: boolean;
 }
 
 /**
  * A single event produced while streaming a chat completion. `text` events
  * carry one incremental text delta; `tool` events announce each executed
- * tool call; the final `done` event carries the full assembled reply,
- * accumulated tool-use summaries, and telemetry.
+ * tool call; a `sources` event announces the reply's sources once, before
+ * the first text delta; the final `done` event carries the full assembled
+ * reply, accumulated tool-use summaries, and telemetry.
  */
 export type ChatStreamEvent =
   | { type: "text"; text: string }
   | { type: "tool"; toolUse: ToolUseSummary }
+  | { type: "sources"; sources: ChatSource[] }
   | {
       type: "done";
       reply: string;
@@ -129,11 +134,10 @@ async function prepareRag(
   if (!lastUser?.content) return { systemSuffix: "", sources: [] };
 
   const documents = await retrieveRagDocuments(config.rag, lastUser.content);
-  const context = formatRagContext(documents, config.rag);
-  return {
-    systemSuffix: context ?? "",
-    sources: ragDocumentsToSources(documents),
-  };
+  const built = buildRagContext(documents, config.rag, {
+    citations: config.citations === true,
+  });
+  return { systemSuffix: built.context ?? "", sources: built.sources };
 }
 
 /** Runs each requested tool call, returning result blocks and summaries. */
@@ -347,8 +351,18 @@ export async function* streamChat(
     // Separate this round's text from the previous round's with a blank
     // line, mirroring the non-streaming reply assembly.
     let firstTextOfRound = true;
+    // Announced together with the first upstream event, so the widget can
+    // render citation chips while the text streams. Not before it: the route
+    // pulls one event before opening the SSE response, and an upstream
+    // failure delivered as the first stream event (an overload, say) must
+    // still surface there as a JSON error the client retries.
+    let sourcesAnnounced = round > 0 || rag.sources.length === 0;
 
     for await (const event of stream) {
+      if (!sourcesAnnounced) {
+        sourcesAnnounced = true;
+        yield { type: "sources", sources: rag.sources };
+      }
       switch (event.type) {
         case "message_start":
           inputTokens += event.message.usage?.input_tokens ?? 0;

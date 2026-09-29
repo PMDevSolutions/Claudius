@@ -8,7 +8,8 @@ content — an FAQ, knowledge base, or product catalog — instead of relying on
 the system prompt alone. On every question the Worker retrieves the most
 relevant chunks, injects them into the system prompt, and returns the pages
 they came from as `sources`, which the widget renders as a source icon with a
-slide-out sidebar.
+slide-out sidebar, or, with [citations](/configuration/citations/) on, as
+numbered chips in the reply and a footer of source cards.
 
 The retrieval backend is pluggable: a small `Retriever` interface with a
 Cloudflare Vectorize reference implementation shipped in the Worker, and
@@ -76,8 +77,15 @@ For each chat request (blocking and streaming alike), the Worker:
    at `topK`.
 3. Renders the surviving chunks into a **context template** appended to the
    system prompt.
-4. Returns deduplicated `sources` (one per page) on the response — the JSON
-   body for `/api/chat`, the `done` SSE event for `/api/chat/stream`.
+4. Returns deduplicated `sources` (one per page, each with a 200-character
+   `snippet` of its first matching chunk) on the response: the JSON body for
+   `/api/chat`, and for `/api/chat/stream` a `sources` event before the first
+   chunk plus the `done` event. When the request carries `citations: true`,
+   the excerpts in step 3 are numbered to match and the model is asked to
+   cite them as `[n]`.
+
+Only excerpts that fit `maxContextChars` become sources, so the model never
+gets credit for a page it did not see.
 
 Retrieval failures are contained: if the vector store is down, the chat
 proceeds ungrounded rather than erroring.
@@ -256,8 +264,8 @@ backend you use.
 
 ## Related
 
-- **Inline citations and source cards** rendered from RAG results are
-  tracked in [#56](https://github.com/PMDevSolutions/Claudius/issues/56).
+- **Inline citations and source cards** rendered from these sources are
+  described in [Inline citations](/configuration/citations/).
 - For small knowledge bases, the
   [system prompt](/configuration/worker/#system-prompt) alone remains a
   solid, zero-infrastructure option.

@@ -83,6 +83,20 @@
         "conversationExport": {
           "type": "boolean",
           "description": "Let visitors copy the conversation as Markdown, or download it as Markdown or JSON, from a menu in the chat header. Off by default. Nothing is sent to the worker."
+        },
+        "citations": {
+          "description": "Render [n] citations in grounded replies as chips with a footer of source cards, and ask the worker to number its excerpts. true enables the defaults (5 cards before Show all, favicons on). Off by default; needs RAG on the worker.",
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "maxSources": { "type": "integer", "minimum": 1 },
+                "favicons": { "type": "boolean" }
+              }
+            }
+          ]
         }
       }
     },

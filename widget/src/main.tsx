@@ -10,6 +10,7 @@ createRoot(document.getElementById("root")!).render(
       attachments
       voice
       conversationExport
+      citations
     />
   </StrictMode>,
 );

@@ -3,6 +3,7 @@ import type { ClaudiusTranslations } from "../i18n";
 import type {
   ChatAttachment,
   ChatMessage,
+  Source,
   StoredAttachment,
 } from "../api/types";
 import { ChatApiClient } from "../api/client";
@@ -27,6 +28,11 @@ interface UseChatOptions {
    * @defaultValue `true`
    */
   streaming?: boolean;
+  /**
+   * Ask the worker for numbered, citable sources with every request.
+   * @defaultValue `false`
+   */
+  citations?: boolean;
 }
 
 interface UseChatReturn {
@@ -94,10 +100,11 @@ export function useChat({
   translations,
   plugins,
   streaming = true,
+  citations = false,
 }: UseChatOptions): UseChatReturn {
   const client = useMemo(
-    () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs }),
-    [apiUrl, timeoutMs],
+    () => new ChatApiClient(apiUrl, { debounceMs: 0, timeoutMs, citations }),
+    [apiUrl, timeoutMs, citations],
   );
 
   const storageKey = getStorageKey(storageKeyPrefix, apiUrl);
@@ -212,6 +219,13 @@ export function useChat({
       // until then.
       let placeholderId: string | null = null;
 
+      // The worker may announce the sources before the first token. They wait
+      // here until the placeholder exists, so an announcement alone never
+      // creates an empty bubble. A widget without citations keeps today's
+      // timing and gets them on done, so nothing changes for it.
+      let earlySources: Source[] | undefined;
+      const attachEarly = () => (citations ? earlySources : undefined);
+
       const upsertPlaceholder = (patch: Partial<ChatMessage>) => {
         if (placeholderId === null) {
           placeholderId = nextId();
@@ -223,6 +237,7 @@ export function useChat({
               role: "assistant",
               content: "",
               createdAt: timestamp(),
+              ...(attachEarly() ? { sources: earlySources } : {}),
               ...patch,
             },
           ];
@@ -263,9 +278,15 @@ export function useChat({
               upsertPlaceholder({ content: fullText }),
             onToolUse: (_toolUse, allToolUses) =>
               upsertPlaceholder({ toolUses: [...allToolUses] }),
+            onSources: (announced) => {
+              earlySources = announced;
+              if (citations && placeholderId !== null) {
+                upsertPlaceholder({ sources: announced });
+              }
+            },
           });
           reply = result.reply;
-          sources = result.sources;
+          sources = result.sources ?? earlySources;
           toolUses = result.toolUses;
           storedAttachments = result.attachments;
           aborted = result.aborted ?? false;
@@ -402,6 +423,7 @@ export function useChat({
     },
     [
       apiUrl,
+      citations,
       client,
       getErrorMessage,
       isRetryableError,

@@ -110,6 +110,7 @@ pnpm test             # Run tests
 | `MessageSpeechControls` | Read aloud / pause / resume / stop buttons under assistant replies |
 | `AttachmentPreview` | Image thumbnail / file chip for pending and sent attachments |
 | `HeaderMenu` | Generic accessible overflow menu in the chat header; hosts the export actions |
+| `SourceCards` | Collapsible footer of source cards under a cited reply; reveals a card when its chip is clicked |
 
 ### useChat Hook
 
@@ -144,7 +145,7 @@ Worker can't stream.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | POST | Send message, get AI response (JSON, or multipart when uploading files) |
-| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`chunk`/`tool`/`done`/`error` events) |
+| `/api/chat/stream` | POST | Same request; streams the reply as SSE (`sources`/`chunk`/`tool`/`done`/`error` events) |
 | `/api/attachments/*` | GET | Serve a stored attachment via signed URL (R2 mode only) |
 | `/api/health` | GET | Health check |
 
@@ -218,11 +219,29 @@ Never assert on raw `Intl` output in tests: CI's Node 20 emits U+202F before
 "PM" and local Node 24 does not. Docs: configuration/conversation-export.md;
 design: docs/plans/2026-09-19-conversation-export-design.md.
 
+### Citations
+
+Widget-only opt-in (`citations` prop / `ClaudiusConfig` key /
+`<claudius-chat citations citations-max-sources citations-favicons>` /
+`widget.citations` in client configs), failing closed like `conversationExport`.
+When on, the client sends `citations: true`, the worker numbers its RAG
+excerpts to match `sources` and appends `CITATION_INSTRUCTIONS`
+(`worker/src/rag/retrieval.ts`, `buildRagContext`), the stream route emits
+`event: sources` before the first chunk, and `ChatMessage` renders in-range
+`[n]` markers as chips with a `SourceCards` footer instead of the source icon.
+Sources carry a 200-character `snippet`. Pure helpers live in
+`widget/src/utils/citations.ts` (`parseCitations`, `stripCitationMarkers`,
+`hideTrailingCitationOpener`, `resolveCitationsConfig`,
+`citationsOptionsFromAttributes`). Only markers whose numbers are all within
+`sources.length` become chips. Docs: configuration/citations.md; design:
+docs/plans/2026-09-27-inline-citations-design.md.
+
 ### Chat Request/Response
 
 ```typescript
 // Request
 {
+  citations?: true, // widget asks for numbered, citable excerpts
   messages: [
     { role: "user", content: "Hello" },
     { role: "assistant", content: "Hi there!" },
@@ -240,7 +259,7 @@ design: docs/plans/2026-09-19-conversation-export-design.md.
 {
   reply: "How can I help you today?",
   sources?: [
-    { url: "https://...", title: "...", type: "blog" | "page" | "external" }
+    { url: "https://...", title: "...", type: "blog" | "page" | "external", snippet?: "..." }
   ],
   attachments?: [ { id: "att-1", key: "att/...", url: "https://.../api/attachments/...?exp=&sig=", expiresAt: "..." } ]
 }

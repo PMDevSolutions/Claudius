@@ -98,6 +98,16 @@ export interface ClaudiusTranslations {
   transcriptAttachments: string;
   /** Transcript label above a message's citation list, including its colon. */
   transcriptSources: string;
+  /** Label of the sources footer under a cited reply, and of its list. */
+  sources: string;
+  /** Button that reveals the remaining source cards; supports `{count}`. */
+  showAllSources: string;
+  /** Button that hides the extra source cards again. */
+  showFewerSources: string;
+  /** Accessible name of a citation chip; supports `{n}` and `{title}`. */
+  citation: string;
+  /** Visually hidden hint appended to links that open a new tab. */
+  opensInNewTab: string;
   /** Generic fallback error message. */
   errorGeneric: string;
   /** Error shown when the network request fails. */

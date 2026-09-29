@@ -206,6 +206,9 @@ function getChatConfig(env: Env, body?: ChatRequest) {
     },
     // Retrieval config, active only when the Vectorize + AI bindings exist.
     rag: createRagFromEnv(env),
+    // Only the literal true: a hand-written client sending "true" gets the
+    // unnumbered prompt it has always had.
+    citations: body?.citations === true,
   };
 }
 
@@ -390,10 +393,11 @@ app.post("/api/chat", async (c) => {
 });
 
 // Streaming variant of /api/chat. Emits SSE events:
-//   event: chunk  data: {"text": "..."}        one per model text delta
-//   event: tool   data: {...ToolUseSummary}    one per executed tool call
-//   event: done   data: {"reply": "..."}       full assembled reply, stream end
-//   event: error  data: {"error": ..., "code"} failure after streaming began
+//   event: sources data: {"sources": [...]}     once, before the first chunk, when RAG found any
+//   event: chunk   data: {"text": "..."}        one per model text delta
+//   event: tool    data: {...ToolUseSummary}    one per executed tool call
+//   event: done    data: {"reply": "..."}       full assembled reply, stream end
+//   event: error   data: {"error": ..., "code"} failure after streaming began
 // Failures before the first byte (rate limit, validation, attachments, bad
 // API key, model errors) return plain JSON with the same status codes and
 // shapes as /api/chat, so clients can share error handling and fall back
@@ -490,6 +494,11 @@ app.post("/api/chat/stream", async (c) => {
             await sse.writeSSE({
               event: "tool",
               data: JSON.stringify(event.toolUse),
+            });
+          } else if (event.type === "sources") {
+            await sse.writeSSE({
+              event: "sources",
+              data: JSON.stringify({ sources: event.sources }),
             });
           } else {
             telemetry = event.telemetry;
