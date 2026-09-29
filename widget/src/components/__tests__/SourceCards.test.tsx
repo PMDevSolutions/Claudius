@@ -214,6 +214,19 @@ describe("SourceCards", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not replay the last reveal when maxSources changes", () => {
+    const scroll = vi.spyOn(Element.prototype, "scrollIntoView");
+    const reveal = { index: 0, key: 1 };
+    const { rerender } = renderCards({ sources: many(3), reveal });
+    expect(scroll).toHaveBeenCalledTimes(1);
+    screen.getByRole("button", { name: /Sources/ }).focus();
+
+    rerender({ maxSources: 2, reveal });
+
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("listitem")[0]).not.toHaveFocus();
+  });
+
   it("scrolls instantly when the visitor prefers reduced motion", () => {
     // Same override as the theme=auto test: the setup file defines
     // matchMedia as a writable, non-configurable property, which spyOn

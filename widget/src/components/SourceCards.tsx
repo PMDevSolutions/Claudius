@@ -173,6 +173,10 @@ export const SourceCards = memo(function SourceCards({
   const [pending, setPending] = useState<SourceReveal | null>(null);
   const [highlighted, setHighlighted] = useState<SourceReveal | null>(null);
   const cardRefs = useRef(new Map<number, HTMLLIElement>());
+  // Read at reveal time only: a later change to the cut must not replay the
+  // last reveal.
+  const maxSourcesRef = useRef(maxSources);
+  maxSourcesRef.current = maxSources;
 
   // A reveal opens the footer and, when the card is past the cut, the whole
   // list. The scroll and focus wait for the render that adds the card.
@@ -180,8 +184,8 @@ export const SourceCards = memo(function SourceCards({
     if (!reveal) return;
     setPending(reveal);
     setExpanded(true);
-    if (reveal.index >= maxSources) setShowAll(true);
-  }, [reveal, maxSources]);
+    if (reveal.index >= maxSourcesRef.current) setShowAll(true);
+  }, [reveal]);
 
   useEffect(() => {
     if (!pending) return;
