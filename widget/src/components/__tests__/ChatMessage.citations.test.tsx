@@ -62,6 +62,17 @@ describe("ChatMessage citations", () => {
     expect(chip.closest("strong")).not.toBeNull();
   });
 
+  it("detaches a marker glued to the end of a URL", () => {
+    renderCited("See https://example.com/pricing[1].");
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "https://example.com/pricing",
+    );
+    expect(
+      screen.getByRole("button", { name: "Source 1: Pricing" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders each number of a group as its own chip", () => {
     renderCited("Both apply [1, 2].");
     expect(

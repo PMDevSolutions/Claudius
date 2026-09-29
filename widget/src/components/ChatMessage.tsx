@@ -157,6 +157,8 @@ function ToolUseChip({
 const URL_REGEX = /(https?:\/\/[^\s)]+)/;
 const BOLD_REGEX = /(\*\*[^*]+\*\*)/;
 const ITALIC_REGEX = /(\*[^*]+\*)/;
+// One or more `[n]` / `[n, m]` groups at the very end of a URL match.
+const TRAILING_MARKERS = /(?:\[[1-9]\d{0,2}(?:\s*,\s*[1-9]\d{0,2})*\])+$/;
 
 /** Everything the inline renderer needs beyond the text itself. */
 interface RenderContext {
@@ -185,8 +187,13 @@ function renderLink(
     : rawUrl;
   const suffix = trailingPunct ? trailingPunct[0] : "";
 
+  // With citations on, a marker glued to the end of an address belongs to
+  // the sentence, not the URL: "see https://example.com/pricing[1]."
+  const glued = ctx.citations ? url.match(TRAILING_MARKERS) : null;
+  const address = glued ? url.slice(0, -glued[0].length) : url;
+
   // Validate URL scheme to prevent javascript:, data:, vbscript: attacks
-  const safeUrl = sanitizeUrl(url);
+  const safeUrl = sanitizeUrl(address);
   if (!safeUrl) {
     // If URL is not safe, render as plain text
     return rawUrl;
@@ -203,6 +210,7 @@ function renderLink(
         {safeUrl.replace(/^https?:\/\//, "")}
         <span className="sr-only"> {ctx.newTabLabel}</span>
       </a>
+      {glued && renderCitations(glued[0], `${key}-m`, ctx)}
       {suffix}
     </Fragment>
   );
