@@ -13,10 +13,11 @@ export interface ChatSource {
 export const SOURCE_SNIPPET_MAX_CHARS = 200;
 
 /**
- * Plain-text preview of a chunk for the widget's source cards: heading
- * markers, bold markers, and backticks removed, whitespace collapsed, cut at
- * the last space before `maxChars` (or hard when there is none) with a
- * trailing ellipsis. Undefined when nothing is left.
+ * Plain-text preview of a chunk for the widget's source cards: Markdown
+ * block and inline markers removed (headings, blockquotes, list markers,
+ * links and images down to their text, bold, code, italics), whitespace
+ * collapsed, cut at the last space before `maxChars` (or hard when there is
+ * none) with a trailing ellipsis. Undefined when nothing is left.
  */
 export function snippetFromContent(
   content: string,
@@ -24,7 +25,13 @@ export function snippetFromContent(
 ): string | undefined {
   const text = content
     .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
+    .replace(/^[ \t]*>[ \t]?/gm, "")
+    .replace(/^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/gm, "")
+    .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, "$1")
     .replace(/\*\*|`/g, "")
+    // Emphasis only when the markers bound a word: "5 * 3" and snake_case
+    // stay as written.
+    .replace(/(^|[\s(])[*_]([^*_\n]+)[*_](?=[\s).,;:!?]|$)/gm, "$1$2")
     .replace(/\s+/g, " ")
     .trim();
   if (!text) return undefined;

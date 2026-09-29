@@ -217,6 +217,18 @@ describe("snippetFromContent", () => {
     ).toBe("Pricing Plans start at $75 per hour.");
   });
 
+  it("strips list markers, blockquotes, links, images, and italics", () => {
+    expect(
+      snippetFromContent(
+        "- See [pricing](https://e.com/p) for *details*\n> _Quoted_ line\n1. ![alt](img.png) done"
+      )
+    ).toBe("See pricing for details Quoted line alt done");
+    // A lone asterisk or underscore in prose is not emphasis.
+    expect(snippetFromContent("5 * 3 = 15 and snake_case_names")).toBe(
+      "5 * 3 = 15 and snake_case_names"
+    );
+  });
+
   it("keeps text at the limit and cuts longer text at a word boundary", () => {
     const exact = "a".repeat(200);
     expect(snippetFromContent(exact)).toBe(exact);
