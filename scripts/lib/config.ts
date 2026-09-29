@@ -17,6 +17,11 @@ export interface WidgetVoiceConfig {
   lang?: string;
 }
 
+export interface WidgetCitationsConfig {
+  maxSources?: number;
+  favicons?: boolean;
+}
+
 export interface WidgetConfig {
   title?: string;
   subtitle?: string;
@@ -28,6 +33,7 @@ export interface WidgetConfig {
   attachments?: boolean | WidgetAttachmentsConfig;
   voice?: boolean | WidgetVoiceConfig;
   conversationExport?: boolean;
+  citations?: boolean | WidgetCitationsConfig;
 }
 
 export interface WorkerAttachmentsConfig {
@@ -295,6 +301,32 @@ export function validateConfig(
         field: "widget.conversationExport",
         message: "widget.conversationExport must be a boolean",
       });
+    }
+
+    if (widget.citations !== undefined) {
+      const citations = widget.citations;
+      if (typeof citations === "boolean") {
+        // fine
+      } else if (citations && typeof citations === "object" && !Array.isArray(citations)) {
+        const options = citations as Record<string, unknown>;
+        if (options.maxSources !== undefined && !isPositiveInt(options.maxSources)) {
+          errors.push({
+            field: "widget.citations.maxSources",
+            message: "widget.citations.maxSources must be a positive integer",
+          });
+        }
+        if (options.favicons !== undefined && typeof options.favicons !== "boolean") {
+          errors.push({
+            field: "widget.citations.favicons",
+            message: "widget.citations.favicons must be a boolean",
+          });
+        }
+      } else {
+        errors.push({
+          field: "widget.citations",
+          message: "widget.citations must be a boolean or an object",
+        });
+      }
     }
   }
 
