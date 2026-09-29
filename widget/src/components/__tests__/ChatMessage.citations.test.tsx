@@ -185,6 +185,21 @@ describe("ChatMessage citations", () => {
     expect(screen.getByText("Plans start at $10 [1")).toBeInTheDocument();
   });
 
+  it("hides an unfinished marker inside unclosed bold while streaming", () => {
+    render(
+      <ChatMessage
+        role="assistant"
+        content="**Plans start at $10 [1"
+        isStreaming
+        sources={sources}
+        citations={citations}
+      />,
+    );
+    const bold = screen.getByText("Plans start at $10");
+    expect(bold.tagName).toBe("STRONG");
+    expect(screen.queryByText(/\[1/)).toBeNull();
+  });
+
   it("keeps a trailing bracket while streaming a reply without sources", () => {
     render(
       <ChatMessage

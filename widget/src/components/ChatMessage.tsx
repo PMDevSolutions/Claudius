@@ -336,11 +336,13 @@ export const ChatMessage = memo(function ChatMessage({
       ? { config: citations, sources }
       : null;
   const hasAttachments = !!attachments && attachments.length > 0;
-  const streamed = isStreaming ? stabilizeStreamingMarkdown(content) : content;
-  // A half-typed `[1` would flash as text before its chip; hide it like the
-  // bold stabilizer hides a bare `**`.
-  const displayContent =
-    isStreaming && cited ? hideTrailingCitationOpener(streamed) : streamed;
+  // A half-typed `[1` would flash as text before its chip; hide it before
+  // the bold stabilizer runs, so it is hidden inside an unclosed ** as well.
+  const hidden =
+    isStreaming && cited ? hideTrailingCitationOpener(content) : content;
+  const displayContent = isStreaming
+    ? stabilizeStreamingMarkdown(hidden)
+    : hidden;
   const renderContext: RenderContext = {
     newTabLabel: linkNewTabLabel,
     citations: cited
