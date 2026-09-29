@@ -339,14 +339,6 @@ export async function* streamChat(
         : {}),
     });
 
-    // Announce the sources once the model connection is open, so the widget
-    // can render citation chips while the text streams. Not before: the
-    // route pulls the first event before opening the SSE response, and a
-    // bad API key must still surface there as a JSON error.
-    if (round === 0 && rag.sources.length > 0) {
-      yield { type: "sources", sources: rag.sources };
-    }
-
     // Reconstructed content blocks for this round, in order — needed to
     // append the assistant turn verbatim when continuing after tool calls.
     const contentBlocks: Array<
@@ -359,8 +351,18 @@ export async function* streamChat(
     // Separate this round's text from the previous round's with a blank
     // line, mirroring the non-streaming reply assembly.
     let firstTextOfRound = true;
+    // Announced together with the first upstream event, so the widget can
+    // render citation chips while the text streams. Not before it: the route
+    // pulls one event before opening the SSE response, and an upstream
+    // failure delivered as the first stream event (an overload, say) must
+    // still surface there as a JSON error the client retries.
+    let sourcesAnnounced = round > 0 || rag.sources.length === 0;
 
     for await (const event of stream) {
+      if (!sourcesAnnounced) {
+        sourcesAnnounced = true;
+        yield { type: "sources", sources: rag.sources };
+      }
       switch (event.type) {
         case "message_start":
           inputTokens += event.message.usage?.input_tokens ?? 0;

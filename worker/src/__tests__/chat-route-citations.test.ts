@@ -146,6 +146,27 @@ describe("citations on the chat routes", () => {
     expect(text).toContain('"reply":"Plans start at $10 [1]."');
   });
 
+  it("still returns JSON 503 when the model stream fails on its first event with RAG on", async () => {
+    // Anthropic can deliver an overload as the first stream event. The route
+    // must still see that before any sources announcement opens the SSE.
+    createSpy.mockImplementation(() =>
+      (async function* () {
+        await Promise.resolve();
+        throw new Error("overloaded_error");
+      })()
+    );
+
+    const res = await app.fetch(
+      request("/api/chat/stream", { messages, citations: true }),
+      ragEnv(),
+      createMockCtx()
+    );
+
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Content-Type")).toContain("application/json");
+    expect(await res.json()).toMatchObject({ code: "SERVICE_ERROR" });
+  });
+
   it("still returns JSON 500 when the model connection fails with RAG on", async () => {
     createSpy.mockImplementation(() => {
       throw new Error("authentication failed");
