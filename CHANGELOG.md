@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0](https://github.com/PMDevSolutions/Claudius/compare/v1.17.1...v1.18.0) (2026-09-29)
+
+
+### Features
+
+* **cli:** widget.citations in client configs, snippets, and the schema ([806c0ef](https://github.com/PMDevSolutions/Claudius/commit/806c0ef71ae0530f3001b4f6c415ca476a608320))
+* inline citations and source cards for RAG results ([c899b84](https://github.com/PMDevSolutions/Claudius/commit/c899b84548bb2d1e942f70465279ef632aa4e0a9))
+* **widget:** citations option on the component, ClaudiusConfig, and &lt;claudius-chat&gt; ([a701de9](https://github.com/PMDevSolutions/Claudius/commit/a701de954e8cbc64e38b45b37a3978078215848c))
+* **widget:** collapsible source-card footer ([bdb9246](https://github.com/PMDevSolutions/Claudius/commit/bdb924671bee4667155bb027ebcc63062ec7de18))
+* **widget:** keep announced sources on the streaming reply ([0a45385](https://github.com/PMDevSolutions/Claudius/commit/0a45385989eaee325557367b7abd129b1f24a49b))
+* **widget:** pure helpers for citation markers and the citations option ([d7a8b17](https://github.com/PMDevSolutions/Claudius/commit/d7a8b1793c9776f43c930b7b95fccf05c9cbf150))
+* **widget:** render citation markers as chips with a source-card footer ([9408779](https://github.com/PMDevSolutions/Claudius/commit/94087797f1a8810ac1006bb90fc657898461ad11))
+* **widget:** request citations and read the early sources event ([67ab530](https://github.com/PMDevSolutions/Claudius/commit/67ab530fb6f7137c0b6401e79350e83196ecde15))
+* **widget:** strings for citation chips and the sources footer ([58e282a](https://github.com/PMDevSolutions/Claudius/commit/58e282adddb38380cabdeb55b471490cd771a77d))
+* **widget:** wire citations through the chat window and its live region ([0d6d131](https://github.com/PMDevSolutions/Claudius/commit/0d6d131daccffffe58e17cb81c0288e0269b8e8a))
+* **worker:** announce RAG sources before the first streamed chunk ([df5cc59](https://github.com/PMDevSolutions/Claudius/commit/df5cc59987d205415530b4a2e4832cfc5933d28d))
+* **worker:** attach a snippet to each RAG source ([b4fd0e6](https://github.com/PMDevSolutions/Claudius/commit/b4fd0e63a48b9860190cdaaee31314e0178ef8d8))
+* **worker:** number RAG excerpts and ask for citations when the request opts in ([10fdcf2](https://github.com/PMDevSolutions/Claudius/commit/10fdcf2d1a75bbe445789e6a287b94d02f84d8b4))
+
+
+### Bug Fixes
+
+* **widget:** detach a citation marker glued to the end of a URL ([659b71c](https://github.com/PMDevSolutions/Claudius/commit/659b71c62d22d371325dec4301c1b1d8f755b711))
+* **widget:** do not replay the last reveal when maxSources changes ([b6fdda0](https://github.com/PMDevSolutions/Claudius/commit/b6fdda00c79b5851a24718d80015970bc43e3bfd))
+* **widget:** hide an unfinished citation marker inside unclosed bold while streaming ([2c04566](https://github.com/PMDevSolutions/Claudius/commit/2c04566241198d58d35b95d172505b30ec5da5fd))
+* **widget:** keep source timing unchanged for widgets without citations ([5f92197](https://github.com/PMDevSolutions/Claudius/commit/5f92197dd54293424c5a18ac582a8ba2bdeb8676))
+* **widget:** wrap long unbroken snippets inside a source card ([3935ee1](https://github.com/PMDevSolutions/Claudius/commit/3935ee1c17e59dc29a3ddc1a7b94e0e9880f9cdc))
+* **worker:** announce sources with the first upstream event, not before it ([c796736](https://github.com/PMDevSolutions/Claudius/commit/c7967366f780f6a17981bccf5e5913c29fff4bd8))
+* **worker:** strip list markers, blockquotes, links, and italics from snippets ([9bd8262](https://github.com/PMDevSolutions/Claudius/commit/9bd8262b261527a3b21ccdb0c6bdfc816604fa57))
+
 ## [1.17.1](https://github.com/PMDevSolutions/Claudius/compare/v1.17.0...v1.17.1) (2026-09-20)
 
 
