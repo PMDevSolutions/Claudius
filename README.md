@@ -6,6 +6,7 @@
 [![Playground](https://img.shields.io/badge/Playground-live-2563eb)](https://claudius-playground.pages.dev)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/claudius-chat-widget?label=bundle%20size)](https://bundlephobia.com/package/claudius-chat-widget)
 [![license](https://img.shields.io/npm/l/claudius-chat-widget.svg)](LICENSE)
+[![Patreon](https://img.shields.io/badge/Patreon-Support-orange?logo=patreon)](https://www.patreon.com/PaulMakesThings?utm_source=github)
 
 An open-source, embeddable AI chat widget powered by Claude. Drop it into any
 website with a single script tag, or install it as a React component.
