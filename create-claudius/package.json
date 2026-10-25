@@ -1,7 +1,7 @@
 {
   "name": "create-claudius",
   "version": "1.18.0",
-  "description": "Scaffold a Claudius AI chat widget project in one command.",
+  "description": "Scaffold a Claudius AI chat widget project in one command: a React or script-tag chat widget that answers with Claude, backed by a Cloudflare Worker you own.",
   "keywords": [
     "claudius",
     "create",
@@ -9,8 +9,13 @@
     "scaffold",
     "cli",
     "chat-widget",
+    "ai-chatbot",
+    "ai-chat",
     "claude",
-    "ai-chat"
+    "anthropic",
+    "cloudflare-workers",
+    "react",
+    "embeddable"
   ],
   "author": "PAMulligan",
   "license": "MIT",
