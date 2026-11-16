@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.1](https://github.com/PMDevSolutions/Claudius/compare/v1.18.0...v1.18.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **agents:** read HAR files with a Node one-liner in performance-benchmarker ([eef1e2b](https://github.com/PMDevSolutions/Claudius/commit/eef1e2b380dcaff0d7e3f869dfa69f4375f7efd5))
+* correct the tool commands in the performance skill and agents ([624cc4f](https://github.com/PMDevSolutions/Claudius/commit/624cc4f0433e7dfc0987bac100d9f0c455c708b0))
+* **scripts:** run the build script with npm run when there is no pnpm lockfile ([04b4fa5](https://github.com/PMDevSolutions/Claudius/commit/04b4fa5b4584457d6951eb4705b85032dcbb1536))
+* **skills:** correct the dependency size check command (thanks, Aleksandr Churilov) ([854bee6](https://github.com/PMDevSolutions/Claudius/commit/854bee6fedd6ba8f1789a0016354a6bafa2587bc))
+
 ## [1.18.0](https://github.com/PMDevSolutions/Claudius/compare/v1.17.1...v1.18.0) (2026-09-29)
 
 
